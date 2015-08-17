@@ -1,0 +1,27 @@
+#sprite	{
+	position: absolute;
+	width: 300px;
+	height: auto;
+	top: 0px;
+	left: 0px;
+	z-index: 1000;
+	display: none;
+}
+	
+.status	{
+	display: block;
+	clear: both;
+	border-radius: 5px;
+	background-color: #cc0;
+	font-size: medium;
+}
+	
+.console {
+	background-color: #404;
+	color: #0f0;
+	padding-bottom: 1em;
+	font-size: small;
+	display: block;
+	clear: both;
+	min-height: 10em;
+}
