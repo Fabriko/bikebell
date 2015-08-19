@@ -23,7 +23,7 @@
 <body>
 
 	<header>
-		<button id="menu-button" tabindex="0">
+		<button id="menu-button" tabindex="0" onclick="this.focus();">
 			<img src="ui/images/menu.svg" />
 		</button>
 
@@ -34,10 +34,10 @@
 			</menuitem>
 			-->
 			<menuitem>
-				<a id="menu.connect" href="javascript:connect()">Connect</a>
+				<a id="menu.connect" onclick="connect();">Connect</a>
 			</menuitem>
 			<menuitem>
-				<a href="javascript:navigator.app.exitApp();">Exit</a>
+				<a onclick="navigator.app.exitApp();">Exit</a>
 			</menuitem>
 		</menu>
 		
