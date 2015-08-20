@@ -10,11 +10,31 @@
 
 	<link rel="stylesheet" type="text/css" href="ui/css/evothings-app.css" />
 	<link rel="stylesheet" type="text/css" href="ui/css/fablab.css" />
+	
+	<link rel="stylesheet" href="ui/css/leaflet.css" />
+	<script src="libs/leaflet.js"></script>	
 
 	<script>
 	// Redirect console.log to Evothings Workbench.
 	if (window.hyper && window.hyper.log) {
 		console.log = hyper.log;
+	}
+	
+	document.addEventListener("DOMContentLoaded", function () {
+		console.log('yo maps'); startMap();
+        }, function() { console.log('bummer about the map'); } );
+	
+	var map;
+
+	function startMap() {
+		map = L.map('track-canvas');
+
+		L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+			attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+		}).addTo(map);
+
+		// map.setView([51.505, -0.09], 13); //FIXME
+		map.locate( { watch: true, setView: true, timeout: 30000} );
 	}
 	</script>
 
@@ -28,11 +48,9 @@
 		</button>
 
 		<menu>
-			<!--
 			<menuitem>
-				<a href="map.html">Map</a>
+				<a href="#track-canvas">Map</a>
 			</menuitem>
-			-->
 			<menuitem>
 				<a id="menu.connect" onclick="connect();">Connect</a>
 			</menuitem>
@@ -46,7 +64,9 @@
 	<h1>Fablab Sensibell</h1>
 
 	<div id="banner">
-		<img src="fablabchch.png" alt="FAB LAB CHCH" style="float:left;width:100px;height:auto;"/>
+		<a href="#track-canvas">
+			<img src="fablabchch.png" alt="FAB LAB CHCH" style="float:left;width:100px;height:auto;"/>
+		</a>
 
 		<img id="connectButton" src="TISensorTagCC2650.png" style="float:right;width:120px;height:auto;" onclick="connect()" />
 	</div>
@@ -60,6 +80,8 @@
 	</p>
 
 	<img id="sprite" src="sprite.svg" />
+
+	<div id="track-canvas" class="section map"></div>
 
 	<script src="cordova.js"></script>
 	<script src="libs/evothings/evothings.js"></script>

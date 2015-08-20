@@ -25,3 +25,31 @@
 	clear: both;
 	min-height: 10em;
 }
+
+.section {
+	display: none;
+
+	box-sizing: border-box; /* Width & height includes padding & border. */
+
+	position: absolute;
+
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+
+	width: 100%;
+
+	padding: 0 0.9em 0 0.9em;
+
+	z-index: 2;
+
+}
+
+.section:target {
+	display: block;
+}
+
+#track-canvas {
+    height: 100%;
+}
