@@ -267,6 +267,7 @@ function disconnect() {
 	//journey.addPoint([172.72697824,-43.60028126]);
 	console.log(journey.serialise());
 	console.log(JSON.stringify(journey.geoJSON()));
+	L.geoJson(journey.geoJSON()).addTo(map);
 }
 
 function statusHandler(status) {
