@@ -85,47 +85,6 @@ function intialiseGPS(options) {
 	}
 }
 
-function initialiseSprite()	{
-	sprite = SpriteManager.makeSprite();
-	sprite.setDOMElement(document.getElementById('sprite'));
-}
-
-function displaySprite() {
-	sprite.whenLoaded(function() {
-		sprite.show();
-		sprite.setCenterX(SpriteManager.getPlayfieldWidth() / 2);
-		sprite.setCenterY(SpriteManager.getPlayfieldHeight() / 2);
-	})
-}
-
-function moveSprite(dx, dy)	{
-	var x = sprite.getCenterX() + dx;
-	var y = sprite.getCenterY() - dy;
-
-	x = Math.min(x, SpriteManager.getPlayfieldWidth());
-	x = Math.max(x, 0);
-
-	y = Math.min(y, SpriteManager.getPlayfieldHeight());
-	y = Math.max(y, 0);
-
-	sprite.setCenterX(x);
-	sprite.setCenterY(y);
-}
-
-function initialiseSensorTag() {
-	// Create SensorTag CC2650 instance.
-	sensortag = evothings.tisensortag.createInstance(evothings.tisensortag.CC2650_BLUETOOTH_SMART);
-
-	// Set up callbacks and sensors.
-	sensortag
-		.statusCallback(statusHandler)
-		.errorCallback(errorHandler)
-		.accelerometerCallback(accelerometerHandler, 100)
-		.keypressCallback(keypressHandler);
-		
-	logActivity('Device initialised');
-}
-
 Date.prototype.getUTCTime = function() {
 	return (this.getTime() + this.getTimezoneOffset() * 60000) / 1000;
 }
@@ -192,40 +151,6 @@ function checkDoublePress(key, interval) {
 	}
 }
 
-function keypressHandler(data) {
-	var val = data[0];
-	var speed = 1;
-
-	if ( val != 0 )	{
-		if ( checkDoublePress(val, speed) )	{
-			val += 3;
-		}
-	}
-			
-	// Update background color.
-	switch (val) {
-		case 0: // no keys
-			setPathColor('white');
-			break;
-		case 1: // user key
-			setPathColor('blue');
-			logPosition(val);
-			break;
-		case 2: // power key
-			setPathColor('red');
-			logPosition(val);
-			break;
-		case 3: // both keys
-			setPathColor('magenta');
-			break;
-		case 4:
-		case 5:
-		case 6:
-			logActivity('Double clicked ' + (val-3).toString() + ' to get ' + val );
-			logPosition(val);
-	}
-}
-
 function logPosition(val, options) {
 	if ( options === undefined ) {
 		options = geoOptions;
@@ -259,6 +184,104 @@ function setPathColor(color) {
 	document.documentElement.style.background = color;
 	document.body.style.background = color;
 	// console.log(color);
+}
+
+function statusUISwitch(connected) {
+	button = document.getElementById('connectButton');
+	menuItem = document.getElementById('menu.connect');
+
+	if ( connected ) {
+		button.src = 'ui/images/CC2650-on.png';
+		button.onclick = disconnect;
+		menuItem.innerHTML = 'Disconnect';
+		menuItem.setAttribute('href', 'javascript:disconnect()');
+		displaySprite();
+	}
+	else {
+		button.src = 'ui/images/CC2650-off.png';
+		button.onclick = connect;
+		menuItem.innerHTML = 'Connect';
+		menuItem.setAttribute('href', 'javascript:connect()');
+		sprite.hide();
+	}
+}
+
+function displayStatus(status) {
+	document.getElementById('status').innerHTML = status;
+}
+
+function logActivity(msg) {
+	console.log(msg);
+	document.getElementById('activities').innerHTML =
+		formatTimestamp(new Date(), 'log') +
+		': ' + 
+		msg + '<br/>' + 
+		document.getElementById('activities').innerHTML;
+}
+
+document.addEventListener(
+	'deviceready',
+	function() {
+		evothings.scriptsLoaded(initialise);
+	},
+	false
+);
+	
+document.addEventListener(
+	'DOMContentLoaded',
+	function() {
+		logActivity('Application loaded :: events will be logged here');
+	},
+	false
+);
+
+function gpxTrack(title) {
+	// FIXME: src below, clearly
+	src = '<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="OSMTracker for Android™ - http://osmtracker-android.googlecode.com/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd ">';
+	src += '<trk><name>' + title + '</name><trkseg>';
+	// src += '<trkpt>'; //etc
+	src += '</trkseg></trk>';
+	src += '</gpx>';
+	this['dom'] = (new DOMParser).parseFromString(src, 'application/xml');
+
+	this.serialise = function() {
+		// return this.dom.toString();
+		return (new XMLSerializer()).serializeToString(this.dom);
+	}
+
+	this.geoJSON = function() {
+		return toGeoJSON.gpx(this.dom);
+	}
+
+	this.addPoint = function(lonlat) {
+		trkseg = this.dom.querySelector("trk trkseg"); // [name='" + title + "']
+		trkpt = this.dom.createElement('trkpt');
+		trkpt.setAttribute('lon', lonlat[0]);
+		trkpt.setAttribute('lat', lonlat[1]);
+		time = this.dom.createElement('time');
+		timeValue = this.dom.createTextNode(formatTimestamp(new Date(), 'W3CDTF'));
+		time.appendChild(timeValue);
+		trkpt.appendChild(time);
+		trkseg.appendChild(trkpt);
+	}
+}
+
+/* ************* Sensortag and sprite functions being deprecated *********** */
+function errorHandler(error) {
+	if (evothings.easyble.error.DISCONNECTED == error) {
+		displayStatus('Disconnected');
+		sprite.hide();
+	}
+	else {
+		displayStatus('Error: ' + error);
+	}
+}
+
+function accelerometerHandler(data)	{
+	var values = sensortag.getAccelerometerValues(data);
+	var dx = values.x * 50;
+	var dy = values.y * 50 * -1;
+	moveSprite(dx, dy);
 }
 
 function connect() {
@@ -301,98 +324,77 @@ function statusHandler(status) {
 	}
 }
 
-function statusUISwitch(connected) {
-	button = document.getElementById('connectButton');
-	menuItem = document.getElementById('menu.connect');
+function keypressHandler(data) {
+	var val = data[0];
+	var speed = 1;
 
-	if ( connected ) {
-		button.src = 'ui/images/CC2650-on.png';
-		button.onclick = disconnect;
-		menuItem.innerHTML = 'Disconnect';
-		menuItem.setAttribute('href', 'javascript:disconnect()');
-		displaySprite();
+	if ( val != 0 )	{
+		if ( checkDoublePress(val, speed) )	{
+			val += 3;
+		}
 	}
-	else {
-		button.src = 'ui/images/CC2650-off.png';
-		button.onclick = connect;
-		menuItem.innerHTML = 'Connect';
-		menuItem.setAttribute('href', 'javascript:connect()');
-		sprite.hide();
+			
+	// Update background color.
+	switch (val) {
+		case 0: // no keys
+			setPathColor('white');
+			break;
+		case 1: // user key
+			setPathColor('blue');
+			logPosition(val);
+			break;
+		case 2: // power key
+			setPathColor('red');
+			logPosition(val);
+			break;
+		case 3: // both keys
+			setPathColor('magenta');
+			break;
+		case 4:
+		case 5:
+		case 6:
+			logActivity('Double clicked ' + (val-3).toString() + ' to get ' + val );
+			logPosition(val);
 	}
 }
 
-function errorHandler(error) {
-	if (evothings.easyble.error.DISCONNECTED == error) {
-		displayStatus('Disconnected');
-		sprite.hide();
-	}
-	else {
-		displayStatus('Error: ' + error);
-	}
+function initialiseSprite()	{
+	sprite = SpriteManager.makeSprite();
+	sprite.setDOMElement(document.getElementById('sprite'));
 }
 
-function accelerometerHandler(data)	{
-	var values = sensortag.getAccelerometerValues(data);
-	var dx = values.x * 50;
-	var dy = values.y * 50 * -1;
-	moveSprite(dx, dy);
+function displaySprite() {
+	sprite.whenLoaded(function() {
+		sprite.show();
+		sprite.setCenterX(SpriteManager.getPlayfieldWidth() / 2);
+		sprite.setCenterY(SpriteManager.getPlayfieldHeight() / 2);
+	})
 }
 
-function displayStatus(status) {
-	document.getElementById('status').innerHTML = status;
+function moveSprite(dx, dy)	{
+	var x = sprite.getCenterX() + dx;
+	var y = sprite.getCenterY() - dy;
+
+	x = Math.min(x, SpriteManager.getPlayfieldWidth());
+	x = Math.max(x, 0);
+
+	y = Math.min(y, SpriteManager.getPlayfieldHeight());
+	y = Math.max(y, 0);
+
+	sprite.setCenterX(x);
+	sprite.setCenterY(y);
 }
 
-function logActivity(msg) {
-	console.log(msg);
-	document.getElementById('activities').innerHTML =
-		formatTimestamp(new Date(), 'log') +
-		': ' + 
-		msg + '<br/>' + 
-		document.getElementById('activities').innerHTML;
-}
+function initialiseSensorTag() {
+	// Create SensorTag CC2650 instance.
+	sensortag = evothings.tisensortag.createInstance(evothings.tisensortag.CC2650_BLUETOOTH_SMART);
 
-document.addEventListener(
-	'deviceready',
-	function() {
-		evothings.scriptsLoaded(initialise);
-	},
-	false
-);
-	
-document.addEventListener(
-	'DOMContentLoaded',
-	function() {
-		logActivity('Application loaded :: events will be logged here');
-	},
-	false
-);
-
-function gpxTrack(title) {
-	src = '<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="OSMTracker for Android™ - http://osmtracker-android.googlecode.com/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd ">';
-	src += '<trk><name>' + title + '</name><trkseg>';
-	// src += '<trkpt>'; //etc
-	src += '</trkseg></trk>';
-	src += '</gpx>';
-	this['dom'] = (new DOMParser).parseFromString(src, 'application/xml');
-
-	this.serialise = function() {
-		// return this.dom.toString();
-		return (new XMLSerializer()).serializeToString(this.dom);
-	}
-
-	this.geoJSON = function() {
-		return toGeoJSON.gpx(this.dom);
-	}
-
-	this.addPoint = function(lonlat) {
-		trkseg = this.dom.querySelector("trk trkseg"); // [name='" + title + "']
-		trkpt = this.dom.createElement('trkpt');
-		trkpt.setAttribute('lon', lonlat[0]);
-		trkpt.setAttribute('lat', lonlat[1]);
-		time = this.dom.createElement('time');
-		timeValue = this.dom.createTextNode(formatTimestamp(new Date(), 'W3CDTF'));
-		time.appendChild(timeValue);
-		trkpt.appendChild(time);
-		trkseg.appendChild(trkpt);
-	}
+	// Set up callbacks and sensors.
+	sensortag
+		.statusCallback(statusHandler)
+		.errorCallback(errorHandler)
+		.accelerometerCallback(accelerometerHandler, 100)
+		.keypressCallback(keypressHandler);
+		
+	logActivity('Device initialised');
 }
