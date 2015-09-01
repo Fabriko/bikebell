@@ -55,6 +55,12 @@
 				<a id="menu.connect" onclick="connect();">Connect</a>
 			</menuitem>
 			<menuitem>
+				<a id="menu.connect" onclick="console.log('blend on'); app.on();">Blend light ON</a>
+			</menuitem>
+			<menuitem>
+				<a id="menu.connect" onclick="console.log('blend off'); app.off();">Blend light OFF</a>
+			</menuitem>
+			<menuitem>
 				<a onclick="navigator.app.exitApp();">Exit</a>
 			</menuitem>
 		</menu>
@@ -70,6 +76,9 @@
 
 		<img id="connectButton" src="TISensorTagCC2650.png" style="float:right;width:120px;height:auto;" onclick="connect()" />
 	</div>
+
+	<button id="on" onclick="app.on();" class="green">LED ON</button>
+	<button id="off" onclick="app.off();" class="red">LED OFF</button>
 
 	<p class="status"><strong>Status:</strong> <span id="status">Ready</span></p>
 
@@ -88,6 +97,7 @@
 	<script src="cordova.js"></script>
 	<script src="libs/evothings/evothings.js"></script>
 	<script src="libs/evothings/tisensortag/tisensortag.js"></script>
+	<script src="blend.js"></script>
 	<script src="SpriteManager.js"></script>
 
 	<script src="libs/togeojson.js"></script>
