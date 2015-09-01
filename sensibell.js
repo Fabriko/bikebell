@@ -1,6 +1,7 @@
 // Globals
+var sensortag, blend;
+var SENSOR = blend;
 var sprite;
-var sensortag;
 var geoWatchID;
 var journey = new gpxTrack('foo');
 var dblClickBuffer = { 
@@ -13,8 +14,15 @@ var geoOptions = {
 };
 
 function initialise() {
-	initialiseSprite();
-	initialiseSensorTag();
+	if (SENSOR === sensortag) {
+		initialiseSprite();
+		initialiseSensorTag();
+	}
+	else if(SENSOR === blend) {
+		blend.initialize();
+	}
+	console.log('SENSOR is ' + SENSOR.toString());
+
 	intialiseGPS();
 	if (window.LocalFileSystem) { //TODO: double-check in docs that this is the best FS support test
 		window.requestFileSystem(window.LocalFileSystem.PERSISTENT, 0, gotFS, fsFail);
@@ -254,20 +262,30 @@ function setPathColor(color) {
 }
 
 function connect() {
-	sensortag.connectToNearestDevice();
-	logActivity('Connecting');
+	if (sensortag !== undefined) {
+		sensortag.connectToNearestDevice();
+		logActivity('Connecting');
+	}
+	else {
+		logActivity('Sensortag is disabled in app config');
+	}
 }
 
 function disconnect() {
-	sensortag.disconnectDevice();
-	logActivity('Disconnecting device');
-	displayStatus('Disconnected');
-	statusUISwitch(false); // necessary because no status change event is triggered by disconnectDevice()
-	// clearWatch(); // FIXME: maybe should separate this from disconnect()
-	//journey.addPoint([172.72697824,-43.60028126]);
-	console.log(journey.serialise());
-	console.log(JSON.stringify(journey.geoJSON()));
-	L.geoJson(journey.geoJSON()).addTo(map);
+	if (sensortag !== undefined) {
+		sensortag.disconnectDevice();
+		logActivity('Disconnecting device');
+		displayStatus('Disconnected');
+		statusUISwitch(false); // necessary because no status change event is triggered by disconnectDevice()
+		// clearWatch(); // FIXME: maybe should separate this from disconnect()
+		//journey.addPoint([172.72697824,-43.60028126]);
+		console.log(journey.serialise());
+		console.log(JSON.stringify(journey.geoJSON()));
+		L.geoJson(journey.geoJSON()).addTo(map);
+	}
+	else {
+		logActivity('Sensortag is disabled in app config');
+	}
 }
 
 function statusHandler(status) {
