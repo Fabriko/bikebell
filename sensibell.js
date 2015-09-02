@@ -1,6 +1,6 @@
 // Globals
 var sensortag, blend;
-var SENSOR = blend; // new Sensor(blend); <-- FOR LATER, now it just has to work
+var SENSOR = sensortag; // new Sensor(blend); <-- FOR LATER, now it just has to work
 var sprite;
 var geoWatchID;
 var journey = new gpxTrack('foo');
@@ -23,13 +23,13 @@ document.addEventListener(
 
 function initialise() {
 	if (SENSOR === sensortag) {
-		initialiseSprite();
+		// initialiseSprite();
 		initialiseSensorTag();
 	}
 	else if(SENSOR === blend) {
 		blend.initialize();
 	}
-	console.log('SENSOR is ' + SENSOR.toString());
+	// console.log('SENSOR is ' + SENSOR.toString());
 
 	intialiseGPS();
 	if (window.LocalFileSystem) { //TODO: double-check in docs that this is the best FS support test
@@ -203,14 +203,14 @@ function statusUISwitch(connected) {
 		button.onclick = disconnect;
 		menuItem.innerHTML = 'Disconnect';
 		menuItem.setAttribute('href', 'javascript:disconnect()');
-		displaySprite();
+		// displaySprite();
 	}
 	else {
 		button.src = 'ui/images/CC2650-off.png';
 		button.onclick = connect;
 		menuItem.innerHTML = 'Connect';
 		menuItem.setAttribute('href', 'javascript:connect()');
-		sprite.hide();
+		// sprite.hide();
 	}
 }
 
@@ -262,7 +262,7 @@ function gpxTrack(title) {
 function errorHandler(error) {
 	if (evothings.easyble.error.DISCONNECTED == error) {
 		displayStatus('Disconnected');
-		sprite.hide();
+		// sprite.hide();
 	}
 	else {
 		displayStatus('Error: ' + error);
@@ -273,7 +273,7 @@ function accelerometerHandler(data)	{
 	var values = sensortag.getAccelerometerValues(data);
 	var dx = values.x * 50;
 	var dy = values.y * 50 * -1;
-	moveSprite(dx, dy);
+	// moveSprite(dx, dy);
 }
 
 function connect() {
