@@ -6,35 +6,6 @@
  */
 var ble = null;
 
-/**
- * Called when HTML page has been loaded.
- */
-/*
-$(document).ready( function()
-{
-	// Adjust canvas size when browser resizes
-	$(window).resize( respondCanvas );
-
-	// Adjust the canvas size when the document has loaded.
-	respondCanvas();
-});
-*/
-/**
- * Adjust the canvas dimensions based on its container's dimensions.
- */
- /*
-function respondCanvas()
-{
-	var canvas = $('#canvas');
-	var container = $(canvas).parent();
-	canvas.attr('width', $(container).width() ); // Max width
-	//canvas.attr('height', $(container).height() ); // Max height
-}
-*/
-
-/**
- * Application object that holds data and functions used by the app.
- */
 var app =
 {
 	// Discovered devices.
@@ -232,10 +203,6 @@ var app =
 		});
 	},
 
-	openBrowser: function(url)
-	{
-		window.open(url, '_system', 'location=yes')
-	}
 };
 // End of app object.
 

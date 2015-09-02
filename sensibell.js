@@ -13,6 +13,14 @@ var geoOptions = {
 	enableHighAccuracy: true
 };
 
+document.addEventListener(
+	'deviceready',
+	function() {
+		evothings.scriptsLoaded(initialise);
+	},
+	false
+);
+
 function initialise() {
 	if (SENSOR === sensortag) {
 		initialiseSprite();
@@ -218,22 +226,6 @@ function logActivity(msg) {
 		msg + '<br/>' + 
 		document.getElementById('activities').innerHTML;
 }
-
-document.addEventListener(
-	'deviceready',
-	function() {
-		evothings.scriptsLoaded(initialise);
-	},
-	false
-);
-	
-document.addEventListener(
-	'DOMContentLoaded',
-	function() {
-		logActivity('Application loaded :: events will be logged here');
-	},
-	false
-);
 
 function gpxTrack(title) {
 	// FIXME: src below, clearly

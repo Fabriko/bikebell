@@ -20,18 +20,28 @@
 		console.log = hyper.log;
 	}
 	
-	document.addEventListener("DOMContentLoaded", function () {
-		console.log('yo maps'); startMap();
-        }, function() { console.log('bummer about the map'); } );
-	
 	var map;
+
+	document.addEventListener(
+		'DOMContentLoaded',
+		function () {
+			startMap();
+			logActivity('Application loaded :: events will be logged here');
+			},
+		function() {
+			console.log('bummer about the map');
+		}
+	);
 
 	function startMap() {
 		map = L.map('track-canvas');
 
-		L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-			attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
-		}).addTo(map);
+		L.tileLayer(
+			'http://{s}.tile.osm.org/{z}/{x}/{y}.png',
+			{
+				attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+			}
+			).addTo(map);
 
 		// map.setView([51.505, -0.09], 13); //FIXME
 		map.locate( { watch: true, setView: true, timeout: 30000} );
