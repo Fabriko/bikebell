@@ -1,5 +1,7 @@
 // JavaScript code for the blend Sensibell app.
 
+// API docs: http://evothings.com/doc/raw/plugins/com.evothings.ble/com.evothings.module_ble.html
+
 /**
  * The BLE plugin is loaded asynchronously so the ble
  * variable is set in the onDeviceReady handler.
