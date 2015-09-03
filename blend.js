@@ -30,7 +30,8 @@ var app =
 
 	initialize: function()
 	{
-		document.addEventListener('deviceready', app.onDeviceReady, false);
+		// document.addEventListener('deviceready', app.onDeviceReady, false);
+		app.onDeviceReady();
 	},
 
 	// Called when device plugin functions are ready for use.
@@ -38,7 +39,7 @@ var app =
 	{
 		ble = evothings.ble; // Evothings BLE plugin
 
-		app.startScan();
+		// app.startScan();
 	},
 
 	startScan: function()

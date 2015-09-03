@@ -3,7 +3,7 @@ var sensortag, blend;
 var SENSOR = sensortag; // new Sensor(blend); <-- FOR LATER, now it just has to work
 var sprite;
 var geoWatchID;
-var journey = new gpxTrack('foo');
+var journey = new Journey('foo');
 var dblClickBuffer = { 
 	key:0, 
 	stamp:0
@@ -13,6 +13,7 @@ var geoOptions = {
 	enableHighAccuracy: true
 };
 
+/*
 document.addEventListener(
 	'deviceready',
 	function() {
@@ -20,6 +21,24 @@ document.addEventListener(
 	},
 	false
 );
+*/
+
+document.addEventListener(
+	'deviceready',
+	function() {
+		evothings.scriptsLoaded(initSensor);
+		// evothings.scriptsLoaded(connectSensor);
+	},
+	false
+);
+document.addEventListener(
+	'resume',
+	function() {
+		// evothings.scriptsLoaded(connectSensor);
+	},
+	false
+);
+// TODO: add stopScan for pause
 
 function initialise() {
 	if (SENSOR === sensortag) {
@@ -31,7 +50,7 @@ function initialise() {
 	}
 	// console.log('SENSOR is ' + SENSOR.toString());
 
-	intialiseGPS();
+	initialiseGPS(geoOptions);
 	if (window.LocalFileSystem) { //TODO: double-check in docs that this is the best FS support test
 		window.requestFileSystem(window.LocalFileSystem.PERSISTENT, 0, gotFS, fsFail);
 	}
@@ -71,7 +90,7 @@ function fsFail(error) {
 	logActivity('FileSystem request failed :(');
 }
 
-function intialiseGPS(options) {
+function initialiseGPS(options) {
 	if ( options === undefined ) {
 		options = geoOptions;
 	}
@@ -227,22 +246,24 @@ function logActivity(msg) {
 		document.getElementById('activities').innerHTML;
 }
 
-function gpxTrack(title) {
+function Journey(title) {
 	// FIXME: src below, clearly
 	src = '<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="OSMTracker for Android™ - http://osmtracker-android.googlecode.com/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd ">';
 	src += '<trk><name>' + title + '</name><trkseg>';
 	// src += '<trkpt>'; //etc
 	src += '</trkseg></trk>';
 	src += '</gpx>';
-	this['dom'] = (new DOMParser).parseFromString(src, 'application/xml');
+	this['gpx'] = {};
+	this['gpx']['dom'] = (new DOMParser).parseFromString(src, 'application/xml');
 
-	this.serialise = function() {
+	this['gpx'].serialise = function() {
 		// return this.dom.toString();
-		return (new XMLSerializer()).serializeToString(this.dom);
+		return (new XMLSerializer()).serializeToString(this.gpx.dom);
 	}
 
-	this.geoJSON = function() {
-		return toGeoJSON.gpx(this.dom);
+	this['geoJSON'] = {};
+	this['geoJSON'].serialise = function() {
+		return toGeoJSON.gpx(this.gpx.dom);
 	}
 
 	this.addPoint = function(lonlat) {
@@ -256,7 +277,87 @@ function gpxTrack(title) {
 		trkpt.appendChild(time);
 		trkseg.appendChild(trkpt);
 	}
+	
+	this.begin = function() {
+		connectSensor()
+		initialiseGPS(geoOptions);
+		
+		if (window.LocalFileSystem) { //TODO: double-check in docs that this is the best FS support test
+			window.requestFileSystem(window.LocalFileSystem.PERSISTENT, 0, gotFS, fsFail);
+		}
+		else {
+			// TODO: stub, this is probably where we want to invoke alternate store/cache options
+			logActivity('Hope you realise we are not supporting filesystem today :(');
+		}
+	}
+	
+	this.end = function() {
+		disconnectSensor();
+		// TODO:
+		// clearWatch(); // FIXME: maybe should separate this from disconnect()
+		//journey.addPoint([172.72697824,-43.60028126]);
+		console.log(this.gpx.serialise());
+		console.log(JSON.stringify(this.geoJSON.serialise()));
+		L.geoJson(this.geoJSON.serialise()).addTo(map);
+	}
+
+	this.review = function() {
+		// TODO:
+	}
 }
+
+function startJourney() {
+	journey = new Journey();
+	journey.begin();
+}
+
+function endJourney() {
+	console.log('End journey requested');
+	// FIXME: this is a speculative stub and pretty damn hard to test in absence of a working device
+	// .. even so, I am getting errors in he journey object so not sure if they are actualy related to that.
+	console.log(journey);
+	journey.end();
+}
+
+/* ************** Will possibly be moved to a Sensor type class instance ************ */
+function initSensor() {
+	console.log(device.uuid);
+	if (SENSOR === sensortag) {
+		console.log('Shouldinit tag');
+		initialiseSensorTag();
+	}
+	else if(SENSOR === blend) {
+		console.log('Shouldinit Blendo');
+		blend.initialize();
+	}
+	logActivity('Sensor device initialised');
+}
+
+function connectSensor() {
+	if (SENSOR === sensortag) {
+		console.log('Shouldconnect tag');
+		connect();
+	}
+	else if(SENSOR === blend) {
+		console.log('Shouldconnect Blendo');
+		blend.startScan(); // TODO: checkme
+	}
+	logActivity('Sensor device connecting');
+}
+
+function disconnectSensor() {
+	logActivity('Disconnecting sensor');
+	if (SENSOR === sensortag) {
+		console.log('Shouldeject tag');
+		sensortag.disconnectDevice();
+	}
+	else if(SENSOR === blend) {
+		console.log('Shouldeject Blendo');
+		// TODO: 
+	}
+	displayStatus('Disconnected');
+	statusUISwitch(false); // necessary because no status change event is triggered by disconnectDevice()
+}	
 
 /* ************* Sensortag and sprite functions being deprecated *********** */
 function errorHandler(error) {
@@ -278,8 +379,8 @@ function accelerometerHandler(data)	{
 
 function connect() {
 	if (sensortag !== undefined) {
+		console.log('Connecting device model ' + sensortag.getDeviceModel());
 		sensortag.connectToNearestDevice();
-		logActivity('Connecting');
 	}
 	else {
 		logActivity('Sensortag is disabled in app config');
@@ -387,6 +488,7 @@ function initialiseSensorTag() {
 		.errorCallback(errorHandler)
 		.accelerometerCallback(accelerometerHandler, 100)
 		.keypressCallback(keypressHandler);
-		
-	logActivity('Device initialised');
+	
+	SENSOR = sensortag; // ADDED because, not sure, SENSOR seems to have been reset by something in here
 }
+

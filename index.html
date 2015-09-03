@@ -87,8 +87,11 @@
 		<img id="connectButton" src="TISensorTagCC2650.png" style="float:right;width:120px;height:auto;" onclick="connect()" />
 	</div>
 
-	<button id="on" onclick="app.on();" class="green">LED ON</button>
-	<button id="off" onclick="app.off();" class="red">LED OFF</button>
+	<ul style="list-item-type:none; display: inline;">
+		<li><button id="j-start" onclick="startJourney();" class="green">Start Journey</button></li>
+		<li><button id="j-end" onclick="endJourney();" class="red">End Journey</button></li>
+		<li><button id="j-review" onclick="reviewJourney();" class="blue">Review Journey</button></li>
+	</ul>
 
 	<p class="status"><strong>Status:</strong> <span id="status">Ready</span></p>
 
