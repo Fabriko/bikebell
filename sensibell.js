@@ -266,6 +266,15 @@ function Journey(title) {
 		); // TODO - make this something an app can use like timestamped geoJSON
 	}
 	
+	this.addData = function(measure, data) {
+		this.JSONtrail.trail.push( {
+			reading: measure,
+			stamp: formatTimestamp(new Date(), 'W3CDTF'),
+			value: data
+		}
+		); // TODO - make this something an app can use like timestamped geoJSON
+	}
+	
 	this.begin = function() {
 		this.makeTracks();
 		

@@ -97,6 +97,7 @@ var app = {
 		app.knownDevices = {};
 	},
 
+	// FIXME: don't think these (on.off) get fired ever
 	on: function()
 	{
 		logActivity('Blend connect requested');
@@ -117,27 +118,23 @@ var app = {
 			new Uint8Array([0])); // 0 = off
 	},
 
-	write: function(writeFunc, deviceHandle, handle, value)
-	{
-		if (handle)
-		{
+	write: function(writeFunc, deviceHandle, handle, value)	{
+		if (handle)	{
 			ble[writeFunc](
 				deviceHandle,
 				handle,
 				value,
-				function()
-				{
+				function() {
 					console.log(writeFunc + ': ' + handle + ' success.');
 				},
-				function(errorCode)
-				{
+				function(errorCode) {
 					console.log(writeFunc + ': ' + handle + ' error: ' + errorCode);
-				});
+				}
+			);
 		}
 	},
 
-	startReading: function(deviceHandle)
-	{
+	startReading: function(deviceHandle) {
 		console.log('Enabling notifications');
 
 		// Turn notifications on.
@@ -145,20 +142,32 @@ var app = {
 			'writeDescriptor',
 			deviceHandle,
 			app.descriptorNotification,
-			new Uint8Array([1,0]));
+			new Uint8Array([1,0])
+		);
 
 		// Start reading notifications.
 		evothings.ble.enableNotification(
 			deviceHandle,
 			app.characteristicRead,
-			function(data)
-			{
-				console.log('Read:' + String.fromCharCode([new DataView(data,0).getUint8(0, true)],[new DataView(data,1).getUint8(0, true)],[new DataView(data,2).getUint8(0, true)],[new DataView(data,3).getUint8(0, true)]));
+			function(data) {
+				val = String.fromCharCode(
+					[new DataView(data,2).getUint8(0, true)],
+					[new DataView(data,3).getUint8(0, true)]
+				);
+				console.log('Read:' + String.fromCharCode(
+					[new DataView(data,0).getUint8(0, true)],
+					[new DataView(data,1).getUint8(0, true)],
+					[new DataView(data,2).getUint8(0, true)],
+					[new DataView(data,3).getUint8(0, true)]
+				));
+				if (journey) {
+					journey.addData('button', val); //FIXME: not hardcoding reading here, use data0
+				}
 			},
-			function(errorCode)
-			{
+			function(errorCode) {
 				console.log('enableNotification error: ' + errorCode);
-			});
+			}
+		);
 	},
 
 
