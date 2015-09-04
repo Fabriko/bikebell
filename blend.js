@@ -50,17 +50,17 @@ var app = {
 
 	startScan: function() {
 		evothings.ble.stopScan();
-		console.log('Scanning...');
+		logActivity('Scanning for blends ...');
 		evothings.ble.startScan(
 			function(deviceInfo) {
 				if (app.knownDevices[deviceInfo.address]) {
 					console.log('known device ' + deviceInfo.name);
 				}
 				else {
-					console.log('detected device/s: ' + deviceInfo.name);
+					logActivity('Detected device/s: ' + deviceInfo.name);
 					app.knownDevices[deviceInfo.address] = deviceInfo;
 					if (deviceInfo.name == PAIRING_HACK_PARTNER && !app.connectee) {
-						console.log('Found target ' + PAIRING_HACK_PARTNER);
+						logActivity('Found target ' + PAIRING_HACK_PARTNER);
 						app.connectee = deviceInfo;
 						app.connect(deviceInfo.address);
 					}
@@ -76,18 +76,18 @@ var app = {
 
 	connect: function(address) {
 		evothings.ble.stopScan();
-		console.log('Connecting...');
+		logActivity('Connecting to ...' + app.connectee.name);
 		evothings.ble.connect(
 			address,
 			function(connectInfo) {
 				if (connectInfo.state == 2) { // Connected
-					console.log('Connected');
+					logActivity('Connected to ' +  app.connectee.name);
 					app.deviceHandle = connectInfo.deviceHandle;
 					app.getServices(connectInfo.deviceHandle);
 				}
 			},
 			function(errorCode)	{
-				console.log('connect error: ' + errorCode);
+				console.log('Connect error with ' + app.connectee.name + ':' + errorCode);
 			});
 	},
 	
@@ -161,7 +161,8 @@ var app = {
 					[new DataView(data,3).getUint8(0, true)]
 				));
 				if (journey) {
-					journey.addData('button', val); //FIXME: not hardcoding reading here, use data0
+					journey.addData('button', val, true); //FIXME: not hardcoding reading here, use data0
+					logPosition(val);
 				}
 			},
 			function(errorCode) {
