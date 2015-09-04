@@ -286,11 +286,11 @@ function Journey(title) {
 	}
 	
 	this.begin = function() {
-		this.makeTracks();
+		// this.makeTracks();
 		
 		connectSensor();
 		
-		initialiseGPS(geoOptions);
+		// initialiseGPS(geoOptions);
 		
 		if (window.LocalFileSystem) { //TODO: double-check in docs that this is the best FS support test
 			window.requestFileSystem(window.LocalFileSystem.PERSISTENT, 0, gotFS, fsFail);
@@ -318,6 +318,7 @@ function Journey(title) {
 
 function startJourney() {
 	console.log('Start journey requested');
+	// evothings.ble.reset(function(){console.log('reset')},function(){console.log('resetfail')});
 	journey.begin();
 }
 
@@ -340,7 +341,7 @@ function initSensor() {
 		console.log('Shouldinit Blendo');
 		blend.initialize();
 	}
-	logActivity('Sensor device initialised');
+	// logActivity('Sensor device initialised');
 }
 
 function connectSensor() {
@@ -350,9 +351,10 @@ function connectSensor() {
 	}
 	else if(SENSOR === blend) {
 		console.log('Shouldconnect Blendo');
+		console.log(JSON.stringify(blend.knownDevices));
 		blend.startScan(); // TODO: checkme
 	}
-	logActivity('Sensor device connecting');
+	// logActivity('Sensor device connecting');
 }
 
 function disconnectSensor() {
@@ -363,7 +365,10 @@ function disconnectSensor() {
 	}
 	else if(SENSOR === blend) {
 		console.log('Shouldeject Blendo');
-		// TODO: 
+		if (blend.connectee) {
+			console.log('disconnecting ' + blend.deviceHandle);
+			blend.disconnect(blend.deviceHandle);
+		}
 	}
 	displayStatus('Disconnected');
 	statusUISwitch(false); // necessary because no status change event is triggered by disconnectDevice()

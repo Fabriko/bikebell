@@ -2,14 +2,19 @@
 
 // API docs: http://evothings.com/doc/raw/plugins/com.evothings.ble/com.evothings.module_ble.html
 
+var IMEIPairingsHack = {
+	'352421037276039': 'SensiB-04'
+}
+var PAIRING_HACK_PARTNER = 'SensiB-04'; // device.uuid;
+// console.log(device.uuid);
+
 /**
  * The BLE plugin is loaded asynchronously so the ble
  * variable is set in the onDeviceReady handler.
  */
 var ble = null;
 
-var app =
-{
+var app = {
 	// Discovered devices.
 	knownDevices: {},
 
@@ -31,7 +36,7 @@ var app =
 	initialize: function()
 	{
 		// document.addEventListener('deviceready', app.onDeviceReady, false);
-		logActivity('Connecting to blend');
+		logActivity('initialising in harmony with blend');
 		app.onDeviceReady();
 	},
 
@@ -45,27 +50,29 @@ var app =
 
 	startScan: function()
 	{
+		evothings.ble.stopScan();
 		console.log('Scanning...');
 		evothings.ble.startScan(
-			function(deviceInfo)
-			{
-				if (app.knownDevices[deviceInfo.address])
-				{
-					return;
+			function(deviceInfo) {
+				if (app.knownDevices[deviceInfo.address]) {
+					console.log('known device ' + deviceInfo.name);
 				}
-				console.log('detected device/s: ' + deviceInfo.name);
-				app.knownDevices[deviceInfo.address] = deviceInfo;
-				if (deviceInfo.name == 'Sensibell' && !app.connectee)
-				{
-					console.log('Found target Sensibell');
-					connectee = deviceInfo;
-					app.connect(deviceInfo.address);
+				else {
+					console.log('detected device/s: ' + deviceInfo.name);
+					app.knownDevices[deviceInfo.address] = deviceInfo;
+					if (deviceInfo.name == PAIRING_HACK_PARTNER && !app.connectee) {
+						console.log('Found target ' + PAIRING_HACK_PARTNER);
+						app.connectee = deviceInfo;
+						app.connect(deviceInfo.address);
+					}
 				}
+				evothings.ble.stopScan();
 			},
-			function(errorCode)
-			{
+			function(errorCode) {
 				console.log('startScan error: ' + errorCode);
-			});
+				evothings.ble.stopScan();
+			}
+			);
 	},
 
 	connect: function(address)
@@ -87,6 +94,12 @@ var app =
 			{
 				console.log('connect error: ' + errorCode);
 			});
+	},
+	
+	disconnect: function(handle) {
+		evothings.ble.close(handle);
+		app.connectee = null;
+		app.knownDevices = {};
 	},
 
 	on: function()
