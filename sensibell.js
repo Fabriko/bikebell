@@ -249,8 +249,71 @@ function logActivity(msg) {
 function Journey(title) {
 	
 	this.makeTracks = function() {
+		this['JSONtrail'] = {
+			name: title,
+			trail: []
+		}
+		console.log('ran Journey.maketracks()');
+		// console.log(this.gpx);
+	}
+
+	this.addPoint = function(lonlat) {
+		this.JSONtrail.trail.push( {
+			reading: 'position',
+			stamp: formatTimestamp(new Date(), 'W3CDTF'),
+			value: lonlat
+		}
+		); // TODO - make this something an app can use like timestamped geoJSON
+	}
+	
+	this.begin = function() {
+		this.makeTracks();
+		
+		connectSensor();
+		
+		initialiseGPS(geoOptions);
+		
+		if (window.LocalFileSystem) { //TODO: double-check in docs that this is the best FS support test
+			window.requestFileSystem(window.LocalFileSystem.PERSISTENT, 0, gotFS, fsFail);
+		}
+		else {
+			// TODO: stub, this is probably where we want to invoke alternate store/cache options
+			logActivity('Hope you realise we are not supporting filesystem today :(');
+		}
+	}
+	
+	this.end = function() {
+		disconnectSensor();
+		// TODO:
+		// clearWatch(); // FIXME: maybe should separate this from disconnect()
+		//journey.addPoint([172.72697824,-43.60028126]);
+		// console.log(this.gpx.serialise());
+		// console.log(JSON.stringify(this.geoJSON.serialise()));
+		console.log(JSON.stringify(this.JSONtrail));
+		// L.geoJson(this.geoJSON.serialise()).addTo(map);
+	}
+
+	this.review = function() {
+		// TODO:
+	}
+
+	// **************************************************
+	// GPX functions that fail because DOM seems to fail with a security error on some handsets, use JSON equiv for now
+	this.addPoint_GPX = function(lonlat) {
+		trkseg = this.dom.querySelector("trk trkseg"); // [name='" + title + "']
+		trkpt = this.dom.createElement('trkpt');
+		trkpt.setAttribute('lon', lonlat[0]);
+		trkpt.setAttribute('lat', lonlat[1]);
+		time = this.dom.createElement('time');
+		timeValue = this.dom.createTextNode(formatTimestamp(new Date(), 'W3CDTF'));
+		time.appendChild(timeValue);
+		trkpt.appendChild(time);
+		trkseg.appendChild(trkpt);
+	}
+	
+	this.makeTracks_GPX = function() {
 		// FIXME: src below, clearly
-		var src = '<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="OSMTracker for Android™ - http://osmtracker-android.googlecode.com/">';
+		var src = '<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"	version="1.1" creator="OSMTracker for Android™ - http://osmtracker-android.googlecode.com/"	xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd ">';
 		src += '<trk><name>' + title + '</name><trkseg>';
 		// src += '<trkpt>'; //etc
 		src += '</trkseg></trk>';
@@ -269,51 +332,11 @@ function Journey(title) {
 		this['geoJSON'].serialise = function() {
 			return toGeoJSON.gpx(this.gpx.dom);
 		}
+
 		console.log('ran Journey.maketracks()');
-		console.log(this.gpx);
+		// console.log(this.gpx);
 	}
 
-	this.addPoint = function(lonlat) {
-		trkseg = this.dom.querySelector("trk trkseg"); // [name='" + title + "']
-		trkpt = this.dom.createElement('trkpt');
-		trkpt.setAttribute('lon', lonlat[0]);
-		trkpt.setAttribute('lat', lonlat[1]);
-		time = this.dom.createElement('time');
-		timeValue = this.dom.createTextNode(formatTimestamp(new Date(), 'W3CDTF'));
-		time.appendChild(timeValue);
-		trkpt.appendChild(time);
-		trkseg.appendChild(trkpt);
-	}
-	
-	this.begin = function() {
-		// this.makeTracks();
-		
-		connectSensor();
-		
-		// initialiseGPS(geoOptions);
-		
-		if (window.LocalFileSystem) { //TODO: double-check in docs that this is the best FS support test
-			window.requestFileSystem(window.LocalFileSystem.PERSISTENT, 0, gotFS, fsFail);
-		}
-		else {
-			// TODO: stub, this is probably where we want to invoke alternate store/cache options
-			logActivity('Hope you realise we are not supporting filesystem today :(');
-		}
-	}
-	
-	this.end = function() {
-		disconnectSensor();
-		// TODO:
-		// clearWatch(); // FIXME: maybe should separate this from disconnect()
-		//journey.addPoint([172.72697824,-43.60028126]);
-		// console.log(this.gpx.serialise());
-		// console.log(JSON.stringify(this.geoJSON.serialise()));
-		// L.geoJson(this.geoJSON.serialise()).addTo(map);
-	}
-
-	this.review = function() {
-		// TODO:
-	}
 }
 
 function startJourney() {

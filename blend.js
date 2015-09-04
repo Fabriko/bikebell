@@ -48,8 +48,7 @@ var app = {
 		// app.startScan();
 	},
 
-	startScan: function()
-	{
+	startScan: function() {
 		evothings.ble.stopScan();
 		console.log('Scanning...');
 		evothings.ble.startScan(
@@ -72,26 +71,22 @@ var app = {
 				console.log('startScan error: ' + errorCode);
 				evothings.ble.stopScan();
 			}
-			);
+		);
 	},
 
-	connect: function(address)
-	{
+	connect: function(address) {
 		evothings.ble.stopScan();
 		console.log('Connecting...');
 		evothings.ble.connect(
 			address,
-			function(connectInfo)
-			{
-				if (connectInfo.state == 2) // Connected
-				{
+			function(connectInfo) {
+				if (connectInfo.state == 2) { // Connected
 					console.log('Connected');
 					app.deviceHandle = connectInfo.deviceHandle;
 					app.getServices(connectInfo.deviceHandle);
 				}
 			},
-			function(errorCode)
-			{
+			function(errorCode)	{
 				console.log('connect error: ' + errorCode);
 			});
 	},
