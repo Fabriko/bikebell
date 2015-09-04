@@ -31,6 +31,7 @@ var app =
 	initialize: function()
 	{
 		// document.addEventListener('deviceready', app.onDeviceReady, false);
+		logActivity('Connecting to blend');
 		app.onDeviceReady();
 	},
 

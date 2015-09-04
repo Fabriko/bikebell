@@ -1,7 +1,7 @@
 // Globals
 var sensortag, blend;
-var SENSOR = sensortag; // new Sensor(blend); <-- FOR LATER, now it just has to work
-var sprite;
+var SENSOR = blend; // new Sensor(blend); <-- FOR LATER, now it just has to work
+// var sprite;
 var geoWatchID;
 var journey = new Journey('foo');
 var dblClickBuffer = { 
@@ -247,23 +247,30 @@ function logActivity(msg) {
 }
 
 function Journey(title) {
-	// FIXME: src below, clearly
-	src = '<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="OSMTracker for Android™ - http://osmtracker-android.googlecode.com/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd ">';
-	src += '<trk><name>' + title + '</name><trkseg>';
-	// src += '<trkpt>'; //etc
-	src += '</trkseg></trk>';
-	src += '</gpx>';
-	this['gpx'] = {};
-	this['gpx']['dom'] = (new DOMParser).parseFromString(src, 'application/xml');
+	
+	this.makeTracks = function() {
+		// FIXME: src below, clearly
+		var src = '<gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1" creator="OSMTracker for Android™ - http://osmtracker-android.googlecode.com/">';
+		src += '<trk><name>' + title + '</name><trkseg>';
+		// src += '<trkpt>'; //etc
+		src += '</trkseg></trk>';
+		src += '</gpx>';
+		// this['gpx'] = {};
+		this['gpx'] = {
+			dom: (new DOMParser).parseFromString(src, 'application/xml'),
 
-	this['gpx'].serialise = function() {
-		// return this.dom.toString();
-		return (new XMLSerializer()).serializeToString(this.gpx.dom);
-	}
+			serialise: function() {
+				// return this.dom.toString();
+				return (new XMLSerializer()).serializeToString(this.gpx.dom);
+			}
+		}
 
-	this['geoJSON'] = {};
-	this['geoJSON'].serialise = function() {
-		return toGeoJSON.gpx(this.gpx.dom);
+		this['geoJSON'] = {};
+		this['geoJSON'].serialise = function() {
+			return toGeoJSON.gpx(this.gpx.dom);
+		}
+		console.log('ran Journey.maketracks()');
+		console.log(this.gpx);
 	}
 
 	this.addPoint = function(lonlat) {
@@ -279,7 +286,10 @@ function Journey(title) {
 	}
 	
 	this.begin = function() {
-		connectSensor()
+		this.makeTracks();
+		
+		connectSensor();
+		
 		initialiseGPS(geoOptions);
 		
 		if (window.LocalFileSystem) { //TODO: double-check in docs that this is the best FS support test
@@ -296,9 +306,9 @@ function Journey(title) {
 		// TODO:
 		// clearWatch(); // FIXME: maybe should separate this from disconnect()
 		//journey.addPoint([172.72697824,-43.60028126]);
-		console.log(this.gpx.serialise());
-		console.log(JSON.stringify(this.geoJSON.serialise()));
-		L.geoJson(this.geoJSON.serialise()).addTo(map);
+		// console.log(this.gpx.serialise());
+		// console.log(JSON.stringify(this.geoJSON.serialise()));
+		// L.geoJson(this.geoJSON.serialise()).addTo(map);
 	}
 
 	this.review = function() {
@@ -307,15 +317,15 @@ function Journey(title) {
 }
 
 function startJourney() {
-	journey = new Journey();
+	console.log('Start journey requested');
 	journey.begin();
 }
 
 function endJourney() {
 	console.log('End journey requested');
 	// FIXME: this is a speculative stub and pretty damn hard to test in absence of a working device
-	// .. even so, I am getting errors in he journey object so not sure if they are actualy related to that.
-	console.log(journey);
+	// .. even so, I am getting errors in the journey object so not sure if they are actualy related to that.
+	// console.log(journey);
 	journey.end();
 }
 
