@@ -2,12 +2,6 @@
 
 // API docs: http://evothings.com/doc/raw/plugins/com.evothings.ble/com.evothings.module_ble.html
 
-var IMEIPairingsHack = {
-	'352421037276039': 'SensiB-04'
-}
-var PAIRING_HACK_PARTNER = 'SensiB-04'; // device.uuid;
-// console.log(device.uuid);
-
 /**
  * The BLE plugin is loaded asynchronously so the ble
  * variable is set in the onDeviceReady handler.
@@ -50,7 +44,7 @@ var app = {
 
 	startScan: function() {
 		evothings.ble.stopScan();
-		logActivity('Scanning for blends ...');
+		logActivity('Scanning for blends .. really want ' + app.target);
 		evothings.ble.startScan(
 			function(deviceInfo) {
 				if (app.knownDevices[deviceInfo.address]) {
@@ -59,8 +53,8 @@ var app = {
 				else {
 					logActivity('Detected device/s: ' + deviceInfo.name);
 					app.knownDevices[deviceInfo.address] = deviceInfo;
-					if (deviceInfo.name == PAIRING_HACK_PARTNER && !app.connectee) {
-						logActivity('Found target ' + PAIRING_HACK_PARTNER);
+					if (deviceInfo.name == app.target && !app.connectee) {
+						logActivity('Found target ' + app.target);
 						app.connectee = deviceInfo;
 						app.connect(deviceInfo.address);
 					}
@@ -100,7 +94,7 @@ var app = {
 	// FIXME: don't think these (on.off) get fired ever
 	on: function()
 	{
-		logActivity('Blend connect requested');
+		logActivity('LED on requested');
 		app.write(
 			'writeCharacteristic',
 			app.deviceHandle,
@@ -110,7 +104,7 @@ var app = {
 
 	off: function()
 	{
-		logActivity('Blend disconnect requested');
+		logActivity('LED off requested');
 		app.write(
 			'writeCharacteristic',
 			app.deviceHandle,

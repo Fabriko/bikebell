@@ -13,6 +13,11 @@ var geoOptions = {
 	enableHighAccuracy: true
 };
 
+var IMEIPairingsHack = {
+	'572ff936b9cf0daf': 'SensiB-04'
+}
+var PAIRING_HACK_PARTNER = 'SensiB-04'; // device.uuid;
+
 /*
 document.addEventListener(
 	'deviceready',
@@ -364,7 +369,10 @@ function endJourney() {
 
 /* ************** Will possibly be moved to a Sensor type class instance ************ */
 function initSensor() {
-	console.log(device.uuid);
+	
+	SENSOR.target = ( IMEIPairingsHack[device.uuid] ? IMEIPairingsHack[device.uuid] : ' [not mapped!]' );
+	logActivity('This is handset device ' + device.uuid + ' wanting to pair with ' + SENSOR.target);
+
 	if (SENSOR === sensortag) {
 		console.log('Shouldinit tag');
 		initialiseSensorTag();
