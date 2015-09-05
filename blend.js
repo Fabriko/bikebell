@@ -78,6 +78,7 @@ var app = {
 					logActivity('Connected to ' +  app.connectee.name);
 					app.deviceHandle = connectInfo.deviceHandle;
 					app.getServices(connectInfo.deviceHandle);
+					// app.on();
 				}
 			},
 			function(errorCode)	{
@@ -91,9 +92,7 @@ var app = {
 		app.knownDevices = {};
 	},
 
-	// FIXME: don't think these (on.off) get fired ever
-	on: function()
-	{
+	on: function() {
 		logActivity('LED on requested');
 		app.write(
 			'writeCharacteristic',
@@ -102,8 +101,7 @@ var app = {
 			new Uint8Array([1])); // 1 = on
 	},
 
-	off: function()
-	{
+	off: function()	{
 		logActivity('LED off requested');
 		app.write(
 			'writeCharacteristic',
@@ -154,8 +152,21 @@ var app = {
 					[new DataView(data,2).getUint8(0, true)],
 					[new DataView(data,3).getUint8(0, true)]
 				));
+				
+				// flash a LED - doesn't seem to work with current firmware
+				/*
+				if ( parseInt(val) ) {
+					if ( parseInt(val) == 1 ) {
+						app.on();
+					}
+					else if ( parseInt(val) == 2 ) {
+						app.off();
+					}
+				}
+				*/
+				
 				if (journey) {
-					journey.addData('button', val, true); //FIXME: not hardcoding reading here, use data0
+					journey.addData('button', val, true); //FIXME: not hardcoding reading value here, use data0
 					logPosition(val);
 				}
 			},
@@ -166,55 +177,42 @@ var app = {
 	},
 
 
-	getServices: function(deviceHandle)
-	{
+	getServices: function(deviceHandle)	{
 		console.log('Scanning for services...');
-
-		evothings.ble.readAllServiceData(deviceHandle, function(services)
-		{
+		evothings.ble.readAllServiceData(deviceHandle, function(services) {
 			// Find handles for characteristics and descriptor needed.
-			for (var si in services)
-			{
+			for (var si in services) {
 				var service = services[si];
-
-				for (var ci in service.characteristics)
-				{
+				for (var ci in service.characteristics) {
 					var characteristic = service.characteristics[ci];
 
-					if (characteristic.uuid == '713d0002-503e-4c75-ba94-3148f18d941e')
-					{
+					if (characteristic.uuid == '713d0002-503e-4c75-ba94-3148f18d941e') {
 						app.characteristicRead = characteristic.handle;
 					}
-					else if (characteristic.uuid == '713d0003-503e-4c75-ba94-3148f18d941e')
-					{
+					else if (characteristic.uuid == '713d0003-503e-4c75-ba94-3148f18d941e') {
 						app.characteristicWrite = characteristic.handle;
 					}
 
-					for (var di in characteristic.descriptors)
-					{
+					for (var di in characteristic.descriptors) {
 						var descriptor = characteristic.descriptors[di];
 
 						if (characteristic.uuid == '713d0002-503e-4c75-ba94-3148f18d941e' &&
-							descriptor.uuid == '00002902-0000-1000-8000-00805f9b34fb')
-						{
+							descriptor.uuid == '00002902-0000-1000-8000-00805f9b34fb') {
 							app.descriptorNotification = descriptor.handle;
 						}
 					}
 				}
 			}
 
-			if (app.characteristicRead && app.characteristicWrite && app.descriptorNotification)
-			{
+			if (app.characteristicRead && app.characteristicWrite && app.descriptorNotification) {
 				console.log('RX/TX services found.');
 				app.startReading(deviceHandle);
 			}
-			else
-			{
+			else {
 				console.log('ERROR: RX/TX services not found!');
 			}
 		},
-		function(errorCode)
-		{
+		function(errorCode) {
 			console.log('readAllServiceData error: ' + errorCode);
 		});
 	},
