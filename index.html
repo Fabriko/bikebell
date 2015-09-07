@@ -13,6 +13,7 @@
 	
 	<link rel="stylesheet" href="ui/css/leaflet.css" />
 	<script src="libs/leaflet.js"></script>	
+	<script src="libs/jquery/jquery.js"></script>	
 
 	<script>
 	// Redirect console.log to Evothings Workbench.
@@ -61,6 +62,7 @@
 			<menuitem>
 				<a href="#track-canvas">Map</a>
 			</menuitem>
+			<!--
 			<menuitem>
 				<a id="menu.connect" onclick="connect();">Connect</a>
 			</menuitem>
@@ -70,6 +72,7 @@
 			<menuitem>
 				<a id="menu.connect" onclick="console.log('blend off'); app.off();">Blend light OFF</a>
 			</menuitem>
+			-->
 			<menuitem>
 				<a onclick="navigator.app.exitApp();">Exit</a>
 			</menuitem>
@@ -84,16 +87,16 @@
 			<img src="fablabchch.png" alt="FAB LAB CHCH" style="float:left;width:100px;height:auto;"/>
 		</a>
 
-		<img id="connectButton" src="TISensorTagCC2650.png" style="float:right;width:120px;height:auto;" onclick="connect()" />
+		<img id="connectButton" src="casing.jpg" style="float:right;width:120px;height:auto;" /> <!-- onclick="connect() -->
 	</div>
 
 	<ul style="list-item-type:none; display: inline;">
 		<li><button id="j-start" onclick="startJourney();" class="green">Start Journey</button></li>
 		<li><button id="j-end" onclick="endJourney();" class="red">End Journey</button></li>
-		<li><button id="j-review" onclick="reviewJourney();" class="blue">Review Journey</button></li>
+		<li><button id="j-review" onclick="reviewJourney();" class="blue disabled">Review Journey</button></li>
 	</ul>
 
-	<p class="status"><strong>Status:</strong> <span id="status">Ready</span></p>
+	<p class="status" style="display:none"><strong>Status:</strong> <span id="status">Ready</span></p>
 
 	<p id="activities" class="console log" />
 
@@ -107,13 +110,17 @@
 		<div id="track-canvas" class="section map"></div>
 	</section>
 
+	<!-- library code -->
 	<script src="cordova.js"></script>
 	<script src="libs/evothings/evothings.js"></script>
 	<script src="libs/evothings/tisensortag/tisensortag.js"></script>
+	<script src="libs/togeojson.js"></script>
+	
+	<!-- app inclusions -->
+	<script src="config.js"></script>
 	<script src="blend.js"></script>
 	<!-- <script src="SpriteManager.js"></script> -->
 	<!-- <script src="sensor.js"></script> -->
-	<script src="libs/togeojson.js"></script>
 	<script src="sensibell.js"></script>
 
 </body>

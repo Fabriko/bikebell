@@ -13,11 +13,6 @@ var geoOptions = {
 	enableHighAccuracy: true
 };
 
-var IMEIPairingsHack = {
-	'572ff936b9cf0daf': 'SensiB-04'
-}
-var PAIRING_HACK_PARTNER = 'SensiB-04'; // device.uuid;
-
 /*
 document.addEventListener(
 	'deviceready',
@@ -158,6 +153,13 @@ function formatTimestamp(stamp, format) {
 				minute + ':' +
 				second + '.' +
 				millisecond;
+		case 'filename':
+			return year +
+				month +
+				dom + '-' + 
+				hour +
+				minute + 
+				second;
 		default: // use W3CDTF == 'YYYY-MM-DDThh:nn:ss.sssZ'
 			return year + '-' +
 				month + '-' +
@@ -187,6 +189,7 @@ function logPosition(val, options) {
 	if ( options === undefined ) {
 		options = geoOptions;
 	}
+	logActivity('*** KEY ' + val + ' ****');
 	var msg = 'Key ' + val + ' triggered @ ';
 	if (navigator.geolocation) {
 		console.log('supports ' + navigator.geolocation);
@@ -223,17 +226,17 @@ function statusUISwitch(connected) {
 	menuItem = document.getElementById('menu.connect');
 
 	if ( connected ) {
-		button.src = 'ui/images/CC2650-on.png';
-		button.onclick = disconnect;
-		menuItem.innerHTML = 'Disconnect';
-		menuItem.setAttribute('href', 'javascript:disconnect()');
+		// button.src = 'ui/images/CC2650-on.png';
+		// button.onclick = disconnect;
+		// menuItem.innerHTML = 'Disconnect';
+		// menuItem.setAttribute('href', 'javascript:disconnect()');
 		// displaySprite();
 	}
 	else {
-		button.src = 'ui/images/CC2650-off.png';
-		button.onclick = connect;
-		menuItem.innerHTML = 'Connect';
-		menuItem.setAttribute('href', 'javascript:connect()');
+		// button.src = 'ui/images/CC2650-off.png';
+		// button.onclick = connect;
+		// menuItem.innerHTML = 'Connect';
+		// menuItem.setAttribute('href', 'javascript:connect()');
 		// sprite.hide();
 	}
 }
@@ -261,14 +264,10 @@ function Journey(title) {
 		console.log('ran Journey.maketracks()');
 		// console.log(this.gpx);
 	}
+	//TODO: make this into a property of type JSONTrail and define that class too!
 
 	this.addPoint = function(lonlat) {
-		this.JSONtrail.trail.push( {
-			reading: 'position',
-			stamp: formatTimestamp(new Date(), 'W3CDTF'),
-			value: lonlat
-		}
-		); // TODO - make this something an app can use like timestamped geoJSON
+		this.addData( 'position', lonlat);
 	}
 	
 	this.addData = function(measure, data) {
@@ -281,7 +280,7 @@ function Journey(title) {
 	}
 	
 	this.begin = function() {
-		this.makeTracks();
+		this.makeTracks(); // TODO: won't need this after making a JSOTrail type as described under makeTracks()
 		
 		connectSensor();
 		
@@ -305,10 +304,41 @@ function Journey(title) {
 		// console.log(JSON.stringify(this.geoJSON.serialise()));
 		console.log(JSON.stringify(this.JSONtrail));
 		// L.geoJson(this.geoJSON.serialise()).addTo(map);
+		this.upload();
 	}
 
 	this.review = function() {
 		// TODO:
+	}
+
+	this.upload = function() {
+		// based on http://jsfiddle.net/tednaleid/7eWgb/
+		// var value = "foobar";
+		
+		var filename = formatTimestamp(new Date(), 'filename') + '-' + device.uuid + '.json';
+
+		var bucket = config.AWS_S3.bucket;
+		var uploadPath = 'http://' + bucket + '.s3.amazonaws.com/' + filename;
+
+		console.log(uploadPath);
+		var payload = JSON.stringify(makegeoJSON(this.JSONtrail));
+		console.log(payload);
+
+		var req = $.ajax({
+			type: "PUT",
+			url: uploadPath,
+			dataType: 'json',
+			async: true,
+			data: JSON.stringify(payload)
+		});
+
+		req.done( function (msg) {
+			console.log(msg);
+		});
+
+		req.fail( function (xhr,failText) {
+			console.log('Error: ' + xhr.status);
+		});
 	}
 
 	// **************************************************
@@ -355,7 +385,6 @@ function Journey(title) {
 
 function startJourney() {
 	console.log('Start journey requested');
-	// evothings.ble.reset(function(){console.log('reset')},function(){console.log('resetfail')});
 	journey.begin();
 }
 
@@ -369,18 +398,28 @@ function endJourney() {
 
 /* ************** Will possibly be moved to a Sensor type class instance ************ */
 function initSensor() {
-	
-	SENSOR.target = ( IMEIPairingsHack[device.uuid] ? IMEIPairingsHack[device.uuid] : ' [not mapped!]' );
+
+	SENSOR.target = ( config.IDPairingsHack[device.uuid] ? config.IDPairingsHack[device.uuid] : ' [not mapped!]' );
 	logActivity('This is handset device ' + device.uuid + ' wanting to pair with ' + SENSOR.target);
 
-	if (SENSOR === sensortag) {
-		console.log('Shouldinit tag');
-		initialiseSensorTag();
-	}
-	else if(SENSOR === blend) {
-		console.log('Shouldinit Blendo');
-		blend.initialize();
-	}
+	logActivity('Resetting bluetooth to be safe .. ');
+	evothings.ble.reset(
+		function() {
+			logActivity('reset');
+			if (SENSOR === sensortag) {
+				console.log('Shouldinit tag');
+				initialiseSensorTag();
+			}
+			else if(SENSOR === blend) {
+				console.log('Shouldinit Blendo');
+				blend.initialize();
+			}
+		},
+		function() {
+			logActivity('resetfail');
+		}
+	);
+
 	// logActivity('Sensor device initialised');
 }
 
@@ -412,7 +451,30 @@ function disconnectSensor() {
 	}
 	displayStatus('Disconnected');
 	statusUISwitch(false); // necessary because no status change event is triggered by disconnectDevice()
-}	
+}
+
+function makegeoJSON(track) {
+	var geoJSON = { // skeleton
+		"type": 'FeatureCollection',
+		features: []
+    }
+    for (i=0; i < track.trail.length; i++) {
+		if ( track.trail[i].reading == 'position' ) { //FIXME - this uis a filter hack - points to bigger issues!
+			geoJSON.features.push ( {
+				type: 'Feature',
+					geometry: {
+						"type": 'Point',
+						coordinates: track.trail[i].value
+					},
+					properties: {
+						time: track.trail[i].stamp
+					}
+				}
+			);
+		}
+	}
+	return geoJSON;
+}
 
 /* ************* Sensortag and sprite functions being deprecated *********** */
 function errorHandler(error) {
