@@ -50,7 +50,7 @@ function initialise() {
 	}
 	// console.log('SENSOR is ' + SENSOR.toString());
 
-	initialiseGPS(geoOptions);
+	initialiseGPS();
 	if (window.LocalFileSystem) { //TODO: double-check in docs that this is the best FS support test
 		window.requestFileSystem(window.LocalFileSystem.PERSISTENT, 0, gotFS, fsFail);
 	}
@@ -92,10 +92,9 @@ function fsFail(error) {
 
 function initialiseGPS(options) {
 	if ( options === undefined ) {
-		options = geoOptions;
+		options = config.geoOptions;
 	}
 	if (navigator.geolocation) {
-		console.log('supports ' + navigator.geolocation);
 		geoWatchID = navigator.geolocation.watchPosition(
 			function(position) {
 				// logActivity('Geolocation change at (' + position.coords.latitude + ',' + position.coords.longitude + ')');
@@ -185,17 +184,21 @@ function checkDoublePress(key, interval) {
 	}
 }
 
-function logPosition(val, options) {
+function logPosition(val, success, options) {
 	if ( options === undefined ) {
-		options = geoOptions;
+		options = config.geoOptions;
 	}
+	options['timeout'] = 5000; // FIXME: overriding because concerned about delayed feedback
+	
 	logActivity('*** KEY ' + val + ' ****');
 	var msg = 'Key ' + val + ' triggered @ ';
+
 	if (navigator.geolocation) {
-		console.log('supports ' + navigator.geolocation);
-		navigator.geolocation.getCurrentPosition(
+		// console.log('supports ' + navigator.geolocation);
+		return navigator.geolocation.getCurrentPosition(
 			function(position) {
 				logActivity(msg += '(' + position.coords.latitude + ',' + position.coords.longitude + ')');
+				success.call(this, position);
 			},
 			function(error)	{
 				logActivity(msg += error.code + ': "' + error.message + '"');
@@ -210,7 +213,7 @@ function logPosition(val, options) {
 
 function clearWatch() {
 	if ( typeof(geoWatchID) !== undefined ) {
-		navigator.geolocation.clearwatch(geoWatchID);
+		navigator.geolocation.clearWatch(geoWatchID);
 		geoWatchID = null;
 	}
 }
@@ -267,16 +270,16 @@ function Journey(title) {
 	//TODO: make this into a property of type JSONTrail and define that class too!
 
 	this.addPoint = function(lonlat) {
-		this.addData( 'position', lonlat);
+		this.addData( 'position', lonlat, lonlat);
 	}
-	
-	this.addData = function(measure, data) {
+
+	this.addData = function(measure, data, position) {
 		this.JSONtrail.trail.push( {
 			reading: measure,
 			stamp: formatTimestamp(new Date(), 'W3CDTF'),
+			'position': position,
 			value: data
-		}
-		); // TODO - make this something an app can use like timestamped geoJSON
+		}); // TODO - make this something an app can use like timestamped geoJSON
 	}
 	
 	this.begin = function() {
@@ -284,7 +287,7 @@ function Journey(title) {
 		
 		connectSensor();
 		
-		initialiseGPS(geoOptions);
+		initialiseGPS();
 		
 		if (window.LocalFileSystem) { //TODO: double-check in docs that this is the best FS support test
 			window.requestFileSystem(window.LocalFileSystem.PERSISTENT, 0, gotFS, fsFail);
@@ -298,22 +301,43 @@ function Journey(title) {
 	this.end = function() {
 		disconnectSensor();
 		// TODO:
-		// clearWatch(); // FIXME: maybe should separate this from disconnect()
-		//journey.addPoint([172.72697824,-43.60028126]);
+		clearWatch(); // FIXME: maybe should separate this from disconnect()
+		
 		// console.log(this.gpx.serialise());
 		// console.log(JSON.stringify(this.geoJSON.serialise()));
 		console.log(JSON.stringify(this.JSONtrail));
+		
 		// L.geoJson(this.geoJSON.serialise()).addTo(map);
-		this.upload();
+		var gJ = makegeoJSON(this.JSONtrail);
+		L.geoJson(gJ).addTo(map);
+		
+		if (this.JSONtrail) {
+			this.upload(); // FIXME - removed for testing only
+		}
 	}
 
 	this.review = function() {
-		// TODO:
+		var trail = ( this.JSONtrail ? this.JSONtrail : dummyTrail );
+		var gJ = makegeoJSON(trail);
+		
+		// var gJ = dummyGeoJSON; // FIXME - testing only
+		console.log(JSON.stringify(gJ));
+		trackLayer = L.geoJson(gJ, {
+			style: function(f) {
+				return {
+					color: '#f00'
+					};
+				}
+			}
+		);
+		console.log(trackLayer.getBounds().toBBoxString());
+		map.fitBounds(trackLayer.getBounds());
+		trackLayer.addTo(map);
+		// location.href = '#track'; // TODO: uncomment when map canvas is more reliable
 	}
 
 	this.upload = function() {
 		// based on http://jsfiddle.net/tednaleid/7eWgb/
-		// var value = "foobar";
 		
 		var filename = formatTimestamp(new Date(), 'filename') + '-' + device.uuid + '.json';
 
@@ -329,7 +353,7 @@ function Journey(title) {
 			url: uploadPath,
 			dataType: 'json',
 			async: true,
-			data: JSON.stringify(payload)
+			data: payload
 		});
 
 		req.done( function (msg) {
@@ -384,16 +408,18 @@ function Journey(title) {
 }
 
 function startJourney() {
-	console.log('Start journey requested');
+	console.log('Start journey pressed');
 	journey.begin();
 }
 
 function endJourney() {
-	console.log('End journey requested');
-	// FIXME: this is a speculative stub and pretty damn hard to test in absence of a working device
-	// .. even so, I am getting errors in the journey object so not sure if they are actualy related to that.
-	// console.log(journey);
+	console.log('End journey pressed');
 	journey.end();
+}
+
+function reviewJourney() {
+	console.log('Review journey pressed');
+	journey.review();
 }
 
 /* ************** Will possibly be moved to a Sensor type class instance ************ */
@@ -458,21 +484,38 @@ function makegeoJSON(track) {
 		"type": 'FeatureCollection',
 		features: []
     }
+    var lineString = [];
     for (i=0; i < track.trail.length; i++) {
-		if ( track.trail[i].reading == 'position' ) { //FIXME - this uis a filter hack - points to bigger issues!
+		if ( track.trail[i].reading != 'position' ) { //FIXME - this uis a filter hack - points to bigger issues!
 			geoJSON.features.push ( {
 				type: 'Feature',
 					geometry: {
-						"type": 'Point',
-						coordinates: track.trail[i].value
+						'type': 'Point',
+						coordinates: track.trail[i].position
 					},
 					properties: {
-						time: track.trail[i].stamp
+						time: track.trail[i].stamp,
+						measure: track.trail[i].reading,
+						value: track.trail[i].value
 					}
 				}
 			);
 		}
+		lineString.push(track.trail[i].position);
 	}
+	// Leaflet's GeoJSON doesn't support showing a sequence of points as aline, so we need to add it redundantly as a LineString
+	geoJSON.features.push ( {
+		type: 'Feature',
+			geometry: {
+				"type": 'LineString',
+				coordinates: lineString
+			}
+		}
+	);
+	geoJSON['properties'] = {
+		name: track.name
+	};
+	
 	return geoJSON;
 }
 
