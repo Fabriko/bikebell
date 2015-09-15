@@ -180,17 +180,11 @@ var app = {
 				*/
 				
 				if (journey) {
-					/*
-					var position = logPosition(val);
-					console.log('tryog ' + position.toString());
-					journey.addData('button', val, [position.coords.longitude, position.coords.latitude] );
-					*/
 					logPosition(val, function(loc) {
 							console.log('tryog ' + loc.toString());
 							journey.addData('button', val, [loc.coords.longitude, loc.coords.latitude] );
 						}
 					);
-					// console.log('tryog ' + position.toString());
 				}
 			},
 			function(errorCode) {
