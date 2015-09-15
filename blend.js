@@ -48,16 +48,16 @@ var app = {
 		evothings.ble.startScan(
 			function(deviceInfo) {
 				if (app.knownDevices[deviceInfo.address]) {
-					console.log('known device ' + deviceInfo.name);
+					console.log('Known device ' + deviceInfo.name);
 				}
 				else {
-					logActivity('Detected device/s: ' + deviceInfo.name);
+					logActivity('Detected device: ' + deviceInfo.name);
 					app.knownDevices[deviceInfo.address] = deviceInfo;
-					if (deviceInfo.name == app.target && !app.connectee) {
-						logActivity('Found target ' + app.target);
-						app.connectee = deviceInfo;
-						app.connect(deviceInfo.address);
-					}
+				}
+				if (deviceInfo.name == app.target && !app.connectee) { // FIXME: check the !app.connectee predicate is actually delivering what we want
+					logActivity('Found target ' + app.target);
+					// app.connectee = deviceInfo;
+					app.connect(deviceInfo);
 				}
 				evothings.ble.stopScan();
 			},
@@ -68,21 +68,35 @@ var app = {
 		);
 	},
 
-	connect: function(address) {
+	connect: function(deviceInfo) {
+		var stateMsgMap = {
+			0: 'Disconnected',
+			1: 'Connecting',
+			2: 'Connected',
+			3: 'Disconnecting'
+		};
 		evothings.ble.stopScan();
-		logActivity('Connecting to ...' + app.connectee.name);
+		logActivity('Connecting to ...' + deviceInfo.name);
 		evothings.ble.connect(
-			address,
+			deviceInfo.address,
 			function(connectInfo) {
+				displayStatus(stateMsgMap[connectInfo.state]);
 				if (connectInfo.state == 2) { // Connected
-					logActivity('Connected to ' +  app.connectee.name);
+					logActivity('Connected to ' +  deviceInfo.name);
+					app.connectee = deviceInfo;
 					app.deviceHandle = connectInfo.deviceHandle;
 					app.getServices(connectInfo.deviceHandle);
 					// app.on();
 				}
+				if (connectInfo.state == 0) { // Disconnected
+					logActivity('Disconnected from ' +  deviceInfo.name);
+					app.connectee = null;
+				}
 			},
 			function(errorCode)	{
-				console.log('Connect error with ' + app.connectee.name + ':' + errorCode);
+				console.log('Connect error with ' + deviceInfo.name + ': ' + errorCode);
+				displayStatus(stateMsgMap[0]);
+				app.connectee = null;
 			});
 	},
 	

@@ -155,7 +155,7 @@ function formatTimestamp(stamp, format) {
 		case 'filename':
 			return year +
 				month +
-				dom + '-' + 
+				dom + 'T' + 
 				hour +
 				minute + 
 				second;
@@ -245,7 +245,7 @@ function statusUISwitch(connected) {
 }
 
 function displayStatus(status) {
-	document.getElementById('status').innerHTML = status;
+	$('#status').text(status);
 }
 
 function logActivity(msg) {
