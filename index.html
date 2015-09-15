@@ -21,7 +21,7 @@
 		console.log = hyper.log;
 	}
 	
-	var _VERSION = '0.2.7';
+	var _VERSION = '0.2.8';
 	var map;
 	var settings = window.localStorage;
 
@@ -56,6 +56,12 @@
 					config.geoOptions
 				);
 			}
+			
+			$('header nav>ul li').on('click',function() {
+				$(this).siblings('.active').removeClass('active');
+				$(this).toggleClass('active');
+				}
+			);
 		},
 		function() {
 			console.log('bummer about the map');
@@ -84,13 +90,22 @@
 <body>
 
 	<header>
+
+		<nav>
+			<ul>
+				<li id="nav-logs"><a href="#status">Logs</a></li>
+				<li id="nav-dash" class="active"><a href="#top">Dashboard</a></li>
+				<li id="nav-map"><a href="#track">Map</a></li>
+			</ul>
+		</nav>
+		
 		<button id="menu-button" tabindex="0" onclick="this.focus();">
 			<img src="ui/images/menu.svg" />
 		</button>
 
-		<menu>
+		<menu id="burger-menu">
 			<menuitem>
-				<a href="#track-canvas">Map</a>
+				<a href="#track">Map</a>
 			</menuitem>
 			<menuitem>
 				<a id="menu.settings" onclick="showSettings();">Settings</a>

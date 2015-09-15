@@ -57,6 +57,43 @@ button.end {
 	background-color: #e15a64;
 }
 
+/* FIXME: this header nav list isn't right yet (positioning) and won't scale etc but will have to do for demo */
+header nav ul {
+	position: fixed;
+	top: 0;
+	font-variant: small-caps;
+	font-weight: bolder;
+}
+
+header nav>ul li {
+	display: inline;
+	padding: 0 0.2em 0;
+	/* background-color: red; */
+}
+
+header nav>ul li.active {
+	border: thin solid yellow;
+}
+
+#nav-logs {
+	background-color: red;
+	border-radius: 4px 0 0 4px;
+}
+
+#nav-dash {
+	background-color: green;
+}
+
+#nav-map {
+	background-color: purple;
+	border-radius: 0 4px 4px 0;
+}
+
+header nav>ul a {
+	/* position: relative; */
+	font-size: smaller;
+	text-decoration: none;
+}
 
 /*
 .section {
