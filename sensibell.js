@@ -148,9 +148,11 @@ function formatTimestamp(stamp, format) {
 			return year + '-' +
 				month + '-' +
 				dom + ' ' +
+				'<strong>' +
 				hour + ':' +
 				minute + ':' +
 				second + '.' +
+				'</strong>' +
 				millisecond;
 		case 'filename':
 			return year +
@@ -250,11 +252,12 @@ function displayStatus(status) {
 
 function logActivity(msg) {
 	console.log(msg);
-	document.getElementById('activities').innerHTML =
-		formatTimestamp(new Date(), 'log') +
-		': ' + 
-		msg + '<br/>' + 
-		document.getElementById('activities').innerHTML;
+	$('#activities').prepend(
+		'<span class="timestamp">' + formatTimestamp(new Date(), 'log') + '</span>' +
+		': ' +
+		msg +
+		'<br/>'
+	);
 }
 
 function Journey(title) {
@@ -262,6 +265,7 @@ function Journey(title) {
 	this.makeTracks = function() {
 		this['JSONtrail'] = {
 			name: title,
+			version: _VERSION,
 			trail: []
 		}
 		console.log('ran Journey.maketracks()');
@@ -513,7 +517,8 @@ function makegeoJSON(track) {
 		}
 	);
 	geoJSON['properties'] = {
-		name: track.name
+		name: track.name,
+		version: track.version
 	};
 	
 	return geoJSON;

@@ -21,10 +21,22 @@
 	color: #0f0;
 	padding-bottom: 1em;
 	font-size: small;
+	font-style: italic;
 	display: block;
 	clear: both;
 	min-height: 10em;
 }
+
+.console .timestamp,
+.console .meta {
+	color: #cfc;
+	font-style: normal;
+}
+
+.console .meta {
+	color: #fcc;
+}
+
 /*
 .section {
 	display: none;
