@@ -36,6 +36,28 @@
 	color: #cfc;
 }
 
+button.disabled {
+	font-style: italic;
+	border: thin inset #ffa;
+	background-color: #bbb;
+}
+
+button {
+	font-weight: bold;
+	letter-spacing: 0.1em;
+	border-style: outset;
+	background-color: #6bc6ce;
+}
+
+button.start {
+	background-color: #54dfb3;
+}
+
+button.end {
+	background-color: #e15a64;
+}
+
+
 /*
 .section {
 	display: none;

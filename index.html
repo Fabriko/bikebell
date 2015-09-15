@@ -21,7 +21,7 @@
 		console.log = hyper.log;
 	}
 	
-	var _VERSION = '0.2.5';
+	var _VERSION = '0.2.6';
 	var map;
 
 	document.addEventListener(
@@ -31,20 +31,25 @@
 
 			if (navigator.geolocation) {
 				console.log('App supports ' + navigator.geolocation + ', using options: ' + JSON.stringify(config.geoOptions));
+				displayStatus('Getting GPS fix');
 				navigator.geolocation.getCurrentPosition(
 					function(position) {
-						console.log('location found: ' + JSON.stringify(position.coords));
+						logActivity('Location found: (' + position.coords.latitude + ',' + position.coords.longitude + ')');
 						startMap( [
 							position.coords.latitude,
 							position.coords.longitude
 							]
 						);
+						$('#journey-toggle').toggleClass('disabled start');
+						$('#journey-toggle').on('click',startJourney);
+						displayStatus();
 					},
 					function(e) { 
-						console.log('location NOT found');
+						logActivity('Location NOT found');
 						if (dummyLoc.length) {
 							startMap(dummyLoc);
 						}
+						displayStatus('No GPS');
 					},
 					config.geoOptions
 				);
@@ -66,20 +71,9 @@
 			}
 			).addTo(map);
 
-		// map.setView([51.505, -0.09], 13); //FIXME
 		if (at) {
 			console.log('Centering map at ' + JSON.stringify(at));
 			map.setView(at, 18);
-			/*
-			map.locate( {
-				watch: true, 
-				setView: true, 
-				timeout: 15000
-				}
-			);
-			map.on('locationfound', function(e) { console.log('location found: ' + e.latlng.toString());} );
-			map.on('locationerror', function(e) { console.log('location NOT map.locate()d');} );
-			*/
 		}
 	}
 	</script>
@@ -126,9 +120,8 @@
 	</div>
 
 	<ul style="list-item-type:none; display: inline;">
-		<li><button id="j-start" onclick="startJourney();" class="green">Start Journey</button></li>
-		<li><button id="j-end" onclick="endJourney();" class="red">End Journey</button></li>
-		<li><button id="j-review" onclick="reviewJourney();" class="blue disabled">Review Journey</button></li>
+		<li><button id="journey-toggle" class="disabled reactive">Start Journey</button></li>
+		<li><button id="journey-review" class="disabled reactive">Review Journey</button></li>
 	</ul>
 
 	<p class="status"><strong>Status:</strong> <span id="status">Ready</span></p>

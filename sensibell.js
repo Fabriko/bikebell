@@ -247,11 +247,14 @@ function statusUISwitch(connected) {
 }
 
 function displayStatus(status) {
+	if (!status) {
+		status = 'Ready';
+	}
 	$('#status').text(status);
 }
 
 function logActivity(msg) {
-	console.log(msg);
+	console.log($('<div>' + msg + '</div>').text()); // strip out any HTML meant for the app screen console
 	$('#activities').prepend(
 		'<span class="timestamp meta">' + formatTimestamp(new Date(), 'log') + '</span>' +
 		': ' +
@@ -413,11 +416,24 @@ function Journey(title) {
 
 function startJourney() {
 	console.log('Start journey pressed');
+
+	$('#journey-toggle').toggleClass('start end');
+	$('#journey-toggle').text('End Journey');
+	$('#journey-toggle').on('click',endJourney);
+	
 	journey.begin();
 }
 
 function endJourney() {
 	console.log('End journey pressed');
+
+	$('#journey-toggle').toggleClass('start end');
+	$('#journey-toggle').text('Start Journey');
+	$('#journey-toggle').on('click',startJourney);
+	
+	$('#journey-review').toggleClass('disabled');
+	$('#journey-review').on('click',reviewJourney);
+
 	journey.end();
 }
 
