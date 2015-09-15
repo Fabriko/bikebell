@@ -253,7 +253,7 @@ function displayStatus(status) {
 function logActivity(msg) {
 	console.log(msg);
 	$('#activities').prepend(
-		'<span class="timestamp">' + formatTimestamp(new Date(), 'log') + '</span>' +
+		'<span class="timestamp meta">' + formatTimestamp(new Date(), 'log') + '</span>' +
 		': ' +
 		msg +
 		'<br/>'

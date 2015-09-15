@@ -27,14 +27,13 @@
 	min-height: 10em;
 }
 
-.console .timestamp,
 .console .meta {
-	color: #cfc;
+	color: #fcc;
 	font-style: normal;
 }
 
-.console .meta {
-	color: #fcc;
+.console .timestamp.meta {
+	color: #cfc;
 }
 
 /*

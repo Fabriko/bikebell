@@ -21,13 +21,13 @@
 		console.log = hyper.log;
 	}
 	
-	var _VERSION = '0.2.4';
+	var _VERSION = '0.2.5';
 	var map;
 
 	document.addEventListener(
 		'DOMContentLoaded',
 		function () {
-			logActivity('Application version <strong class="meta">' + _VERSION + '</strong> loaded :: events will be logged here');
+			logActivity('Application version <strong class="meta version">' + _VERSION + '</strong> loaded :: events will be logged here');
 
 			if (navigator.geolocation) {
 				console.log('App supports ' + navigator.geolocation + ', using options: ' + JSON.stringify(config.geoOptions));
