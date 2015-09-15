@@ -429,10 +429,10 @@ function endJourney() {
 
 	$('#journey-toggle').toggleClass('start end');
 	$('#journey-toggle').text('Start Journey');
-	$('#journey-toggle').on('click',startJourney);
+	$('#journey-toggle').on('click', startJourney);
 	
 	$('#journey-review').toggleClass('disabled');
-	$('#journey-review').on('click',reviewJourney);
+	$('#journey-review').on('click', reviewJourney);
 
 	journey.end();
 }
@@ -442,11 +442,29 @@ function reviewJourney() {
 	journey.review();
 }
 
+function showSettings() {
+	var promptDefault;
+	if ( (promptDefault = settings.getItem('pairedDevice')) === null ) {
+		promptDefault = config.IDPairingsHack[device.uuid];
+	}
+	var response = window.prompt(
+		'Which device do you want to pair with?',
+		promptDefault
+		);
+	if (response !== null) {
+		settings.setItem(
+			'pairedDevice',
+			response
+			);
+		console.log('settings->pairedDevice is now ' + settings.getItem('pairedDevice'));
+	}
+}
+
 /* ************** Will possibly be moved to a Sensor type class instance ************ */
 function initSensor() {
 
-	SENSOR.target = ( config.IDPairingsHack[device.uuid] ? config.IDPairingsHack[device.uuid] : ' [not mapped!]' );
-	logActivity('This is handset device ' + device.uuid + ' wanting to pair with ' + SENSOR.target);
+	SENSOR.target = ( settings.getItem('pairedDevice') ? settings.getItem('pairedDevice') : config.IDPairingsHack[device.uuid] );
+	logActivity('This is handset device ' + device.uuid + ' wanting to pair with ' + ( SENSOR.target ? SENSOR.target : '[unpaired]' ));
 
 	logActivity('Resetting bluetooth to be safe .. ');
 	evothings.ble.reset(
@@ -465,7 +483,6 @@ function initSensor() {
 			logActivity('resetfail');
 		}
 	);
-
 	// logActivity('Sensor device initialised');
 }
 

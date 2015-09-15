@@ -21,12 +21,14 @@
 		console.log = hyper.log;
 	}
 	
-	var _VERSION = '0.2.6';
+	var _VERSION = '0.2.7';
 	var map;
+	var settings = window.localStorage;
 
 	document.addEventListener(
 		'DOMContentLoaded',
 		function () {
+			console.log('===========');
 			logActivity('Application version <strong class="meta version">' + _VERSION + '</strong> loaded :: events will be logged here');
 
 			if (navigator.geolocation) {
@@ -54,7 +56,6 @@
 					config.geoOptions
 				);
 			}
-			// startMap();
 		},
 		function() {
 			console.log('bummer about the map');
@@ -91,6 +92,9 @@
 			<menuitem>
 				<a href="#track-canvas">Map</a>
 			</menuitem>
+			<menuitem>
+				<a id="menu.settings" onclick="showSettings();">Settings</a>
+			</menuitem>
 			<!--
 			<menuitem>
 				<a id="menu.connect" onclick="connect();">Connect</a>
@@ -116,7 +120,7 @@
 			<img src="fablabchch.png" alt="FAB LAB CHCH" style="float:left;width:100px;height:auto;"/>
 		</a>
 
-		<img id="connectButton" src="casing.jpg" style="float:right;width:120px;height:auto;" /> <!-- onclick="connect() -->
+		<img id="connectButton" src="casing.jpg" onclick="showSettings();" style="float:right;width:120px;height:auto;" />
 	</div>
 
 	<ul style="list-item-type:none; display: inline;">
