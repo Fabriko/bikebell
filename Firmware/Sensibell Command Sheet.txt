@@ -1,0 +1,24 @@
+Sensibell command sheet
+
+Notes:
+All packets must be exactly four bytes in length.
+Board rate must be 9600.
+
+Board responses
+Command			Action
+R:00			Red LED off
+R:01			Red LED on
+G:00			Green LED off
+G:01			Green LED on
+D:00			Debug LED off
+D:01			Debug LED on
+
+Board events
+Event					Call made
+Green button pressed	B:01
+Red button pressed		B:02
+
+Change log:
+2015/09/03 - 
+Added initial commands for firmware version V03R00 running on board version Bell003.
+
