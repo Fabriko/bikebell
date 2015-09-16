@@ -16,11 +16,13 @@ var config = {
 		timeout: 15000,
 		// maximumAge: 60000,
 		enableHighAccuracy: true
-	}
+	},
+	
+	enableButtonsWithoutGPS: false
 
 }
 
-// var dummyLoc = [];
+var dummyLoc = [51.505, -0.09];
 
 var dummyGeoJSON = {};
 
@@ -38,3 +40,23 @@ gJreq.fail( function (xhr,failText) {
 	}
 );
 
+dummyTrail = {
+    "name": "foo",
+    "version": 'vDummyTrail',
+    "trail": [{
+        "reading": "position",
+        "stamp": "2015-09-12T19:47:15.123Z",
+        "value": [51.505, -0.09],
+        "position": [51.505, -0.09]
+    }, {
+        "reading": "button",
+        "stamp": "2015-09-12T19:48:15.456Z",
+        "value": '02',
+        "position": [51.505, -0.12]
+    }, {
+        "reading": "position",
+        "stamp": "2015-09-12T19:49:15.789Z",
+        "value": [51.505, -0.15],
+        "position": [51.505, -0.15]
+    }]
+};

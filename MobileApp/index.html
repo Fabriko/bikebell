@@ -21,7 +21,7 @@
 		console.log = hyper.log;
 	}
 	
-	var _VERSION = '0.2.9-merged-pullreq1';
+	var _VERSION = '0.2.10';
 	var map;
 	var settings = window.localStorage;
 
@@ -46,12 +46,17 @@
 						$('#journey-toggle').on('click',startJourney);
 						displayStatus();
 					},
-					function(e) { 
+					function(e) {
 						logActivity('Location NOT found');
 						if (dummyLoc.length) {
 							startMap(dummyLoc);
 						}
-						displayStatus('No GPS');
+						if (config.enableButtonsWithoutGPS) {
+							logActivity('Enabling buttons without GPS as per config');
+							$('#journey-toggle').toggleClass('disabled start');
+							$('#journey-toggle').on('click',startJourney);
+						}
+						displayStatus('No GPS' + (config.enableButtonsWithoutGPS ? ' (Ready anyway)' : '') );
 					},
 					config.geoOptions
 				);
