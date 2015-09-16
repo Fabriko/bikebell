@@ -427,7 +427,7 @@ function startJourney() {
 function endJourney() {
 	console.log('End journey pressed');
 
-	$('#journey-toggle').toggleClass('start end');
+	$('#journey-toggle').toggleClass('start end'); // FIXME; this doesn't seem to be toggling off 'start'
 	$('#journey-toggle').text('Start Journey');
 	$('#journey-toggle').on('click', startJourney);
 	
@@ -443,6 +443,22 @@ function reviewJourney() {
 }
 
 function showSettings() {
+	setPairingTarget();
+}
+
+function getPairingTarget() {
+	return (
+		settings.getItem('pairedDevice') ? 
+		settings.getItem('pairedDevice') : 
+		(
+			config.IDPairingsHack[device.uuid] ?
+			config.IDPairingsHack[device.uuid] :
+			setPairingTarget()
+		)
+	);
+}
+
+function setPairingTarget() {
 	var promptDefault;
 	if ( (promptDefault = settings.getItem('pairedDevice')) === null ) {
 		promptDefault = config.IDPairingsHack[device.uuid];
@@ -458,14 +474,19 @@ function showSettings() {
 			);
 		console.log('settings->pairedDevice is now ' + settings.getItem('pairedDevice'));
 	}
+	return response;
 }
 
 /* ************** Will possibly be moved to a Sensor type class instance ************ */
 function initSensor() {
 
-	SENSOR.target = ( settings.getItem('pairedDevice') ? settings.getItem('pairedDevice') : config.IDPairingsHack[device.uuid] );
-	logActivity('This is handset device ' + device.uuid + ' wanting to pair with ' + ( SENSOR.target ? SENSOR.target : '[unpaired]' ));
+	do {
+		SENSOR.target = getPairingTarget();
+	}
+	while (!SENSOR.target);
 
+	logActivity('This is handset device ' + device.uuid + ' wanting to pair with ' + ( SENSOR.target ? SENSOR.target : '[unpaired]' )); // shouldn't need that last ternary while above do/while is in place
+	
 	logActivity('Resetting bluetooth to be safe .. ');
 	evothings.ble.reset(
 		function() {
@@ -478,9 +499,11 @@ function initSensor() {
 				console.log('Shouldinit Blendo');
 				blend.initialize();
 			}
+			return true;
 		},
 		function() {
 			logActivity('resetfail');
+			return false;
 		}
 	);
 	// logActivity('Sensor device initialised');
