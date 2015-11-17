@@ -21,7 +21,7 @@
 		console.log = hyper.log;
 	}
 	
-	var _VERSION = '0.2.10';
+	var _VERSION = '0.2.11-buttonbodge';
 	var map;
 	var settings = window.localStorage;
 
@@ -144,7 +144,9 @@
 	</div>
 
 	<ul style="list-item-type:none; display: inline;">
-		<li><button id="journey-toggle" class="disabled reactive">Start Journey</button></li>
+		<li><button id="journey-start" class="start" onclick="startJourney()">Start Journey</button></li>
+		<li><button id="journey-end" class="end" onclick="endJourney()">End Journey</button></li>
+		<li><button style="display:none;" id="journey-toggle" class="disabled reactive">Start Journey</button></li>
 		<li><button id="journey-review" class="disabled reactive">Review Journey</button></li>
 	</ul>
 

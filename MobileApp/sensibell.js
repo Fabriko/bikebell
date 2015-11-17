@@ -281,6 +281,8 @@ function Journey(title) {
 	}
 
 	this.addData = function(measure, data, position) {
+		logActivity('Adding ' + measure + ' of ' + data + ' to trail @ (' + position[0] + ',' + position[1] + ')');
+		console.log('JSONTrail: ' + JSON.stringify(this.JSONtrail));
 		this.JSONtrail.trail.push( {
 			reading: measure,
 			stamp: formatTimestamp(new Date(), 'W3CDTF'),
@@ -290,7 +292,7 @@ function Journey(title) {
 	}
 	
 	this.begin = function() {
-		this.makeTracks(); // TODO: won't need this after making a JSOTrail type as described under makeTracks()
+		this.makeTracks(); // TODO: won't need this after making a JSONTrail type as described under makeTracks()
 		
 		connectSensor();
 		
@@ -319,7 +321,7 @@ function Journey(title) {
 		L.geoJson(gJ).addTo(map);
 		
 		if (this.JSONtrail) {
-			this.upload(); // FIXME - removed for testing only
+			this.upload(); // FIXME - comment for testing only
 		}
 	}
 
@@ -425,15 +427,16 @@ function startJourney() {
 }
 
 function endJourney() {
+console.log(JSON.stringify(journey));
 	console.log('End journey pressed');
 
 	$('#journey-toggle').toggleClass('start end'); // FIXME; this doesn't seem to be toggling off 'start'
 	$('#journey-toggle').text('Start Journey');
-	$('#journey-toggle').on('click', startJourney);
+	// $('#journey-toggle').on('click', startJourney);
 	
 	$('#journey-review').toggleClass('disabled');
 	$('#journey-review').on('click', reviewJourney);
-
+console.log(JSON.stringify(journey));
 	journey.end();
 }
 
