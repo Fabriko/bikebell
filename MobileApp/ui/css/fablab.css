@@ -1,3 +1,173 @@
+[data-role=header] h1 {
+	display:	inline-block;
+}
+
+.status	{
+	display: block;
+	clear: both;
+	background-color: #cc0;
+	font-size: medium;
+	text-align: center;
+}
+	
+.status .label {
+	display: none;
+}
+
+#nav-logs {
+	background-color: red;
+	border-radius: 4px 0 0 4px;
+}
+
+#nav-dash {
+	background-color: green;
+}
+
+#nav-map {
+	background-color: purple;
+	border-radius: 0 4px 4px 0;
+}
+
+#track-canvas {
+    height: 100%;
+}
+
+.mobile-nav.ui-btn-right {
+	right: 1em;
+}
+
+.ui-content {
+	padding: 0 0.2em;
+}
+/*
+.menu-btn div {
+	position: absolute;
+	left: 100%;
+	top: 64%;
+	padding-right: 8px;
+	margin-top: -0.50em;
+	line-height: 1.2;
+	font-size: 18px;
+	font-weight: 200;
+	vertical-align: middle;
+	z-index: 99;
+}
+
+.menu-btn span {
+	display: block;
+	width: 19px;
+	height: 3px;
+	margin: 4px 0;
+	background: rgb(0,0,0);
+	z-index: 99;
+}
+*/
+
+/* adapted from https://github.com/tegansnyder/JQuery-Mobile-Slide-Menu/blob/master/css/jqm.slidemenu.css */
+.burger.menu{
+	display: none;
+
+	max-width: 80%;
+	right: 0.4em;
+	position: absolute;
+	background-color: #262C3A;
+	text-align: right;
+	-webkit-box-shadow: 3px 0px 5px -2px #32394A;
+	box-shadow: 3px 0px 5px -2px #32394A;
+	overflow: auto;
+	-webkit-overflow-scrolling: touch;
+}
+
+.burger.menu.out {
+	display: block;
+	z-index: 99;
+}
+
+.burger.menu h3{
+	font-size: smaller;
+	font-family: Arial, Helvetica, sans-serif;
+	color: #8C919F;
+	text-shadow: 0 1px 0 #272D39;
+	margin: 0;
+	padding: 4px 1em 4px 10px;
+	background: rgb(67,74,94); /* Old browsers */
+	background: -moz-linear-gradient(top, rgba(67,74,94,1) 0%, rgba(57,64,82,1) 100%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(67,74,94,1)), color-stop(100%,rgba(57,64,82,1))); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(top, rgba(67,74,94,1) 0%,rgba(57,64,82,1) 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top, rgba(67,74,94,1) 0%,rgba(57,64,82,1) 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(top, rgba(67,74,94,1) 0%,rgba(57,64,82,1) 100%); /* IE10+ */
+	background: linear-gradient(top, rgba(67,74,94,1) 0%,rgba(57,64,82,1) 100%); /* W3C */
+	border-top: solid #4E5567 1px;
+	border-bottom: solid #242A37 1px;
+	text-transform: uppercase;
+}
+
+.burger.menu ul {
+	margin: 0;
+	width: inherit;
+}
+
+.burger.menu ul li {
+	list-style-type: none;
+	margin: 0;
+	padding-right: 1em;
+}
+
+.burger.menu ul li a,
+.burger.menu ul li a:visited {
+	border-top: 1px #3E4555 solid;
+	border-bottom: 1px #191D27 solid;
+	color: #DBE0E8;
+	font-size: 14px;
+	font-family: Arial, Helvetica, sans-serif;
+	text-decoration: none;
+	/* width: 230px; */
+	display: block;
+	padding: 10px 0 10px 10px;
+	text-shadow: 0px 1px 1px #212631;
+}
+
+.burger.menu ul li img {
+	margin-right: 8px;
+}
+
+.burger.menu ul li a:hover,
+.burger.menu ul li a:active {
+	background-color: #32394A;
+}
+
+/*	refer https://github.com/tegansnyder/JQuery-Mobile-Slide-Menu/blob/master/css/jqm.slidemenu.css
+	and https://github.com/tegansnyder/JQuery-Mobile-Slide-Menu/blob/master/index.html
+	to finish this, it probably needs lots of other guff loaded */
+.ui-icon-smico {
+background-image: url("../images/smico.png") !important;
+}
+
+.slidemenu_btn .ui-icon-shadow {
+-moz-box-shadow: 0 0px 0 rgba(255,255,255,0);
+-webkit-box-shadow: 0 0px 0 rgba(255,255,255,0);
+box-shadow: 0 0px 0 rgba(255,255,255,0);
+}
+.slidemenu_btn .ui-btn-inner {
+border-top: 0px;
+}
+.slidemenu_btn .ui-icon {
+margin: 4px 1px 2px 2px !important;
+width: 25px;
+-moz-border-radius: 0px;
+-webkit-border-radius: 0px;
+border-radius: 0px;
+}
+.slidemenu_btn .ui-icon, .ui-icon-searchfield::after {
+background: none;
+}
+.slidemenu_btn.ui-btn-icon-notext {
+width: 30px;
+}
+
+
+/* old work  - sort thru TODO */ 
+
 #sprite	{
 	position: absolute;
 	width: 300px;
@@ -6,14 +176,6 @@
 	left: 0px;
 	z-index: 1000;
 	display: none;
-}
-	
-.status	{
-	display: block;
-	clear: both;
-	border-radius: 5px;
-	background-color: #cc0;
-	font-size: medium;
 }
 	
 .console {
@@ -75,20 +237,6 @@ header nav>ul li.active {
 	border: thin solid yellow;
 }
 
-#nav-logs {
-	background-color: red;
-	border-radius: 4px 0 0 4px;
-}
-
-#nav-dash {
-	background-color: green;
-}
-
-#nav-map {
-	background-color: purple;
-	border-radius: 0 4px 4px 0;
-}
-
 header nav>ul a {
 	/* position: relative; */
 	font-size: smaller;
@@ -120,6 +268,4 @@ header nav>ul a {
 	display: block;
 }
 */
-#track-canvas {
-    height: 100%;
-}
+

@@ -3,25 +3,25 @@
 
 <head>
 	<meta charset="utf-8" />
-	<meta name="format-detection" content="telephone=no" />
 	<meta name="viewport" content="width=device-width, user-scalable=no	initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
 
 	<title>Bike Bell app</title>
 
-	<link rel="stylesheet" type="text/css" href="ui/css/evothings-app.css" />
+    <link rel="stylesheet" href="ui/css/leaflet.css" />
+    <script src="libs/leaflet.js"></script> 
+    <script src="libs/jquery/jquery-2.1.4.js"></script>   
+	<link rel="stylesheet" href="libs/jquery-mobile/jquery.mobile-1.4.5.css" />
+	<script src="libs/jquery-mobile/jquery.mobile-1.4.5.js"></script>
+
 	<link rel="stylesheet" type="text/css" href="ui/css/fablab.css" />
 	
-	<link rel="stylesheet" href="ui/css/leaflet.css" />
-	<script src="libs/leaflet.js"></script>	
-	<script src="libs/jquery/jquery.js"></script>	
-
 	<script>
 	// Redirect console.log to Evothings Workbench.
 	if (window.hyper && window.hyper.log) {
 		console.log = hyper.log;
 	}
 	
-	var _VERSION = '0.2.11-buttonbodge';
+	var _VERSION = '0.2.2';
 	var map;
 	var settings = window.localStorage;
 
@@ -88,88 +88,126 @@
 			map.setView(at, 18);
 		}
 	}
+
+	$(document).on('pageinit', function() {
+
+		$('.menu-btn').click( function() {
+			$('.burger.menu').toggleClass('out');
+		});
+		// $('#menu').menu();
+
+	});
+
 	</script>
 
 </head>
 
 <body>
+	<div data-role="page">
+		<div data-role="header">
 
-	<header>
+			<h1>Sensibel</h1>
 
-		<nav>
-			<ul>
-				<li id="nav-logs"><a href="#status">Logs</a></li>
-				<li id="nav-dash" class="active"><a href="#top">Dashboard</a></li>
-				<li id="nav-map"><a href="#track">Map</a></li>
-			</ul>
-		</nav>
-		
-		<button id="menu-button" tabindex="0" onclick="this.focus();">
-			<img src="ui/images/menu.svg" />
-		</button>
+			<div class="mobile-nav"> <!--  style="display:inline-block;position:absolute; right: 20px; z-index:100;" -->
+				<a class="menu-btn ui-btn ui-btn-right ui-icon-bars ui-btn-icon-notext" data-icon="bars">Menu</a>
+<!--
+					<div></div>
+					<span></span>
+					<span></span>
+					<span></span>
+				</div>
+-->
 
-		<menu id="burger-menu">
-			<menuitem>
-				<a href="#track">Map</a>
-			</menuitem>
-			<menuitem>
-				<a id="menu.settings" onclick="showSettings();">Settings</a>
-			</menuitem>
-			<!--
-			<menuitem>
-				<a id="menu.connect" onclick="connect();">Connect</a>
-			</menuitem>
-			<menuitem>
-				<a id="menu.connect" onclick="console.log('blend on'); app.on();">Blend light ON</a>
-			</menuitem>
-			<menuitem>
-				<a id="menu.connect" onclick="console.log('blend off'); app.off();">Blend light OFF</a>
-			</menuitem>
-			-->
-			<menuitem>
-				<a onclick="navigator.app.exitApp();">Exit</a>
-			</menuitem>
-		</menu>
-		
-	</header>
+				<div class="burger menu">
+					<ul>
+						<li><a href="#track"><img src="ui/images/smico3.png" />Map</a></li>
+						<li><a id="menu.settings" onclick="showSettings();">Settings</a></li>
+					</ul>
+<!--
+				<menuitem>
+					<a id="menu.connect" onclick="connect();">Connect</a>
+				</menuitem>
+				<menuitem>
+					<a id="menu.connect" onclick="console.log('blend on'); app.on();">Blend light ON</a>
+				</menuitem>
+				<menuitem>
+					<a id="menu.connect" onclick="console.log('blend off'); app.off();">Blend light OFF</a>
+				</menuitem>
+				<menuitem>
+					<a href="#about">About</a>
+				</menuitem>
+-->
+					<h3>Somebody FIXME</h3>
+					<ul>
+						<li><a onclick="navigator.app.exitApp();">Exit</a></li>
+					</ul>
+				</div>
+			</div>
 
-	<h1>Fablab Sensibell</h1>
 
-	<div id="banner">
-		<a href="#track">
-			<img src="fablabchch.png" alt="FAB LAB CHCH" style="float:left;width:100px;height:auto;"/>
-		</a>
+			<div role="main" class="ui-content">
+				<div data-role="tabs">
+					<div data-role="navbar">
+						<ul>
+							<li><a href="#nav-logs">Logs</a></li>
+							<li><a href="#nav-dash" class="ui-btn-active">Dashboard</a></li>
+							<li><a href="#nav-map">Map</a></li>
+						</ul>
+					</div>
 
-		<img id="connectButton" src="casing.jpg" onclick="showSettings();" style="float:right;width:120px;height:auto;" />
+					<div id="nav-logs" class="swipeable">
+						<p id="activities" class="console log" />
+					</div>
+
+					<div id="nav-dash" class="swipeable">
+						<p class="status"><strong class="label">Status: </strong><span id="status">Ready</span></p>
+
+						<div id="banner">
+							<a href="#track">
+								<img src="fablabchch.png" alt="FAB LAB CHCH" style="float:left;width:100px;height:auto;"/>
+							</a>
+
+							<img id="connectButton" src="casing.jpg" onclick="showSettings();" style="float:right;width:120px;height:auto;" />
+						</div>
+
+						<ul style="list-item-type:none; display: inline;">
+							<li><button id="journey-start" class="start" onclick="startJourney()">Start Journey</button></li>
+							<li><button id="journey-end" class="end" onclick="endJourney()">End Journey</button></li>
+							<li><button style="display:none;" id="journey-toggle" class="disabled reactive">Start Journey</button></li>
+							<li><button id="journey-review" class="disabled reactive">Review Journey</button></li>
+						</ul>
+
+					</div>
+
+					<div id="nav-map">
+
+						<div id="track-canvas" class="section map"></div>
+
+					</div>
+				</div>
+			</div>
+
+<!--
+			<nav>
+				<ul>
+					<li id="nav-logs"><a href="#status">Logs</a></li>
+					<li id="nav-dash" class="active"><a href="#top">Dashboard</a></li>
+					<li id="nav-map"><a href="#track">Map</a></li>
+				</ul>
+			</nav>
+-->		
+		</div>
+
+		<!-- <img id="sprite" src="sprite.svg" /> -->
+
 	</div>
-
-	<ul style="list-item-type:none; display: inline;">
-		<li><button id="journey-start" class="start" onclick="startJourney()">Start Journey</button></li>
-		<li><button id="journey-end" class="end" onclick="endJourney()">End Journey</button></li>
-		<li><button style="display:none;" id="journey-toggle" class="disabled reactive">Start Journey</button></li>
-		<li><button id="journey-review" class="disabled reactive">Review Journey</button></li>
-	</ul>
-
-	<p class="status"><strong>Status:</strong> <span id="status">Ready</span></p>
-
-	<p id="activities" class="console log" />
-
-	<p id="upgradeNotice" class="hidden">
-		<span class="color_softred">Please upgrade the firmware of your SensorTag.</span>
-	</p>
-
-	<img id="sprite" src="sprite.svg" />
-
-	<section id="track">
-		<div id="track-canvas" class="section map"></div>
-	</section>
 
 	<!-- library code -->
 	<script src="cordova.js"></script>
 	<script src="libs/evothings/evothings.js"></script>
 	<script src="libs/evothings/tisensortag/tisensortag.js"></script>
 	<script src="libs/togeojson.js"></script>
-	
+
 	<!-- app inclusions -->
 	<script src="config.js"></script>
 	<script src="blend.js"></script>
@@ -178,5 +216,4 @@
 	<script src="sensibell.js"></script>
 
 </body>
-
 </html>
