@@ -7,12 +7,12 @@
 
 	<title>Bike Bell app</title>
 
-    <link rel="stylesheet" href="ui/css/leaflet.css" />
     <script src="libs/leaflet.js"></script> 
     <script src="libs/jquery/jquery-2.1.4.js"></script>   
-	<link rel="stylesheet" href="libs/jquery-mobile/jquery.mobile-1.4.5.css" />
 	<script src="libs/jquery-mobile/jquery.mobile-1.4.5.js"></script>
 
+    <link rel="stylesheet" href="ui/css/leaflet.css" />
+	<link rel="stylesheet" href="libs/jquery-mobile/jquery.mobile-1.4.5.css" />
 	<link rel="stylesheet" type="text/css" href="ui/css/fablab.css" />
 	
 	<script>
@@ -29,12 +29,14 @@
 		'DOMContentLoaded',
 		function () {
 			console.log('===========');
+console.log($('.ui-icon-user').css('background-image'));
 			logActivity('Application version <strong class="meta version">' + _VERSION + '</strong> loaded :: events will be logged here');
 
 			if (navigator.geolocation) {
 				console.log('App supports ' + navigator.geolocation + ', using options: ' + JSON.stringify(config.geoOptions));
 				displayStatus('Getting GPS fix');
 				navigator.geolocation.getCurrentPosition(
+
 					function(position) {
 						logActivity('Location found: (' + position.coords.latitude + ',' + position.coords.longitude + ')');
 						startMap( [
@@ -44,8 +46,25 @@
 						);
 						$('#journey-toggle').toggleClass('disabled start');
 						$('#journey-toggle').on('click',startJourney);
+
+var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
+		console.log('now at (' + position.coords.latitude + ',' + position.coords.longitude + ')');
+		if (typeof(mypos) == 'undefined') {
+			mypos = L.marker(L.latLng(position.coords.latitude, position.coords.longitude), {icon:L.icon({iconUrl: locationPinIcon})}).addTo(map);
+		}
+		else {
+			mypos.update();
+		}
+	},
+    function(e) {
+	    console.log('watch error code: ' + error.code + ' message: ' + error.message);
+	},
+    config.geoOptions
+);
+
 						displayStatus();
 					},
+
 					function(e) {
 						logActivity('Location NOT found');
 						if (dummyLoc.length) {
@@ -58,15 +77,26 @@
 						}
 						displayStatus('No GPS' + (config.enableButtonsWithoutGPS ? ' (Ready anyway)' : '') );
 					},
+
 					config.geoOptions
 				);
 			}
-			
-			$('header nav>ul li').on('click',function() {
-				$(this).siblings('.active').removeClass('active');
-				$(this).toggleClass('active');
-				}
-			);
+
+			$('.ui-tabs').on('tabsactivate', function(event, ui) {
+				// console.log('activated ' + ui.newTab.filter('#nav-map').length);
+				ui.newTab.filter('#nav-map').each( function () { 
+					console.log($(this).text());
+					//L.DomEvent.addListener(window, 'load', startMap);
+					// map.invalidateSize(false);
+					// console.log(map);
+				});
+
+/*
+				if ( ui.newTab.attr('id') == 'nav-map') {
+					console.log('activated ');
+*/
+			});
+
 		},
 		function() {
 			console.log('bummer about the map');
@@ -87,14 +117,16 @@
 			console.log('Centering map at ' + JSON.stringify(at));
 			map.setView(at, 18);
 		}
+
 	}
 
 	$(document).on('pageinit', function() {
 
-		$('.menu-btn').click( function() {
-			$('.burger.menu').toggleClass('out');
+		$('.menu-btn').add('.burger.menu li a').click( function() {
+			$('.burger.menu').toggleClass('out'); // FIXME: can possibly use https://api.jqueryui.com/theming/stacking-elements/ from the framework instead here
 		});
-		// $('#menu').menu();
+
+		// $('#menu').menu(); // would also be nice to use the JS-UI framework here, but this method from the examples freezes execution and can't find much on it
 
 	});
 
@@ -103,8 +135,10 @@
 </head>
 
 <body>
-	<div data-role="page">
+	<div data-role="page" data-theme="b">
 		<div data-role="header">
+
+			<span class="menu-btn ui-btn ui-btn-left ui-icon-user ui-btn-icon-notext" data-icon="user">User menu</span>
 
 			<h1>Sensibel</h1>
 
@@ -120,8 +154,8 @@
 
 				<div class="burger menu">
 					<ul>
-						<li><a href="#track"><img src="ui/images/smico3.png" />Map</a></li>
-						<li><a id="menu.settings" onclick="showSettings();">Settings</a></li>
+						<li><a href="javascript: switchTab($('#nav-map'));"><img src="ui/images/smico3.png" />Map</a></li>
+						<li><a id="menu.settings" href="javascript: showSettings();">Settings</a></li>
 					</ul>
 <!--
 				<menuitem>
@@ -136,6 +170,9 @@
 				<menuitem>
 					<a href="#about">About</a>
 				</menuitem>
+				<menuitem>
+					<a onclick="navigator.app.exitApp();">Restart</a>
+				</menuitem>
 -->
 					<h3>Somebody FIXME</h3>
 					<ul>
@@ -144,24 +181,25 @@
 				</div>
 			</div>
 
+			<p class="status"><strong class="label">Status: </strong><span id="status">Ready</span></p>
 
 			<div role="main" class="ui-content">
-				<div data-role="tabs">
-					<div data-role="navbar">
+				<div data-role="tabs" class="ui-tabs">
+					<div data-role="navbar" class="ui-tabs-nav">
 						<ul>
-							<li><a href="#nav-logs">Logs</a></li>
-							<li><a href="#nav-dash" class="ui-btn-active">Dashboard</a></li>
-							<li><a href="#nav-map">Map</a></li>
+							<li><a href="#panel-logs" class="ui-tabs-anchor">Logs</a></li>
+							<li class="ui-tabs-active"><a href="#panel-dash" class="ui-tabs-anchor ui-btn-active">Dashboard</a></li> <!-- FIXME: this option should be default, may be moved to map tab to test map display -->
+							<li id="nav-map"><a href="#panel-map" class="ui-tabs-anchor">Map</a></li>
 						</ul>
 					</div>
 
-					<div id="nav-logs" class="swipeable">
+					<div id="panel-logs" class="ui-tabs-panel swipeable">
 						<p id="activities" class="console log" />
 					</div>
 
-					<div id="nav-dash" class="swipeable">
-						<p class="status"><strong class="label">Status: </strong><span id="status">Ready</span></p>
+					<div id="panel-dash" class="ui-tabs-panel swipeable">
 
+<!--
 						<div id="banner">
 							<a href="#track">
 								<img src="fablabchch.png" alt="FAB LAB CHCH" style="float:left;width:100px;height:auto;"/>
@@ -169,6 +207,7 @@
 
 							<img id="connectButton" src="casing.jpg" onclick="showSettings();" style="float:right;width:120px;height:auto;" />
 						</div>
+-->
 
 						<ul style="list-item-type:none; display: inline;">
 							<li><button id="journey-start" class="start" onclick="startJourney()">Start Journey</button></li>
@@ -177,12 +216,46 @@
 							<li><button id="journey-review" class="disabled reactive">Review Journey</button></li>
 						</ul>
 
+<div class="basic tools" style="text-align: center;">
+<input type="button" onclick="connectSensor();" value="Connect" data-enhanced="false">
+</div>
+
 					</div>
 
-					<div id="nav-map">
-
-						<div id="track-canvas" class="section map"></div>
-
+					<div id="panel-map" class="ui-tabs-panel" style="height:100%">
+						<!-- <section id="track"> -->
+						<div id="track-canvas" class="section map hack"><pre>
+Quite
+terrible
+I
+know.
+A
+spacer
+in
+the
+hackingest
+sense
+in
+stead (yes, 2 words)
+of
+a
+map.
+Never
+to
+be
+rendered
+or
+otherwise
+brought
+to
+light
+one
+hopes
+</pre></div>
+<script>
+// map.invalidateSize(false);
+</script>
+						<!-- </section> -->
 					</div>
 				</div>
 			</div>

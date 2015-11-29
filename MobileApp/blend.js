@@ -30,7 +30,7 @@ var app = {
 	initialize: function()
 	{
 		// document.addEventListener('deviceready', app.onDeviceReady, false);
-		logActivity('initialising in harmony with blend');
+		logActivity('Initialising Blend ..');
 		app.onDeviceReady();
 	},
 
@@ -179,20 +179,20 @@ var app = {
 				}
 				*/
 				
-				if (journey) {
+
 					logPosition(val, function(loc) {
-							console.log('tryog ' + loc.toString());
+						console.log('tryog ' + loc.toString());
+						L.circleMarker(L.latLng(loc.coords.latitude, loc.coords.longitude),{color:(val=='01'?'green':'red')}).addTo(map);
+						if (journey) {
 							journey.addData('button', val, [loc.coords.longitude, loc.coords.latitude] );
 						}
-					);
-				}
+					});
 			},
 			function(errorCode) {
 				console.log('enableNotification error: ' + errorCode);
 			}
 		);
 	},
-
 
 	getServices: function(deviceHandle)	{
 		console.log('Scanning for services...');

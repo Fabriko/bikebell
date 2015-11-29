@@ -1,5 +1,14 @@
+.basic.tools /*.ui-input-btn */input[type=button] {
+	border-radius: 50%;
+}
+
 [data-role=header] h1 {
 	display:	inline-block;
+}
+
+/* override */
+.ui-header .ui-title {
+	padding-bottom: 0;
 }
 
 .status	{
@@ -8,10 +17,16 @@
 	background-color: #cc0;
 	font-size: medium;
 	text-align: center;
+	text-transform: uppercase;
+	-webkit-margin-before: 0.5em; -webkit-margin-after: 0; -webkit-margin-start: 0.4em; -webkit-margin-end: 0.4em; 
 }
-	
+
+.status.warning {
+	background-color: #c00;
+}
+
 .status .label {
-	display: none;
+	display: none; // ideally this would be visibility:hidden without offsetting centering, for non-visual UAs to more likely use
 }
 
 #nav-logs {
@@ -32,6 +47,11 @@
     height: 100%;
 }
 
+#track-canvas.hack { /* for TESTING */
+	border: thin solid red;
+	border-bottom-color: gold;
+}
+
 .mobile-nav.ui-btn-right {
 	right: 1em;
 }
@@ -39,6 +59,7 @@
 .ui-content {
 	padding: 0 0.2em;
 }
+
 /*
 .menu-btn div {
 	position: absolute;

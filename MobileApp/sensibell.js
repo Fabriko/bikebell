@@ -246,11 +246,14 @@ function statusUISwitch(connected) {
 	}
 }
 
-function displayStatus(status) {
+function displayStatus(status, classes) {
+	console.log('Status to ' + status);
 	if (!status) {
 		status = 'Ready';
 	}
 	$('#status').text(status);
+	classes = 'status' + ( classes ? ' ' + classes  :'' );
+	$('#status').parents('.status').attr('class', classes); /* [0].classList.length ) ; */
 }
 
 function logActivity(msg) {
@@ -480,6 +483,17 @@ function setPairingTarget() {
 	return response;
 }
 
+/* ****** Generic UI code ******* */
+function switchTab(jqTabItem/*, cb*/) {
+	jqTabItem.find('a.ui-tabs-anchor').click();
+/*
+	if (arguments[1]) {
+		window.alert('yo');
+		cb();
+	}
+*/
+}// TODO: a similar function that allows specifying the tab panel instead, so we don;t have to figure out (or even set) its corresponding navbar id
+
 /* ************** Will possibly be moved to a Sensor type class instance ************ */
 function initSensor() {
 
@@ -493,7 +507,8 @@ function initSensor() {
 	logActivity('Resetting bluetooth to be safe .. ');
 	evothings.ble.reset(
 		function() {
-			logActivity('reset');
+			logActivity('.. was reset');
+			displayStatus('Not connected', 'warning');
 			if (SENSOR === sensortag) {
 				console.log('Shouldinit tag');
 				initialiseSensorTag();
