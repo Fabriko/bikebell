@@ -21,7 +21,7 @@
 		console.log = hyper.log;
 	}
 	
-	var _VERSION = '0.2.2';
+	var _VERSION = '0.2.3';
 	var map;
 	var settings = window.localStorage;
 
@@ -29,7 +29,6 @@
 		'DOMContentLoaded',
 		function () {
 			console.log('===========');
-console.log($('.ui-icon-user').css('background-image'));
 			logActivity('Application version <strong class="meta version">' + _VERSION + '</strong> loaded :: events will be logged here');
 
 			if (navigator.geolocation) {
