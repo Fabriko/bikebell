@@ -21,7 +21,7 @@
 		console.log = hyper.log;
 	}
 	
-	var _VERSION = '0.2.3';
+	var _VERSION = '0.2.3.1-diagnostic';
 	var map;
 	var settings = window.localStorage;
 
@@ -193,6 +193,21 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 					</div>
 
 					<div id="panel-logs" class="ui-tabs-panel swipeable">
+
+<div data-role="controlgroup" data-type="horizontal" data-shadow="true" data-theme="a" data-corners="true">
+	<fieldset>
+	<legend>Developer diagnostics</legend>
+	<div class="basic tools">
+		<input type="button" onclick="basicScan();" value="Scan" />
+		<input type="button" onclick="basicConnect();" value="Connect" />
+		<input type="button" onclick="basicRead();" value="Read" />
+		<input type="button" onclick="basicWrite(BTN_GOOD);" style="color:green;" value="Green" />
+		<input type="button" onclick="basicWrite(BTN_BAD);" value="Red" />
+		<input type="button" onclick="basicDisconnect();" value="Disconnect" />
+	</div>
+	</fieldset>
+</div>
+
 						<p id="activities" class="console log" />
 					</div>
 
@@ -277,7 +292,8 @@ hopes
 	<!-- library code -->
 	<script src="cordova.js"></script>
 	<script src="libs/evothings/evothings.js"></script>
-	<script src="libs/evothings/tisensortag/tisensortag.js"></script>
+	<!-- <script src="libs/evothings/tisensortag/tisensortag.js"></script> -->
+	<script src="libs/evothings/arduinoble/arduinoble.js"></script>
 	<script src="libs/togeojson.js"></script>
 
 	<!-- app inclusions -->

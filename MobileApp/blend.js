@@ -241,3 +241,18 @@ var app = {
 // app.initialize();
 
 blend = app; // FIXME
+
+/* ********************* */
+// temporary functions for diagnosing connection problems
+
+function basicScan() {
+	evothings.easyble.startScan(
+		function(deviceInfo) {
+			logActivity('EasyBLE device found: ' + deviceInfo.name);
+			evothings.printObject(deviceInfo);
+		},
+		function (error) {
+			logActivity('BLE Scan error: ' + error);
+		}
+	);
+}

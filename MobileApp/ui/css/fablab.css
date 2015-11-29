@@ -1,9 +1,23 @@
+[data-role=controlgroup] fieldset {
+	border: thin solid #0f0;
+	/* padding: 0.4em; */
+	text-align: center;
+}
+
+[data-role=controlgroup] fieldset legend {
+	text-align: left;
+}
+
+[data-role=controlgroup] fieldset .basic.tools * {
+	margin-bottom: 0.4em;
+}
+
 .basic.tools /*.ui-input-btn */input[type=button] {
 	border-radius: 50%;
 }
 
 [data-role=header] h1 {
-	display:	inline-block;
+	display: inline-block;
 }
 
 /* override */
