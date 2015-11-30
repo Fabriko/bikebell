@@ -507,7 +507,7 @@ function initSensor() {
 	logActivity('Resetting bluetooth to be safe .. ');
 	evothings.ble.reset(
 		function() {
-			logActivity('.. was reset');
+			logActivity('.. bluetooth was reset');
 			displayStatus('Not connected', 'warning');
 			if (SENSOR === sensortag) {
 				console.log('Shouldinit tag');

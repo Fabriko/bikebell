@@ -198,12 +198,13 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 	<fieldset>
 	<legend>Developer diagnostics</legend>
 	<div class="basic tools">
-		<input type="button" onclick="basicScan();" value="Scan" />
-		<input type="button" onclick="basicConnect();" value="Connect" />
-		<input type="button" onclick="basicRead();" value="Read" />
-		<input type="button" onclick="basicWrite(BTN_GOOD);" style="color:green;" value="Green" />
-		<input type="button" onclick="basicWrite(BTN_BAD);" value="Red" />
-		<input type="button" onclick="basicDisconnect();" value="Disconnect" />
+		<input type="button" onclick="basicScan(app.target);" value="Scan" />
+		<input type="button" onclick="basicConnect(app.target);" value="Connect" />
+		<input type="button" onclick="basicRead(app.target);" value="Read" />
+		<input type="button" onclick="basicWrite('BTN_GOOD_FIXME');" style="color: green;" value="Good" />
+		<input type="button" disabled="disabled" data-disabled="true" onclick="basicWrite(BTN_BAD_FIXME);" style="color:red;" value="Bad" />
+		<input type="button" onclick="basicDisconnect(app.target);" value="Disconnect" />
+		<input type="button" disabled="disabled" data-disabled="true" onclick="basicCheckStatus(app.target);" value="Check connection" />
 	</div>
 	</fieldset>
 </div>
@@ -231,7 +232,7 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 						</ul>
 
 <div class="basic tools" style="text-align: center;">
-<input type="button" onclick="connectSensor();" value="Connect" data-enhanced="false">
+<input type="button" onclick="connectSensor();" value="(legacy) Connect" data-enhanced="false">
 </div>
 
 					</div>
