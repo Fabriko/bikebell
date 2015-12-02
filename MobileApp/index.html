@@ -33,7 +33,7 @@
 
 			if (navigator.geolocation) {
 				console.log('App supports ' + navigator.geolocation + ', using options: ' + JSON.stringify(config.geoOptions));
-				displayStatus('Getting GPS fix');
+				logActivity('Getting GPS fix', 'task');
 				navigator.geolocation.getCurrentPosition(
 
 					function(position) {
@@ -74,7 +74,7 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 							$('#journey-toggle').toggleClass('disabled start');
 							$('#journey-toggle').on('click',startJourney);
 						}
-						displayStatus('No GPS' + (config.enableButtonsWithoutGPS ? ' (Ready anyway)' : '') );
+						logActivity('No GPS' + (config.enableButtonsWithoutGPS ? ' (Ready anyway)' : ''), 'error');
 					},
 
 					config.geoOptions
@@ -177,6 +177,7 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 -->
 					<h3>Somebody FIXME</h3>
 					<ul>
+						<li><a onclick="SENSOR.disconn();">Disconnect</a></li>
 						<li><a onclick="navigator.app.exitApp();">Exit</a></li>
 					</ul>
 				</div>

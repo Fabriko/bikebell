@@ -70,18 +70,21 @@ var app = {
 		);
 	},
 
-	scan: function(target) {
+	scan: function(success/*, failure*/) {
+		SENSOR = SENSOR || this.setSensor(); // FIXME: I'm not sure this works (assign properly to SENSOR) if there's no value
+
 		evothings.easyble.stopScan();
 		evothings.easyble.reportDeviceOnce(true);
 		evothings.easyble.startScan(
 			function(deviceInfo) {
 				// evothings.printObject(deviceInfo);
-				if(deviceInfo.hasName(target)) {
-					logActivity('Target EasyBLE device FOUND: ' + deviceInfo.name + ' - ' + deviceInfo.address);
+				if(deviceInfo.hasName(SENSOR.target)) {
+					logActivity('Target EasyBLE device FOUND: ' + deviceInfo.name + ' - ' + deviceInfo.address, 'success');
 					evothings.easyble.stopScan();
+					success(SENSOR.target);
 				}
 				else {
-					logActivity('Foreign device found: ' + deviceInfo.name + ' with address ' + deviceInfo.address);
+					logActivity('Foreign device found: ' + deviceInfo.name + ' with address ' + deviceInfo.address, 'notice');
 				}
 				/*
 				if (!app.knownDevices[deviceInfo.address]) {
@@ -89,16 +92,15 @@ var app = {
 				}
 				evothings.printObject(app.knownDevices);
 				*/
-				// TODO: a callback?
 			},
 			function (error) {
-				logActivity('BLE Scan error: ' + error);
-				// TODO: a callback?
+				logActivity('BLE Scan error: ' + error, 'error');
+				// failure(target); TODO
 			}
 		);
 	},
 
-	conn: function(target) {
+	conn: function(target, success) {
 		logActivity('Connecting to ... ' + target);
 		evothings.arduinoble.connect(
 			target,
@@ -107,21 +109,26 @@ var app = {
 				displayStatus('Connected', 'success');
 				logActivity('CONNECTED to ' +  target);
 				adaptiveButton('start');
+				if (success) {
+					success();
+				}
 			},
 			function(errorCode)	{
+				app.connectee = null;
+				displayStatus('Not connected', 'warning');
 				logActivity('Connect error with ' + target + ': ' + errorCode, 'error');
-				// displayStatus('Not connected');
-				// app.connectee = null;
+				adaptiveButton('connect');
 			});
 	},
 
-	connectFromScratch: function() {
-		SENSOR = SENSOR || this.setSensor();
+	connectFromScratch: function(success) {
+		SENSOR = SENSOR || this.setSensor(); // FIXME: I'm not sure this works (assign properly to SENSOR) if there's no value
 
-		this.scan(SENSOR.target);
-
-//TODO: invoke this as a success callback from .scan()
-		this.conn(SENSOR.target);
+		this.scan(
+			function(target) {
+				// console.log(target);
+				SENSOR.conn(target,	success);
+			});
 
 	},
 
@@ -139,6 +146,34 @@ var app = {
 		ble = evothings.ble;
 
 		logActivity('.. Blend SET.');
+	},
+
+	listen: function() {
+		logActivity('Listening to notifications for ' + app.connectee.name);
+		evothings.printObject(app.connectee.advertisementData);
+
+		// Turn notifications on.
+		// FIXME - I don;t understand what goes on here
+		app.connectee.writeDescriptor(
+			'713d0002-503e-4c75-ba94-3148f18d941e',
+			'00002902-0000-1000-8000-00805f9b34fb',
+			new Uint8Array([1,0]),
+			function() {
+				console.log('writeDescriptor: 00002902-0000-1000-8000-00805f9b34fb success.');
+			},
+			function(errorCode) {
+				console.log('writeDescriptor: 00002902-0000-1000-8000-00805f9b34fb error: ' + errorCode);
+			}
+		);
+
+		app.connectee.enableNotification(
+			'713d0002-503e-4c75-ba94-3148f18d941e', // i.e. Read
+			function(data) {
+				logActivity('READ this data: ' + evothings.ble.fromUtf8(data));
+			},
+			function(errorCode)	{
+				logActivity('BLE enableNotification error: ' + errorCode);
+			});
 	},
 
 	connect: function(deviceInfo) {
@@ -173,6 +208,16 @@ var app = {
 			});
 	},
 	
+	disconn: function() {
+		// TODO: some check of the target device being connected
+		// displayStatus('Disconnecting');
+		logActivity('Closing connection to ' + app.connectee.name + ' (FIXME: without checking)');
+		evothings.arduinoble.close();
+		displayStatus('Disconnected', 'warning');
+		logActivity('DISCONNECTED from ' + app.connectee.name, 'notice');
+		adaptiveButton('connect');
+	},
+
 	disconnect: function(handle) {
 		evothings.ble.close(handle);
 		app.connectee = null;

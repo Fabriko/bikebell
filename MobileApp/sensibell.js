@@ -548,9 +548,8 @@ function connectSensor() {
 		console.log('Shouldconnect Blendo');
 		// console.log(JSON.stringify(blend.knownDevices));
 // blend.startScan(); // TODO: checkme
-		blend.connectFromScratch();
+		blend.connectFromScratch(blend.listen);
 	}
-	// logActivity('Sensor device connecting');
 }
 
 function disconnectSensor() {
