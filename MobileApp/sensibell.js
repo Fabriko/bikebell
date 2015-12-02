@@ -247,7 +247,7 @@ function statusUISwitch(connected) {
 }
 
 function displayStatus(status, classes) {
-	console.log('Status to ' + status);
+	console.log('Status to "' + status + '"' + ( classes ? ' (' + classes + ')' : '' ) );
 	if (!status) {
 		status = 'Ready';
 	}
@@ -494,9 +494,19 @@ function switchTab(jqTabItem/*, cb*/) {
 */
 }// TODO: a similar function that allows specifying the tab panel instead, so we don;t have to figure out (or even set) its corresponding navbar id
 
+function adaptiveButton(id) {
+	$('.inner.majora.adaptive').hide('fast', function() {
+			$('#adaptive-' + id).parents('.inner.majora').show()
+		});
+}
+
 /* ************** Will possibly be moved to a Sensor type class instance ************ */
 function initSensor() {
+				console.log('Shouldinit Blendo');
+// blend.initialize();
+				blend.setSensor();
 
+/*
 	do {
 		SENSOR.target = getPairingTarget();
 	}
@@ -515,7 +525,8 @@ function initSensor() {
 			}
 			else if(SENSOR === blend) {
 				console.log('Shouldinit Blendo');
-				blend.initialize();
+// blend.initialize();
+				blend.setSensor();
 			}
 			return true;
 		},
@@ -524,6 +535,7 @@ function initSensor() {
 			return false;
 		}
 	);
+*/
 	// logActivity('Sensor device initialised');
 }
 
@@ -534,8 +546,9 @@ function connectSensor() {
 	}
 	else if(SENSOR === blend) {
 		console.log('Shouldconnect Blendo');
-		console.log(JSON.stringify(blend.knownDevices));
-		blend.startScan(); // TODO: checkme
+		// console.log(JSON.stringify(blend.knownDevices));
+// blend.startScan(); // TODO: checkme
+		blend.connectFromScratch();
 	}
 	// logActivity('Sensor device connecting');
 }

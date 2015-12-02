@@ -65,7 +65,7 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 					},
 
 					function(e) {
-						logActivity('Location NOT found');
+						logActivity('Location not determined', 'error');
 						if (dummyLoc.length) {
 							startMap(dummyLoc);
 						}
@@ -124,6 +124,8 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 		$('.menu-btn').add('.burger.menu li a').click( function() {
 			$('.burger.menu').toggleClass('out'); // FIXME: can possibly use https://api.jqueryui.com/theming/stacking-elements/ from the framework instead here
 		});
+
+		adaptiveButton('connect');
 
 		// $('#menu').menu(); // would also be nice to use the JS-UI framework here, but this method from the examples freezes execution and can't find much on it
 
@@ -232,7 +234,8 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 						</ul>
 
 <div data-role="controlgroup" data-type="horizontal" class="outer majora">
-<input type="button" onclick="connectSensor();" value="Connect" data-wrapper-class="labia majora connect" />
+<input type="button" onclick="connectSensor();" value="Connect" data-wrapper-class="inner majora adaptive connect" id="adaptive-connect" />
+<input type="button" onclick="FIXME();" value="Start" data-wrapper-class="inner majora adaptive start" id="adaptive-start" />
 </div>
 <!--
 -->

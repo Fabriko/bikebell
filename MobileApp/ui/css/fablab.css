@@ -7,12 +7,13 @@
 	border: medium solid #0f656d !important;
 }
 
-.majora.connect {
+.inner.majora.connect {
 	background-color: #ea3527;
 }
 
-.majora.start {
-	background-color: #00b2bd;
+.inner.majora.start {
+	/* for background-color, see .status.success */
+	content: 'Start';
 }
 
 /*
@@ -73,6 +74,11 @@
 
 .status.warning {
 	background-color: #c00;
+}
+
+.status.success,
+.inner.majora.start {
+	background-color: #00b2bd;
 }
 
 .status .label {

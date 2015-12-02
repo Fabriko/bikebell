@@ -31,8 +31,9 @@ var app = {
 	{
 		// document.addEventListener('deviceready', app.onDeviceReady, false);
 		logActivity('Initialising Blend ..');
-		app.onDeviceReady();
-		logActivity('.. Blend initialised.');
+		ble = evothings.ble;
+//		app.onDeviceReady();
+		logActivity('.. Blend set.');
 	},
 
 	// Called when device plugin functions are ready for use.
@@ -67,6 +68,77 @@ var app = {
 				evothings.ble.stopScan();
 			}
 		);
+	},
+
+	scan: function(target) {
+		evothings.easyble.stopScan();
+		evothings.easyble.reportDeviceOnce(true);
+		evothings.easyble.startScan(
+			function(deviceInfo) {
+				// evothings.printObject(deviceInfo);
+				if(deviceInfo.hasName(target)) {
+					logActivity('Target EasyBLE device FOUND: ' + deviceInfo.name + ' - ' + deviceInfo.address);
+					evothings.easyble.stopScan();
+				}
+				else {
+					logActivity('Foreign device found: ' + deviceInfo.name + ' with address ' + deviceInfo.address);
+				}
+				/*
+				if (!app.knownDevices[deviceInfo.address]) {
+					app.knownDevices[deviceInfo.address] = deviceInfo;
+				}
+				evothings.printObject(app.knownDevices);
+				*/
+				// TODO: a callback?
+			},
+			function (error) {
+				logActivity('BLE Scan error: ' + error);
+				// TODO: a callback?
+			}
+		);
+	},
+
+	conn: function(target) {
+		logActivity('Connecting to ... ' + target);
+		evothings.arduinoble.connect(
+			target,
+			function(connectedDevice) {
+				app.connectee = connectedDevice;
+				displayStatus('Connected', 'success');
+				logActivity('CONNECTED to ' +  target);
+				adaptiveButton('start');
+			},
+			function(errorCode)	{
+				logActivity('Connect error with ' + target + ': ' + errorCode, 'error');
+				// displayStatus('Not connected');
+				// app.connectee = null;
+			});
+	},
+
+	connectFromScratch: function() {
+		SENSOR = SENSOR || this.setSensor();
+
+		this.scan(SENSOR.target);
+
+//TODO: invoke this as a success callback from .scan()
+		this.conn(SENSOR.target);
+
+	},
+
+	setSensor: function() {
+		displayStatus('Not connected', 'warning');
+		do {
+			SENSOR.target = getPairingTarget();
+		}
+		while (!SENSOR.target);
+
+		logActivity('This is handset device ' + device.uuid + ' wanting to pair with ' + ( SENSOR.target ? SENSOR.target : '[unpaired]' )); // shouldn't need that last ternary while above do/while is in place
+
+		logActivity('Setting Blend ..');
+
+		ble = evothings.ble;
+
+		logActivity('.. Blend SET.');
 	},
 
 	connect: function(deviceInfo) {
