@@ -1,3 +1,39 @@
+.ui-input-btn.majora {
+	border-radius: 50% !important;
+	color: white;
+	text-transform: uppercase;
+	padding: 1em;
+	height: 5em; width: 5em; line-height: 5em;
+	border: medium solid #0f656d !important;
+}
+
+.majora.connect {
+	background-color: #ea3527;
+}
+
+.majora.start {
+	background-color: #00b2bd;
+}
+
+/*
+.ui-input-btn.major:active {
+	border-style: inset
+}
+*/
+
+.outer.majora {
+	text-align: center;
+/*
+	border: thin solid gold;
+	border-radius: 50%;
+	height: 6em; width: 6em; line-height: 6em;
+*/
+/*	width: -webkit-fit-content;
+	width: -moz-fit-content;
+*/
+}
+
+
 [data-role=controlgroup] fieldset {
 	border: thin solid #0f0;
 	/* padding: 0.4em; */
