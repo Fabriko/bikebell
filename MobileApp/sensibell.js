@@ -32,9 +32,6 @@ document.addEventListener(
 	false
 );
 
-document.addEventListener('volumeupbutton', buttonGood, false);
-document.addEventListener('volumedownbutton', buttonBad, false);
-
 // TODO: add stopScan for pause
 
 function initialise() {
@@ -526,6 +523,9 @@ function connectSensor() {
 }
 
 function fauxConnected() {
+	document.addEventListener('volumeupbutton', buttonGood, false);
+	document.addEventListener('volumedownbutton', buttonBad, false);
+
 	displayStatus('Faux connected', 'success');
 	adaptiveButton('start');
 	// TODO - any other unintended consequences of going sensorless while pretending ??

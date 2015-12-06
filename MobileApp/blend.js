@@ -122,47 +122,40 @@ deviceInfo.name = (
 				displayStatus('Connected', 'success');
 				logActivity('CONNECTED to ' +  target);
 				adaptiveButton('start');
-				if (onSuccess) {
-					onSuccess.call();
-				}
+				onSuccess && onSuccess.call();
 			},
 			function(errorCode)	{
-
 				app.connectee = null;
 				logActivity('Connect error with ' + target + ': ' + errorCode, 'error');
-
-				// dialog to offer a faux connection
-				if( config.offerFauxConnection && window.confirm('Connection failed :( care for a faux connection?') ) {
-					fauxConnected();
-/* // current thinking: this is neither a success or fail
-					if (onSuccess) {
-						onSuccess.call();
-					}
-*/
-				}
-				else {
-
-					displayStatus('Not connected', 'warning');
-					adaptiveButton('connect');
-					if (onFail) { //FIXME: onFail && onFail.call() ?? would that work, for no good reason except curiosity?
-						onFail.call();
-					}
-				}
-
+				displayStatus('Not connected', 'warning');
+				adaptiveButton('connect');
+				onFail && onFail.call();
 			});
 	},
 
 	connectFromScratch: function(success) {
 		SENSOR = SENSOR || this.setSensor(); // FIXME: I'm not sure this works (assign properly to SENSOR) if there's no value
-		console.log('connectFromScratch to ' + SENSOR.target);
 
-		this.scan(
-			function(target) { //FIXME; param necessary?
-				console.log('Target for scan was ' + SENSOR.target);
-				console.log('Success callback is ' + ( typeof(success) == 'function' ? 'set' : 'not set') );
-				SENSOR.conn(SENSOR.target, success);
-			});
+		if(config.useFauxConnection) {
+			logActivity('(Fake) Connecting, certainly not to ' + SENSOR.target, 'notice');
+			app.connectee = null;
+			fauxConnected();
+			/* // current thinking: this is neither a success or fail
+				if (onSuccess) {
+					onSuccess.call();
+				}
+			*/
+		}
+		else {
+			console.log('connectFromScratch to ' + SENSOR.target);
 
+			this.scan(
+				function(target) { //FIXME; param necessary?
+					console.log('Target for scan was ' + SENSOR.target);
+					console.log('Success callback is ' + ( typeof(success) == 'function' ? 'set' : 'not set') );
+					SENSOR.conn(SENSOR.target, success);
+				});
+		}
 	},
 
 	setSensor: function() {
@@ -251,13 +244,21 @@ deviceInfo.name = (
 	},
 	
 	disconn: function() {
-		// TODO: some check of the target device being connected
-		// displayStatus('Disconnecting');
-		logActivity('Closing connection to ' + app.connectee.name + ' (FIXME: without checking)');
-		evothings.arduinoble.close();
-		displayStatus('Disconnected', 'warning');
-		logActivity('DISCONNECTED from ' + app.connectee.name, 'notice');
-		adaptiveButton('connect');
+		if (config.useFauxConnection) {
+			document.removeEventListener('volumeupbutton', buttonGood);
+			document.removeEventListener('volumedownbutton', buttonBad);
+			logActivity('Closing fake connection');
+			logActivity('DISCONNECTED in a fake way.', 'notice');
+		}
+		else {
+			// TODO: some check of the target device being disconnected
+			// displayStatus('Disconnecting');
+			logActivity('Closing connection to ' + app.connectee.name + ' (FIXME: without checking)');
+			evothings.arduinoble.close();
+			logActivity('DISCONNECTED from ' + app.connectee.name, 'notice');
+		}
+			displayStatus('Disconnected', 'warning');
+			adaptiveButton('connect');
 	},
 
 	disconnect: function(handle) {

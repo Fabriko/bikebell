@@ -21,7 +21,7 @@
 		console.log = hyper.log;
 	}
 	
-	var _VERSION = '0.2.5';
+	var _VERSION = '0.2.6';
 	var map;
 	var settings = window.localStorage;
 
@@ -128,6 +128,8 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 
 		adaptiveButton('connect');
 
+		// $('#fauxOn').prop('defaultChecked', config.useFauxConnection); - doesn't work :(
+
 		// $('#menu').menu(); // would also be nice to use the JS-UI framework here, but this method from the examples freezes execution and can't find much on it
 
 	});
@@ -210,7 +212,11 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 		<input type="button" onclick="basicDisconnect(app.target);" value="Disconnect" />
 		<input type="button" disabled="disabled" data-disabled="true" onclick="basicCheckStatus(app.target);" value="Check conn" />
 		<input type="button" onclick="resetBLE(initSensor);" value="Reset BLE" />
-	</div>
+
+		<label for="fauxOn">BLE</label>
+		<!-- NB: this switch won't take effect until next time you connect -->
+		<input type="checkbox" onchange="config.useFauxConnection=this.checked;" data-theme="b" id="fauxOn" data-role="flipswitch" data-mini="true" data-on-text="Fake" data-off-text="Real" />
+		</div>
 	</fieldset>
 </div>
 
