@@ -13,15 +13,7 @@ var geoOptions = {
 	enableHighAccuracy: true
 };
 
-/*
-document.addEventListener(
-	'deviceready',
-	function() {
-		evothings.scriptsLoaded(initialise);
-	},
-	false
-);
-*/
+/* Cordova event listeners */
 
 document.addEventListener(
 	'deviceready',
@@ -31,6 +23,7 @@ document.addEventListener(
 	},
 	false
 );
+
 document.addEventListener(
 	'resume',
 	function() {
@@ -38,6 +31,10 @@ document.addEventListener(
 	},
 	false
 );
+
+document.addEventListener('volumeupbutton', buttonGood, false);
+document.addEventListener('volumedownbutton', buttonBad, false);
+
 // TODO: add stopScan for pause
 
 function initialise() {
@@ -502,41 +499,18 @@ function adaptiveButton(id) {
 
 /* ************** Will possibly be moved to a Sensor type class instance ************ */
 function initSensor() {
-				console.log('Shouldinit Blendo');
-// blend.initialize();
-				blend.setSensor();
+	console.log('Shouldinit Blendo');
+	blend.setSensor();
+}
 
-/*
-	do {
-		SENSOR.target = getPairingTarget();
-	}
-	while (!SENSOR.target);
-
-	logActivity('This is handset device ' + device.uuid + ' wanting to pair with ' + ( SENSOR.target ? SENSOR.target : '[unpaired]' )); // shouldn't need that last ternary while above do/while is in place
-	
-	logActivity('Resetting bluetooth to be safe .. ');
+function resetBLE(callback) {
+	logActivity('Resetting of bluetooth ..');
 	evothings.ble.reset(
+		callback.call(),
 		function() {
-			logActivity('.. bluetooth was reset');
-			displayStatus('Not connected', 'warning');
-			if (SENSOR === sensortag) {
-				console.log('Shouldinit tag');
-				initialiseSensorTag();
-			}
-			else if(SENSOR === blend) {
-				console.log('Shouldinit Blendo');
-// blend.initialize();
-				blend.setSensor();
-			}
-			return true;
-		},
-		function() {
-			logActivity('resetfail');
-			return false;
+			logActivity('resetfail', 'error');
 		}
 	);
-*/
-	// logActivity('Sensor device initialised');
 }
 
 function connectSensor() {
@@ -547,9 +521,22 @@ function connectSensor() {
 	else if(SENSOR === blend) {
 		console.log('Shouldconnect Blendo');
 		// console.log(JSON.stringify(blend.knownDevices));
-// blend.startScan(); // TODO: checkme
-		blend.connectFromScratch(blend.listen);
+		blend.connectFromScratch(blend.listen); // , {'B:01':buttonGood,'B:02':buttonBad} );
 	}
+}
+
+function fauxConnected() {
+	displayStatus('Faux connected', 'success');
+	adaptiveButton('start');
+	// TODO - any other unintended consequences of going sensorless while pretending ??
+}
+
+function buttonDispatcher(data, callbacks) {
+	callbacks = callbacks || {
+		'B:01': buttonGood,
+		'B:02': buttonBad,
+		};
+	callbacks[data].call();
 }
 
 function disconnectSensor() {
@@ -567,6 +554,37 @@ function disconnectSensor() {
 	}
 	displayStatus('Disconnected');
 	statusUISwitch(false); // necessary because no status change event is triggered by disconnectDevice()
+}
+
+function buttonGood() { //TODO stub
+	logActivity('Good button pressed', 'action');
+// TODO: abstract and break up
+					val = '01';
+					logPosition(val, function(loc) {
+						console.log('tryog ' + loc.toString());
+						L.circleMarker(L.latLng(loc.coords.latitude, loc.coords.longitude),{color:(val=='01'?'green':'red')}).addTo(map);
+						if (journey) {
+							journey.addData('button', val, [loc.coords.longitude, loc.coords.latitude] );
+						}
+					});
+
+
+	
+}
+
+function buttonBad() { //TODO stub
+	logActivity('Bad button pressed', 'action');
+// TODO: abstract and break up
+					val = '02';
+					logPosition(val, function(loc) {
+						console.log('tryog ' + loc.toString());
+						L.circleMarker(L.latLng(loc.coords.latitude, loc.coords.longitude),{color:(val=='01'?'green':'red')}).addTo(map);
+						if (journey) {
+							journey.addData('button', val, [loc.coords.longitude, loc.coords.latitude] );
+						}
+					});
+
+
 }
 
 function makegeoJSON(track) {

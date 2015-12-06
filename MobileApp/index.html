@@ -21,7 +21,7 @@
 		console.log = hyper.log;
 	}
 	
-	var _VERSION = '0.2.3.1-diagnostic';
+	var _VERSION = '0.2.5';
 	var map;
 	var settings = window.localStorage;
 
@@ -29,6 +29,7 @@
 		'DOMContentLoaded',
 		function () {
 			console.log('===========');
+			console.log('Started at ' + formatTimestamp(new Date()));
 			logActivity('Application version <strong class="meta version">' + _VERSION + '</strong> loaded :: events will be logged here');
 
 			if (navigator.geolocation) {
@@ -61,7 +62,7 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
     config.geoOptions
 );
 
-						displayStatus();
+						// displayStatus(); // FIXME: make this a native system notifcation instead
 					},
 
 					function(e) {
@@ -83,8 +84,8 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 
 			$('.ui-tabs').on('tabsactivate', function(event, ui) {
 				// console.log('activated ' + ui.newTab.filter('#nav-map').length);
-				ui.newTab.filter('#nav-map').each( function () { 
-					console.log($(this).text());
+				ui.newTab.each( function () { // .filter('#nav-map').each
+					console.log('Switched tab to ' + $(this).text());
 					//L.DomEvent.addListener(window, 'load', startMap);
 					// map.invalidateSize(false);
 					// console.log(map);
@@ -204,10 +205,11 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 		<input type="button" onclick="basicScan(app.target);" value="Scan" />
 		<input type="button" onclick="basicConnect(app.target);" value="Connect" />
 		<input type="button" onclick="basicRead(app.target);" value="Read" />
-		<input type="button" onclick="basicWrite('BTN_GOOD_FIXME');" style="color: green;" value="Good" />
-		<input type="button" disabled="disabled" data-disabled="true" onclick="basicWrite(BTN_BAD_FIXME);" style="color:red;" value="Bad" />
+		<input type="button" onclick="basicWrite('BTN_GOOD_FIXME');" style="color:green;" value="Green" />
+		<input type="button" disabled="disabled" data-disabled="true" onclick="basicWrite(BTN_BAD_FIXME);" style="color:red;" value="Red" />
 		<input type="button" onclick="basicDisconnect(app.target);" value="Disconnect" />
-		<input type="button" disabled="disabled" data-disabled="true" onclick="basicCheckStatus(app.target);" value="Check connection" />
+		<input type="button" disabled="disabled" data-disabled="true" onclick="basicCheckStatus(app.target);" value="Check conn" />
+		<input type="button" onclick="resetBLE(initSensor);" value="Reset BLE" />
 	</div>
 	</fieldset>
 </div>

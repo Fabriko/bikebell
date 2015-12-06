@@ -2,6 +2,8 @@
 
 // API docs: http://evothings.com/doc/raw/plugins/com.evothings.ble/com.evothings.module_ble.html
 
+// this is pretty damn handy: http://evothings.com/arduino-ble-quick-walk-through/
+
 /**
  * The BLE plugin is loaded asynchronously so the ble
  * variable is set in the onDeviceReady handler.
@@ -72,18 +74,28 @@ var app = {
 
 	scan: function(success/*, failure*/) {
 		SENSOR = SENSOR || this.setSensor(); // FIXME: I'm not sure this works (assign properly to SENSOR) if there's no value
-
+console.log(SENSOR.target);
 		evothings.easyble.stopScan();
 		evothings.easyble.reportDeviceOnce(true);
 		evothings.easyble.startScan(
 			function(deviceInfo) {
 				// evothings.printObject(deviceInfo);
 				if(deviceInfo.hasName(SENSOR.target)) {
+// evothings.printObject(deviceInfo);
+deviceInfo.name = SENSOR.target;
 					logActivity('Target EasyBLE device FOUND: ' + deviceInfo.name + ' - ' + deviceInfo.address, 'success');
 					evothings.easyble.stopScan();
-					success(SENSOR.target);
+					if (success) {
+						success.call(SENSOR.target);
+					}
 				}
 				else {
+// evothings.printObject(deviceInfo);
+deviceInfo.name = (
+	deviceInfo.name ? 
+	deviceInfo.name :
+	(deviceInfo.advertisementData ? deviceInfo.advertisementData.kCBAdvDataLocalName : null)
+	);
 					logActivity('Foreign device found: ' + deviceInfo.name + ' with address ' + deviceInfo.address, 'notice');
 				}
 				/*
@@ -100,8 +112,9 @@ var app = {
 		);
 	},
 
-	conn: function(target, success) {
+	conn: function(target, onSuccess, onFail) {
 		logActivity('Connecting to ... ' + target);
+		//TODO; we need a spinner or whatever here
 		evothings.arduinoble.connect(
 			target,
 			function(connectedDevice) {
@@ -109,25 +122,45 @@ var app = {
 				displayStatus('Connected', 'success');
 				logActivity('CONNECTED to ' +  target);
 				adaptiveButton('start');
-				if (success) {
-					success();
+				if (onSuccess) {
+					onSuccess.call();
 				}
 			},
 			function(errorCode)	{
+
 				app.connectee = null;
-				displayStatus('Not connected', 'warning');
 				logActivity('Connect error with ' + target + ': ' + errorCode, 'error');
-				adaptiveButton('connect');
+
+				// dialog to offer a faux connection
+				if( config.offerFauxConnection && window.confirm('Connection failed :( care for a faux connection?') ) {
+					fauxConnected();
+/* // current thinking: this is neither a success or fail
+					if (onSuccess) {
+						onSuccess.call();
+					}
+*/
+				}
+				else {
+
+					displayStatus('Not connected', 'warning');
+					adaptiveButton('connect');
+					if (onFail) { //FIXME: onFail && onFail.call() ?? would that work, for no good reason except curiosity?
+						onFail.call();
+					}
+				}
+
 			});
 	},
 
 	connectFromScratch: function(success) {
 		SENSOR = SENSOR || this.setSensor(); // FIXME: I'm not sure this works (assign properly to SENSOR) if there's no value
+		console.log('connectFromScratch to ' + SENSOR.target);
 
 		this.scan(
-			function(target) {
-				// console.log(target);
-				SENSOR.conn(target,	success);
+			function(target) { //FIXME; param necessary?
+				console.log('Target for scan was ' + SENSOR.target);
+				console.log('Success callback is ' + ( typeof(success) == 'function' ? 'set' : 'not set') );
+				SENSOR.conn(SENSOR.target, success);
 			});
 
 	},
@@ -143,17 +176,17 @@ var app = {
 
 		logActivity('Setting Blend ..');
 
-		ble = evothings.ble;
+		ble = evothings.ble; // FIXME: this does SFA, amiright?
 
 		logActivity('.. Blend SET.');
 	},
 
-	listen: function() {
+	listen: function(callbacks) {
 		logActivity('Listening to notifications for ' + app.connectee.name);
 		evothings.printObject(app.connectee.advertisementData);
 
 		// Turn notifications on.
-		// FIXME - I don;t understand what goes on here
+		// FIXME - I don't understand what goes on here
 		app.connectee.writeDescriptor(
 			'713d0002-503e-4c75-ba94-3148f18d941e',
 			'00002902-0000-1000-8000-00805f9b34fb',
@@ -169,7 +202,16 @@ var app = {
 		app.connectee.enableNotification(
 			'713d0002-503e-4c75-ba94-3148f18d941e', // i.e. Read
 			function(data) {
-				logActivity('READ this data: ' + evothings.ble.fromUtf8(data));
+				input = evothings.ble.fromUtf8(data);
+				logActivity('READ data from ' + app.connectee.name + ': ' + input);
+
+				if (input.length > 4) { // FIXME: truncating input data because sometimes it buffers
+					input = input.trim().substr(0,4);
+					logActivity('Truncated input data to ' + input, 'information');
+				}
+
+				// FIXME: - use mapping of values to callbacks passed in instead, like callbacks[input].call()
+				buttonDispatcher(input);
 			},
 			function(errorCode)	{
 				logActivity('BLE enableNotification error: ' + errorCode);
