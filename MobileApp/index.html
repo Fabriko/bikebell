@@ -128,6 +128,9 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 
 		adaptiveButton('connect');
 
+		$('#dev\\.diagnostics').toggle();
+		$(".menu a:contains('Developer options') img").toggle(); 
+
 		// $('#fauxOn').prop('defaultChecked', config.useFauxConnection); - doesn't work :(
 
 		// $('#menu').menu(); // would also be nice to use the JS-UI framework here, but this method from the examples freezes execution and can't find much on it
@@ -180,6 +183,7 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 -->
 					<h3>Somebody FIXME</h3>
 					<ul>
+						<li><a onclick="$('#dev\\.diagnostics').toggle(); $(this).children('img').toggle();"><img type="application/xml+svg" src="libs/jquery-mobile/images/icons-svg/check-white.svg" />Developer options</a></li>
 						<li><a onclick="SENSOR.disconn();">Disconnect</a></li>
 						<li><a onclick="navigator.app.exitApp();">Exit</a></li>
 					</ul>
@@ -200,7 +204,7 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 
 					<div id="panel-logs" class="ui-tabs-panel swipeable">
 
-<div data-role="controlgroup" data-type="horizontal" data-shadow="true" data-theme="a" data-corners="true">
+<div id="dev.diagnostics" data-role="controlgroup" data-type="horizontal" data-shadow="true" data-theme="a" data-corners="true">
 	<fieldset>
 	<legend>Developer diagnostics</legend>
 	<div class="basic tools">
