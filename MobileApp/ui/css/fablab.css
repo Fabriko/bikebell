@@ -8,7 +8,8 @@
 }
 
 .inner.majora.connect {
-	background-color: #ea3527;
+	/* for background-color, see .status.connect */
+	content: 'Connect';
 }
 
 .inner.majora.start {
@@ -72,13 +73,31 @@
 	-webkit-margin-before: 0.5em; -webkit-margin-after: 0; -webkit-margin-start: 0.4em; -webkit-margin-end: 0.4em; 
 }
 
-.status.warning {
+.status.warning,
+.inner.majora.stop,
+.inner.majora.connect {
 	background-color: #ea3527;
+}
+
+.inner.majora.review {
+	background-color: #ecd53b;
+}
+
+.inner.majora.connect {
+	border-color: #00b2bd !important;
+}
+
+.inner.majora.stop {
+	border-color: #54dfb3 !important;
 }
 
 .status.success,
 .inner.majora.start {
 	background-color: #00b2bd;
+}
+
+.status.stop {
+	background-color: #22ee88;
 }
 
 .status .label {

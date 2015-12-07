@@ -139,15 +139,12 @@ function formatTimestamp(stamp, format) {
 	switch(format) {
 		case 'YYYY-MM-DD hh:nn:ss.sss':
 		case 'log':
-			return year + '-' +
-				month + '-' +
-				dom + ' ' +
-				'<strong>' +
+			return '<strong>' +
 				hour + ':' +
 				minute + ':' +
 				second + '.' +
 				'</strong>' +
-				millisecond;
+				Math.round(stamp.getMilliseconds()/10).leadZeros(1);
 		case 'filename':
 			return year +
 				month +
@@ -184,20 +181,20 @@ function logPosition(val, success, options) {
 	if ( options === undefined ) {
 		options = config.geoOptions;
 	}
-	options['timeout'] = 5000; // FIXME: overriding because concerned about delayed feedback
+	options['timeout'] = config.geoOptions['POIFixLag']; // overriding the general fix lag setting
 	
 	logActivity('*** KEY ' + val + ' ****');
-	var msg = 'Key ' + val + ' triggered @ ';
+	var msg = 'Key ' + val + ' triggered ';
 
 	if (navigator.geolocation) {
 		// console.log('supports ' + navigator.geolocation);
 		return navigator.geolocation.getCurrentPosition(
 			function(position) {
-				logActivity(msg += '(' + position.coords.latitude + ',' + position.coords.longitude + ')');
+				logActivity(msg += ' @(' + position.coords.latitude + ',' + position.coords.longitude + ')');
 				success.call(this, position);
 			},
 			function(error)	{
-				logActivity(msg += error.code + ': "' + error.message + '"');
+				logActivity(msg += "but couldn't locate, error #" + error.code + ': "' + error.message + '"');
 			},
 			options
 		);
@@ -263,32 +260,38 @@ function logActivity(msg) {
 function Journey(title) {
 	
 	this.makeTracks = function() {
+		this['title'] = title; // NB: presence of this property is used to indicate an active track
 		this['JSONtrail'] = {
 			name: title,
 			version: _VERSION,
-			trail: []
+			trail: [],
 		}
 		console.log('ran Journey.maketracks()');
 		// console.log(this.gpx);
 	}
 	//TODO: make this into a property of type JSONTrail and define that class too!
 
+	this.active = function() {
+		return Boolean(this.title);
+	}
+
 	this.addPoint = function(lonlat) {
 		this.addData( 'position', lonlat, lonlat);
 	}
 
 	this.addData = function(measure, data, position) {
-		logActivity('Adding ' + measure + ' of ' + data + ' to trail @ (' + position[0] + ',' + position[1] + ')');
+		logActivity('Adding ' + measure + ' of ' + data + ' to trail "' + this.title + '" @(' + position[0] + ',' + position[1] + ')');
+		console.log('Journey: ' + JSON.stringify(this));
 		console.log('JSONTrail: ' + JSON.stringify(this.JSONtrail));
 		this.JSONtrail.trail.push( {
 			reading: measure,
 			stamp: formatTimestamp(new Date(), 'W3CDTF'),
 			'position': position,
-			value: data
+			value: data,
 		}); // TODO - make this something an app can use like timestamped geoJSON
 	}
 	
-	this.begin = function() {
+	this.begin = function() { // FIXME: deprecate
 		this.makeTracks(); // TODO: won't need this after making a JSONTrail type as described under makeTracks()
 		
 		connectSensor();
@@ -304,7 +307,13 @@ function Journey(title) {
 		}
 	}
 	
-	this.end = function() {
+	this.start = function(onSuccess) {
+		this.makeTracks();
+		// TODO: put a watch in the position and map it
+		onSuccess && onSuccess.call();
+	}
+	
+	this.end = function() { // FIXME: deprecate
 		disconnectSensor();
 		// TODO:
 		clearWatch(); // FIXME: maybe should separate this from disconnect()
@@ -322,52 +331,93 @@ function Journey(title) {
 		}
 	}
 
+	this.finish = function(onSuccess, onFail) { // FIXME: deprecate
+
+		clearWatch();
+		
+		console.log(JSON.stringify(this.JSONtrail));
+		
+		if (this.hasTracks()) {
+			var gJ = makegeoJSON(this.JSONtrail);
+			L.geoJson(gJ).addTo(map);
+
+			this.upload( function() {
+				onSuccess && onSuccess.call();
+			});
+		}
+		else {
+			logActivity('No waypoints recorded, not uploading', 'warning');
+			onFail && onFail.call();
+		}
+	}
+
+	this.hasTracks = function() {
+		return (this.JSONtrail && this.JSONtrail.trail.length);
+	}
+
 	this.review = function() {
-		var trail = ( this.JSONtrail ? this.JSONtrail : dummyTrail );
+		// TODO: this is still a bare beginning
+		var trail = ( this.hasTracks() ? this.JSONtrail : dummyTrail );
 		var gJ = makegeoJSON(trail);
 		
 		// var gJ = dummyGeoJSON; // FIXME - testing only
 		console.log(JSON.stringify(gJ));
+
+		// TODO: here I need to pull all the points I added from the map display
+
 		trackLayer = L.geoJson(gJ, {
-			style: function(f) {
-				return {
-					color: '#f00'
-					};
+			style: function(feature) {
+				// console.log('Feature of type ' + JSON.stringify(feature.geometry.type));
+				return ( feature.geometry.type == "LineString" ? { color: '#f00' } : {} );
+			},
+			pointToLayer: function (feature, latlng) {
+				if ( feature.properties.measure && feature.properties.measure == 'button' ) {
+					return L.circleMarker(latlng, { // just pinched the concept from http://leafletjs.com/examples/geojson.html
+						radius: 4,
+						fillColor: ( feature.properties.value == '01' ? 'green' : 'red' ),
+						color: "#000",
+						weight: 1,
+						opacity: 1,
+						fillOpacity: 0.8
+					});
 				}
-			}
-		);
+			},
+		});
 		console.log(trackLayer.getBounds().toBBoxString());
 		map.fitBounds(trackLayer.getBounds());
 		trackLayer.addTo(map);
 		// location.href = '#track'; // TODO: uncomment when map canvas is more reliable
 	}
 
-	this.upload = function() {
+	this.upload = function(onSuccess, onFail) {
 		// based on http://jsfiddle.net/tednaleid/7eWgb/
-		
+		logActivity('Uploading track "' + this.title + '" to AWS');
+
 		var filename = formatTimestamp(new Date(), 'filename') + '-' + device.uuid + '.json';
 
 		var bucket = config.AWS_S3.bucket;
 		var uploadPath = 'http://' + bucket + '.s3.amazonaws.com/' + filename;
 
 		console.log(uploadPath);
-		var payload = JSON.stringify(makegeoJSON(this.JSONtrail));
-		console.log(payload);
+		var payload = makegeoJSON(this.JSONtrail);
+		console.log(JSON.stringify(payload));
 
 		var req = $.ajax({
 			type: "PUT",
 			url: uploadPath,
-			dataType: 'json',
+/*			dataType: 'json',*/ // FIXME: failing because it doesn't vallidate as JSON, probably start lokoing at makegeoJSON
 			async: true,
-			data: payload
+			data: payload,
 		});
 
 		req.done( function (msg) {
-			console.log(msg);
+			logActivity('Upload to ' + uploadPath + ' succeeded: ' + msg);
+			onSuccess && onSuccess.call();
 		});
 
-		req.fail( function (xhr,failText) {
-			console.log('Error: ' + xhr.status);
+		req.fail( function (xhr, failText) {
+			console.log('Error ' + xhr.status + ': ' + failText);
+			onFail && onFail.call();
 		});
 	}
 
@@ -423,6 +473,15 @@ function startJourney() {
 	journey.begin();
 }
 
+function adaptiveStart() {
+	console.log('Big button Start journey pressed');
+	journey.start( function() {
+		logActivity('Journey STARTED');
+		displayStatus('Tracking', 'stop');
+		adaptiveButton('stop');
+	});
+}
+
 function endJourney() {
 console.log(JSON.stringify(journey));
 	console.log('End journey pressed');
@@ -437,9 +496,27 @@ console.log(JSON.stringify(journey));
 	journey.end();
 }
 
+function adaptiveFinish() {
+	console.log('Big button Finish journey pressed');
+	journey.finish( function() {
+		logActivity('Journey ENDED');
+		SENSOR.disconn('review', 'Not connected');
+	},
+		function() {
+		logActivity('Journey not ended', 'warning');
+		//TODO; a flash notification here I think
+	});
+}
+
 function reviewJourney() {
 	console.log('Review journey pressed');
 	journey.review();
+}
+
+function adaptiveReview() {
+	console.log('Review journey pressed');
+	journey.review();
+	switchTab($('#nav-map'));
 }
 
 function showSettings() {
@@ -556,35 +633,46 @@ function disconnectSensor() {
 	statusUISwitch(false); // necessary because no status change event is triggered by disconnectDevice()
 }
 
-function buttonGood() { //TODO stub
+function buttonGood() {
 	logActivity('Good button pressed', 'action');
-// TODO: abstract and break up
-					val = '01';
-					logPosition(val, function(loc) {
-						console.log('tryog ' + loc.toString());
-						L.circleMarker(L.latLng(loc.coords.latitude, loc.coords.longitude),{color:(val=='01'?'green':'red')}).addTo(map);
-						if (journey) {
-							journey.addData('button', val, [loc.coords.longitude, loc.coords.latitude] );
-						}
-					});
-
-
-	
+	processButton('01');
 }
 
-function buttonBad() { //TODO stub
+function buttonBad() {
 	logActivity('Bad button pressed', 'action');
-// TODO: abstract and break up
-					val = '02';
-					logPosition(val, function(loc) {
-						console.log('tryog ' + loc.toString());
-						L.circleMarker(L.latLng(loc.coords.latitude, loc.coords.longitude),{color:(val=='01'?'green':'red')}).addTo(map);
-						if (journey) {
-							journey.addData('button', val, [loc.coords.longitude, loc.coords.latitude] );
-						}
-					});
+	processButton('02');
+}
 
+function processButton(val) {
+	logPosition(val, function(loc) {
+		options = {
+			color: (val=='01' ? 'green' : 'red'), // FIXME: use classes if possible
+		};
+		markPosition(map, loc.coords, options);
 
+		recordWaypoint('button', val, loc.coords);
+	});
+}
+
+function markPosition(map, latlon, options) {
+	console.log('Marking position (' + latlon.latitude + ',' + latlon.longitude + ')');
+	if (map) {
+		L.circleMarker(
+			L.latLng(latlon.latitude, latlon.longitude), options).addTo(map);
+	}
+	else {
+		console.log('No map to mark!');
+	}
+}
+
+function recordWaypoint(field, val, latlon) {
+	if (journey && journey.active()) {
+		console.log('Recording position (' + latlon.latitude + ',' + latlon.longitude + ')');
+		journey.addData(field, val, [latlon.longitude, latlon.latitude] );
+	}
+	else {
+		console.log('No journey to record (' + latlon.latitude + ',' + latlon.longitude + ') to!');
+	}
 }
 
 function makegeoJSON(track) {
@@ -616,7 +704,7 @@ function makegeoJSON(track) {
 		type: 'Feature',
 			geometry: {
 				"type": 'LineString',
-				coordinates: lineString
+				coordinates: lineString,
 			}
 		}
 	);

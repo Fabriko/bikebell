@@ -21,7 +21,7 @@
 		console.log = hyper.log;
 	}
 	
-	var _VERSION = '0.2.6';
+	var _VERSION = '0.2.7';
 	var map;
 	var settings = window.localStorage;
 
@@ -29,8 +29,7 @@
 		'DOMContentLoaded',
 		function () {
 			console.log('===========');
-			console.log('Started at ' + formatTimestamp(new Date()));
-			logActivity('Application version <strong class="meta version">' + _VERSION + '</strong> loaded :: events will be logged here');
+			logActivity('Application version <strong class="meta version">' + _VERSION + '</strong> loaded on ' + formatTimestamp(new Date()) + ' :: events will be logged here');
 
 			if (navigator.geolocation) {
 				console.log('App supports ' + navigator.geolocation + ', using options: ' + JSON.stringify(config.geoOptions));
@@ -248,7 +247,9 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 
 <div data-role="controlgroup" data-type="horizontal" class="outer majora">
 <input type="button" onclick="connectSensor();" value="Connect" data-wrapper-class="inner majora adaptive connect" id="adaptive-connect" />
-<input type="button" onclick="FIXME();" value="Start" data-wrapper-class="inner majora adaptive start" id="adaptive-start" />
+<input type="button" onclick="adaptiveStart();" value="Start" data-wrapper-class="inner majora adaptive start" id="adaptive-start" />
+<input type="button" onclick="adaptiveFinish();" value="Finish" data-wrapper-class="inner majora adaptive stop" id="adaptive-stop" />
+<input type="button" onclick="adaptiveReview();" value="Review" data-wrapper-class="inner majora adaptive review" id="adaptive-review" />
 </div>
 <!--
 -->

@@ -119,15 +119,16 @@ deviceInfo.name = (
 			target,
 			function(connectedDevice) {
 				app.connectee = connectedDevice;
-				displayStatus('Connected', 'success');
 				logActivity('CONNECTED to ' +  target);
+				displayStatus('Connected', 'success');
 				adaptiveButton('start');
 				onSuccess && onSuccess.call();
 			},
 			function(errorCode)	{
+				statusMessage = ( errorCode == 'EASYBLE_ERROR_DISCONNECTED' ? 'Disconnected' : 'Not connected' );
 				app.connectee = null;
 				logActivity('Connect error with ' + target + ': ' + errorCode, 'error');
-				displayStatus('Not connected', 'warning');
+				displayStatus(statusMessage, 'warning');
 				adaptiveButton('connect');
 				onFail && onFail.call();
 			});
@@ -243,7 +244,9 @@ deviceInfo.name = (
 			});
 	},
 	
-	disconn: function() {
+	disconn: function(nextButton, statusMessage) {
+		nextButton = nextButton || 'connect';
+		statusMessage = statusMessage || 'Disconnected';
 		if (config.useFauxConnection) {
 			document.removeEventListener('volumeupbutton', buttonGood);
 			document.removeEventListener('volumedownbutton', buttonBad);
@@ -257,8 +260,8 @@ deviceInfo.name = (
 			evothings.arduinoble.close();
 			logActivity('DISCONNECTED from ' + app.connectee.name, 'notice');
 		}
-			displayStatus('Disconnected', 'warning');
-			adaptiveButton('connect');
+			displayStatus(statusMessage, 'warning');
+			adaptiveButton(nextButton);
 	},
 
 	disconnect: function(handle) {
