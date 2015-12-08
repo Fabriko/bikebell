@@ -74,15 +74,15 @@ var app = {
 
 	scan: function(success/*, failure*/) {
 		SENSOR = SENSOR || this.setSensor(); // FIXME: I'm not sure this works (assign properly to SENSOR) if there's no value
-console.log(SENSOR.target);
+		console.log(SENSOR.target);
 		evothings.easyble.stopScan();
 		evothings.easyble.reportDeviceOnce(true);
 		evothings.easyble.startScan(
 			function(deviceInfo) {
 				// evothings.printObject(deviceInfo);
 				if(deviceInfo.hasName(SENSOR.target)) {
-// evothings.printObject(deviceInfo);
-deviceInfo.name = SENSOR.target;
+					// evothings.printObject(deviceInfo);
+					deviceInfo.name = SENSOR.target; // seems .name is not reliably set on scan, even though .hasName() works
 					logActivity('Target EasyBLE device FOUND: ' + deviceInfo.name + ' - ' + deviceInfo.address, 'success');
 					evothings.easyble.stopScan();
 					if (success) {
@@ -90,20 +90,14 @@ deviceInfo.name = SENSOR.target;
 					}
 				}
 				else {
-// evothings.printObject(deviceInfo);
-deviceInfo.name = (
-	deviceInfo.name ? 
-	deviceInfo.name :
-	(deviceInfo.advertisementData ? deviceInfo.advertisementData.kCBAdvDataLocalName : null)
-	);
+					// evothings.printObject(deviceInfo);
+					deviceInfo.name = (
+						deviceInfo.name ? 
+						deviceInfo.name :
+						(deviceInfo.advertisementData ? deviceInfo.advertisementData.kCBAdvDataLocalName : null)
+						);
 					logActivity('Foreign device found: ' + deviceInfo.name + ' with address ' + deviceInfo.address, 'notice');
 				}
-				/*
-				if (!app.knownDevices[deviceInfo.address]) {
-					app.knownDevices[deviceInfo.address] = deviceInfo;
-				}
-				evothings.printObject(app.knownDevices);
-				*/
 			},
 			function (error) {
 				logActivity('BLE Scan error: ' + error, 'error');
@@ -399,10 +393,6 @@ deviceInfo.name = (
 	},
 
 };
-// End of app object.
-
-// Initialise app.
-// app.initialize();
 
 blend = app; // FIXME
 
@@ -500,16 +490,4 @@ function basicWrite(signalFIXME) { // TODO: total STUB and stab
 	logActivity('Gonna send signal ' + signalFIXME);
 	app.connectee.writeDataArray(new Uint8Array([1])); //FIXME
 	logActivity('Signal sent (?)');
-
-/*
-	app.connectee.writeCharacteristic(
-		'713d0003-503e-4c75-ba94-3148f18d941e',
-		new Uint8Array([1]),
-		function() {
-			console.log('BLE characteristic written.');
-		},
-		function(errorCode) {
-			console.log('BLE writeDescriptor error: ' + errorCode);
-		});
-*/
 }

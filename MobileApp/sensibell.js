@@ -8,12 +8,6 @@ var dblClickBuffer = {
 	key:0, 
 	stamp:0
 };
-var geoOptions = {
-	maximumAge: 600000,
-	enableHighAccuracy: true
-};
-
-/* Cordova event listeners */
 
 document.addEventListener(
 	'deviceready',
@@ -404,7 +398,7 @@ function Journey(title) {
 		var req = $.ajax({
 			type: "PUT",
 			url: uploadPath,
-/*			dataType: 'json',*/ // FIXME: failing because it doesn't vallidate as JSON, probably start lokoing at makegeoJSON
+			/*	dataType: 'json',*/ // FIXME: failing because it doesn't vallidate as JSON, probably start lokoing at makegeoJSON
 			async: true,
 			data: payload,
 		});
@@ -562,7 +556,7 @@ function switchTab(jqTabItem/*, cb*/) {
 		cb();
 	}
 */
-}// TODO: a similar function that allows specifying the tab panel instead, so we don;t have to figure out (or even set) its corresponding navbar id
+}// TODO: a similar function that allows specifying the tab panel instead, so we don't have to figure out (or even set) its corresponding navbar id
 
 function adaptiveButton(id) {
 	$('.inner.majora.adaptive').hide('fast', function() {
@@ -847,4 +841,3 @@ function initialiseSensorTag() {
 	
 	SENSOR = sensortag; // ADDED because, not sure, SENSOR seems to have been reset by something in here
 }
-

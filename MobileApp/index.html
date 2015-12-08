@@ -46,7 +46,7 @@
 						$('#journey-toggle').toggleClass('disabled start');
 						$('#journey-toggle').on('click',startJourney);
 
-var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
+var TESTWatchId = navigator.geolocation.watchPosition( function(position) { // TODO: if this code stays, kill the watch at an appropriate time
 		console.log('now at (' + position.coords.latitude + ',' + position.coords.longitude + ')');
 		if (typeof(mypos) == 'undefined') {
 			mypos = L.marker(L.latLng(position.coords.latitude, position.coords.longitude), {icon:L.icon({iconUrl: locationPinIcon})}).addTo(map);
@@ -150,13 +150,6 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 
 			<div class="mobile-nav"> <!--  style="display:inline-block;position:absolute; right: 20px; z-index:100;" -->
 				<a class="menu-btn ui-btn ui-btn-right ui-icon-bars ui-btn-icon-notext" data-icon="bars">Menu</a>
-<!--
-					<div></div>
-					<span></span>
-					<span></span>
-					<span></span>
-				</div>
--->
 
 				<div class="burger menu">
 					<ul>
@@ -203,41 +196,32 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 
 					<div id="panel-logs" class="ui-tabs-panel swipeable">
 
-<div id="dev.diagnostics" data-role="controlgroup" data-type="horizontal" data-shadow="true" data-theme="a" data-corners="true">
-	<fieldset>
-	<legend>Developer diagnostics</legend>
-	<div class="basic tools">
-		<input type="button" onclick="basicScan(app.target);" value="Scan" />
-		<input type="button" onclick="basicConnect(app.target);" value="Connect" />
-		<input type="button" onclick="basicRead(app.target);" value="Read" />
-		<input type="button" onclick="basicWrite('BTN_GOOD_FIXME');" style="color:green;" value="Green" />
-		<input type="button" disabled="disabled" data-disabled="true" onclick="basicWrite(BTN_BAD_FIXME);" style="color:red;" value="Red" />
-		<input type="button" onclick="basicDisconnect(app.target);" value="Disconnect" />
-		<input type="button" disabled="disabled" data-disabled="true" onclick="basicCheckStatus(app.target);" value="Check conn" />
-		<input type="button" onclick="resetBLE(initSensor);" value="Reset BLE" />
+						<div id="dev.diagnostics" data-role="controlgroup" data-type="horizontal" data-shadow="true" data-theme="a" data-corners="true">
+							<fieldset>
+							<legend>Developer diagnostics</legend>
+							<div class="basic tools">
+								<input type="button" onclick="basicScan(app.target);" value="Scan" />
+								<input type="button" onclick="basicConnect(app.target);" value="Connect" />
+								<input type="button" onclick="basicRead(app.target);" value="Read" />
+								<input type="button" onclick="basicWrite('BTN_GOOD_FIXME');" style="color:green;" value="Green" />
+								<input type="button" disabled="disabled" data-disabled="true" onclick="basicWrite(BTN_BAD_FIXME);" style="color:red;" value="Red" />
+								<input type="button" onclick="basicDisconnect(app.target);" value="Disconnect" />
+								<input type="button" disabled="disabled" data-disabled="true" onclick="basicCheckStatus(app.target);" value="Check conn" />
+								<input type="button" onclick="resetBLE(initSensor);" value="Reset BLE" />
 
-		<label for="fauxOn">BLE</label>
-		<!-- NB: this switch won't take effect until next time you connect -->
-		<input type="checkbox" onchange="config.useFauxConnection=this.checked;" data-theme="b" id="fauxOn" data-role="flipswitch" data-mini="true" data-on-text="Fake" data-off-text="Real" />
-		</div>
-	</fieldset>
-</div>
+								<label for="fauxOn">BLE</label>
+								<!-- NB: this switch won't take effect until next time you connect -->
+								<input type="checkbox" onchange="config.useFauxConnection=this.checked;" data-theme="b" id="fauxOn" data-role="flipswitch" data-mini="true" data-on-text="Fake" data-off-text="Real" />
+								</div>
+							</fieldset>
+						</div>
 
 						<p id="activities" class="console log" />
 					</div>
 
 					<div id="panel-dash" class="ui-tabs-panel swipeable">
 
-<!--
-						<div id="banner">
-							<a href="#track">
-								<img src="fablabchch.png" alt="FAB LAB CHCH" style="float:left;width:100px;height:auto;"/>
-							</a>
-
-							<img id="connectButton" src="casing.jpg" onclick="showSettings();" style="float:right;width:120px;height:auto;" />
-						</div>
--->
-
+						<!-- TODO: remove now we have an adaptive button -->
 						<ul style="list-item-type:none; display: inline;">
 							<li><button id="journey-start" class="start" onclick="startJourney()">Start Journey</button></li>
 							<li><button id="journey-end" class="end" onclick="endJourney()">End Journey</button></li>
@@ -245,14 +229,12 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) {
 							<li><button id="journey-review" class="disabled reactive">Review Journey</button></li>
 						</ul>
 
-<div data-role="controlgroup" data-type="horizontal" class="outer majora">
-<input type="button" onclick="connectSensor();" value="Connect" data-wrapper-class="inner majora adaptive connect" id="adaptive-connect" />
-<input type="button" onclick="adaptiveStart();" value="Start" data-wrapper-class="inner majora adaptive start" id="adaptive-start" />
-<input type="button" onclick="adaptiveFinish();" value="Finish" data-wrapper-class="inner majora adaptive stop" id="adaptive-stop" />
-<input type="button" onclick="adaptiveReview();" value="Review" data-wrapper-class="inner majora adaptive review" id="adaptive-review" />
-</div>
-<!--
--->
+						<div data-role="controlgroup" data-type="horizontal" class="outer majora">
+							<input type="button" onclick="connectSensor();" value="Connect" data-wrapper-class="inner majora adaptive connect" id="adaptive-connect" />
+							<input type="button" onclick="adaptiveStart();" value="Start" data-wrapper-class="inner majora adaptive start" id="adaptive-start" />
+							<input type="button" onclick="adaptiveFinish();" value="Finish" data-wrapper-class="inner majora adaptive stop" id="adaptive-stop" />
+							<input type="button" onclick="adaptiveReview();" value="Review" data-wrapper-class="inner majora adaptive review" id="adaptive-review" />
+						</div>
 
 					</div>
 
@@ -289,23 +271,11 @@ hopes
 <script>
 // map.invalidateSize(false);
 </script>
-						<!-- </section> -->
 					</div>
 				</div>
 			</div>
 
-<!--
-			<nav>
-				<ul>
-					<li id="nav-logs"><a href="#status">Logs</a></li>
-					<li id="nav-dash" class="active"><a href="#top">Dashboard</a></li>
-					<li id="nav-map"><a href="#track">Map</a></li>
-				</ul>
-			</nav>
--->		
 		</div>
-
-		<!-- <img id="sprite" src="sprite.svg" /> -->
 
 	</div>
 
@@ -319,7 +289,6 @@ hopes
 	<!-- app inclusions -->
 	<script src="config.js"></script>
 	<script src="blend.js"></script>
-	<!-- <script src="SpriteManager.js"></script> -->
 	<!-- <script src="sensor.js"></script> -->
 	<script src="sensibell.js"></script>
 
