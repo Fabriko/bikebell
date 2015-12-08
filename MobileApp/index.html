@@ -221,14 +221,9 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) { // T
 
 					<div id="panel-dash" class="ui-tabs-panel swipeable">
 
-						<!-- TODO: remove now we have an adaptive button -->
-						<ul style="list-item-type:none; display: inline;">
-							<li><button id="journey-start" class="start" onclick="startJourney()">Start Journey</button></li>
-							<li><button id="journey-end" class="end" onclick="endJourney()">End Journey</button></li>
-							<li><button style="display:none;" id="journey-toggle" class="disabled reactive">Start Journey</button></li>
-							<li><button id="journey-review" class="disabled reactive">Review Journey</button></li>
-						</ul>
-
+						<!-- FIXME - just a temporary spacer because I know no better -->
+						<div class="shim" style="min-height: 14em;"></div>
+						
 						<div data-role="controlgroup" data-type="horizontal" class="outer majora">
 							<input type="button" onclick="connectSensor();" value="Connect" data-wrapper-class="inner majora adaptive connect" id="adaptive-connect" />
 							<input type="button" onclick="adaptiveStart();" value="Start" data-wrapper-class="inner majora adaptive start" id="adaptive-start" />
