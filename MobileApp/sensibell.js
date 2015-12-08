@@ -179,9 +179,8 @@ function checkDoublePress(key, interval) {
 
 function logPosition(val, success, options) {
 	if ( options === undefined ) {
-		options = config.geoOptions;
+		options = config.geoPositionOptions;
 	}
-	options['timeout'] = config.geoOptions['POIFixLag']; // overriding the general fix lag setting
 	
 	logActivity('*** KEY ' + val + ' ****');
 	var msg = 'Key ' + val + ' triggered ';
