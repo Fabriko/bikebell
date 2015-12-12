@@ -124,8 +124,9 @@
 					<div id="panel-dash" class="ui-tabs-panel swipeable">
 
 						<!-- FIXME - just a temporary spacer because I know no better -->
-					<div id="dash-canvas" class="section map shim hack" id="map-underlay">
-					<img src="ui/images/nz-dark-matter-460x310.png" alt="This is your maptain speaking"/>
+					<div id="dash-canvas" class="section map shim hack">
+					<img class="underlay" src="ui/images/nz-dark-matter-460x310.png" alt="This is your maptain speaking"/>
+					</div>
 						
 						<div data-role="controlgroup" data-type="horizontal" class="outer majora">
 							<input type="button" onclick="connectSensor();" value="Connect" data-wrapper-class="inner majora adaptive connect" id="adaptive-connect" />
@@ -133,7 +134,6 @@
 							<input type="button" onclick="adaptiveFinish();" value="Finish" data-wrapper-class="inner majora adaptive stop" id="adaptive-stop" />
 							<input type="button" onclick="adaptiveReview();" value="Review" data-wrapper-class="inner majora adaptive review" id="adaptive-review" />
 						</div>
-					</div>
 					</div>
 
 					<div id="panel-map" class="ui-tabs-panel" style="height:100%">

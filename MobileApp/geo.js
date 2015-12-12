@@ -9,7 +9,9 @@ document.addEventListener(
 			console.log('App supports ' + navigator.geolocation + ', using options: ' + JSON.stringify(config.geoOptions));
 			logActivity('Getting GPS fix ..', 'task');
 			
-			// dashMap = drawMap('dash-canvas', {latlon:[-43.6,172.7], zoom:14});
+			dashMap = drawMap('dash-canvas', {latlon:[-43.56,172.64], zoom:11}); // TODO; pull settings from config
+			// kill image?, check onlineness
+			// $('#dash-canvas .underlay').detach(); // FIXME: needs to wait for map draw
 			
 			navigator.geolocation.getCurrentPosition(onCurrenLocationSuccess, onCurrentLocationFail, config.geoOptions);
 		}
@@ -79,7 +81,7 @@ function drawMap(renderingId, initialView) { //replaces startMap() of old
 	renderingData = config.rendering[renderingId];
 	id = renderingData.DOMId || renderingId;
 	console.log('drawMap() called for ' + id);
-	var rendering = L.map(id);
+	var rendering = L.map(id, renderingData.options);
 	layer = config.layer[renderingData.layers[0]].tiles; //FIXME - this needs to support the full array
 	layer.addTo(rendering);
 	

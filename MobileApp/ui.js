@@ -14,6 +14,8 @@ $(document).on('pageinit', function() {
 
 	// $('#menu').menu(); // would also be nice to use the JS-UI framework here, but this method from the examples freezes execution and can't find much on it
 
+	$('.ui-tabs-panel.swipeable').on('swipeleft swiperight', onTabSwipe);
+	
 });
 
 function switchTab(jqTabItem/*, cb*/) {
@@ -30,4 +32,23 @@ function adaptiveButton(id) {
 	$('.inner.majora.adaptive').hide('fast', function() {
 			$('#adaptive-' + id).parents('.inner.majora').show()
 		});
+}
+
+function onTabSwipe(event) { //TODO; a transition effect - this is too fast
+	console.log('hey you swiped it: ' + event.type);
+	var $tabList = $(event.delegateTarget).prevAll('.ui-navbar').find('.ui-tabs-nav');
+	var $tabItems = $tabList.find('li');
+	// console.log('$tabItems.length: ' + $tabItems.length);
+	var activeIndex = $tabList.find('.ui-tabs-active').index();
+	// console.log('activeIndex: ' + activeIndex);
+	newIndex = activeIndex + ( event.type == 'swiperight' ? -1 : 1 );
+	// console.log('newIndex before: ' + newIndex);
+	if ( newIndex >= $tabItems.length ) {
+		newIndex = newIndex - $tabItems.length;
+	}
+	else if ( newIndex < 0 ) {
+		newIndex = $tabItems.length + newIndex;
+	}
+	// console.log('newIndex corrected: ' + newIndex);
+	switchTab($($tabItems[newIndex]));
 }

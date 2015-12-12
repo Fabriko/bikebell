@@ -60,11 +60,18 @@ var config = {
 
 	rendering: {
 		'track-canvas': {
-			layers: ['Thunderforest_OpenCycleMap'],
-				
+			layers: ['Thunderforest_OpenCycleMap'], // FIXME: ordered array of layers, needs support for > 1 in usages
 		},
 		'dash-canvas': {
 			layers: ['CartoDB_DarkMatter'],
+			options: { // pretty much read-only settings
+				zoomControl: false,
+				dragging: false,
+				touchZoom: false,
+				doubleClickZoom: false,
+				tap: false,
+			},
+			// TODO: start{} consisting of latlon and zoom properties, and support for them as overrideable settings in drawMap()
 		},
 	},
 	
