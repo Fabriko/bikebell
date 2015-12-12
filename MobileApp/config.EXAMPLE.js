@@ -25,6 +25,49 @@ var config = {
 
 	enableButtonsWithoutGPS: false,
 	useFauxConnection: false,
+
+	layer: {
+
+		osm: {
+			tiles: L.tileLayer(
+				'http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+					attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+				}),
+		},
+
+		CartoDB_DarkMatter: {
+			tiles: L.tileLayer(
+				'http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+					attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="http://cartodb.com/attributions">CartoDB</a>',
+					maxZoom: 19,
+				}),
+		},
+
+		Thunderforest_OpenCycleMap: {
+			tiles: L.tileLayer(
+				'http://{s}.tile.thunderforest.com/cycle/{z}/{x}/{y}.png', {
+					attribution: '© <a href="http://www.opencyclemap.org">OpenCycleMap</a>, © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+				}),
+		},
+		
+	},
+	
+	provider: {
+		mapbox: {
+			token: 'MY MAPBOX EXAMPLE KEY',
+		},
+	},
+
+	rendering: {
+		'track-canvas': {
+			layers: ['Thunderforest_OpenCycleMap'],
+				
+		},
+		'dash-canvas': {
+			layers: ['CartoDB_DarkMatter'],
+		},
+	},
+	
 }
 
 // merge geoPositionOptionOverrides into geoOptions to get geoPositionOptions

@@ -11,9 +11,6 @@
     <script src="libs/jquery/jquery-2.1.4.js"></script>
 	<script src="libs/jquery-mobile/jquery.mobile-1.4.5.js"></script>
 
-	<script src="util.js"></script>
-	<script src="config.js"></script>
-
 	<link rel="stylesheet" href="ui/css/leaflet.css" />
 	<link rel="stylesheet" href="libs/jquery-mobile/jquery.mobile-1.4.5.css" />
 	<link rel="stylesheet" type="text/css" href="ui/css/fablab.css" />
@@ -23,9 +20,13 @@
 	if (window.hyper && window.hyper.log) {
 		console.log = hyper.log;
 	}
+	</script>
 
+	<script src="util.js"></script>
+	<script src="config.js"></script>
+
+	<script>
 	var _VERSION = '0.2.8';
-	var map;
 	var settings = window.localStorage;
 
 	document.addEventListener(
@@ -33,109 +34,11 @@
 		function () {
 			console.log('===========');
 			logActivity('Application version <strong class="meta version">' + _VERSION + '</strong> loaded on ' + formatTimestamp(new Date()) + ' :: events will be logged here');
-
-			if (navigator.geolocation) {
-				console.log('App supports ' + navigator.geolocation + ', using options: ' + JSON.stringify(config.geoOptions));
-				logActivity('Getting GPS fix', 'task');
-				navigator.geolocation.getCurrentPosition(
-
-					function(position) {
-						logActivity('Location found: (' + position.coords.latitude + ',' + position.coords.longitude + ')');
-						startMap( [
-							position.coords.latitude,
-							position.coords.longitude
-							]
-						);
-
-var TESTWatchId = navigator.geolocation.watchPosition( function(position) { // TODO: if this code stays, kill the watch at an appropriate time
-		console.log('now at (' + position.coords.latitude + ',' + position.coords.longitude + ')');
-		if (typeof(mypos) == 'undefined') {
-			mypos = L.marker(L.latLng(position.coords.latitude, position.coords.longitude), {icon:L.icon({iconUrl: locationPinIcon})}).addTo(map);
-		}
-		else {
-			mypos.update();
-		}
-	},
-    function(e) {
-	    console.log('watch error code: ' + error.code + ' message: ' + error.message);
-	},
-    config.geoOptions
-);
-
-						// displayStatus(); // FIXME: make this a native system notifcation instead
-					},
-
-					function(e) {
-						logActivity('Location not determined', 'error');
-						if (dummyLoc.length) {
-							startMap(dummyLoc);
-						}
-						if (config.enableButtonsWithoutGPS) {
-							logActivity('Enabling buttons without GPS as per config');
-						}
-						logActivity('No GPS' + (config.enableButtonsWithoutGPS ? ' (Ready anyway)' : ''), 'error');
-					},
-
-					config.geoOptions
-				);
-			}
-
-			$('.ui-tabs').on('tabsactivate', function(event, ui) {
-				// console.log('activated ' + ui.newTab.filter('#nav-map').length);
-				ui.newTab.each( function () { // .filter('#nav-map').each
-					console.log('Switched tab to ' + $(this).text());
-					//L.DomEvent.addListener(window, 'load', startMap);
-					// map.invalidateSize(false);
-					// console.log(map);
-				});
-
-/*
-				if ( ui.newTab.attr('id') == 'nav-map') {
-					console.log('activated ');
-*/
-			});
-
-		},
-		function() {
-			console.log('bummer about the map');
-		}
-	);
-
-	function startMap(at) {
-		map = L.map('track-canvas');
-
-		L.tileLayer(
-			'http://{s}.tile.osm.org/{z}/{x}/{y}.png',
-			{
-				attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
-			}
-			).addTo(map);
-
-		if (at) {
-			console.log('Centering map at ' + JSON.stringify(at));
-			map.setView(at, 18);
-		}
-
-	}
-
-	$(document).on('pageinit', function() {
-
-		$('.menu-btn').add('.burger.menu li a').click( function() {
-			$('.burger.menu').toggleClass('out'); // FIXME: can possibly use https://api.jqueryui.com/theming/stacking-elements/ from the framework instead here
 		});
 
-		adaptiveButton('connect');
-
-		$('#dev\\.diagnostics').toggle();
-		$(".menu a:contains('Developer options') img").toggle(); 
-
-		// $('#fauxOn').prop('defaultChecked', config.useFauxConnection); - doesn't work :(
-
-		// $('#menu').menu(); // would also be nice to use the JS-UI framework here, but this method from the examples freezes execution and can't find much on it
-
-	});
-
 	</script>
+
+	<script src="geo.js"></script>
 
 </head>
 
@@ -221,7 +124,8 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) { // T
 					<div id="panel-dash" class="ui-tabs-panel swipeable">
 
 						<!-- FIXME - just a temporary spacer because I know no better -->
-						<div class="shim" style="min-height: 14em;"></div>
+					<div id="dash-canvas" class="section map shim hack" id="map-underlay">
+					<img src="ui/images/nz-dark-matter-460x310.png" alt="This is your maptain speaking"/>
 						
 						<div data-role="controlgroup" data-type="horizontal" class="outer majora">
 							<input type="button" onclick="connectSensor();" value="Connect" data-wrapper-class="inner majora adaptive connect" id="adaptive-connect" />
@@ -229,7 +133,7 @@ var TESTWatchId = navigator.geolocation.watchPosition( function(position) { // T
 							<input type="button" onclick="adaptiveFinish();" value="Finish" data-wrapper-class="inner majora adaptive stop" id="adaptive-stop" />
 							<input type="button" onclick="adaptiveReview();" value="Review" data-wrapper-class="inner majora adaptive review" id="adaptive-review" />
 						</div>
-
+					</div>
 					</div>
 
 					<div id="panel-map" class="ui-tabs-panel" style="height:100%">
