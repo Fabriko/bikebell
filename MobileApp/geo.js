@@ -15,7 +15,7 @@ document.addEventListener(
 			else {
 				logActivity('Not online','warning');
 			}
-			// kill image?, check onlineness
+			// kill image?
 			// $('#dash-canvas .underlay').detach(); // FIXME: needs to wait for map draw
 			
 			navigator.geolocation.getCurrentPosition(onCurrenLocationSuccess, onCurrentLocationFail, config.geoOptions);
@@ -93,19 +93,6 @@ function drawMap(renderingId, initialView) { //replaces startMap() of old
 	layer.addTo(rendering);
 	
 	// override any missing initialView options with any start options from the config
-	/*
-	var startOptions = ['zoom', 'latlon'];
-	startOptions.forEach( function(optionName) {
-		if ( (!initialView || !initialView.hasOwnProperty(optionName) ) && 
-			renderingData.hasOwnProperty('start') && 
-			renderingData.start.hasOwnProperty(optionName) 
-			) {
-			initialView = initialView || {};
-			initialView[optionName] = renderingData.start[optionName];
-		}});
-	*/
-	
-	// this is way easier than all the above lines but not thoroughly tested
 	initialView = Object.assign(
 		{},
 		renderingData.hasOwnProperty('start') ? renderingData.start : {},
