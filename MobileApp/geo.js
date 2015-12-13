@@ -25,6 +25,8 @@ document.addEventListener(
 			navigator.geolocation.getCurrentPosition(onCurrenLocationSuccess, onCurrentLocationFail, config.geoOptions);
 		}
 
+		// simply logs tab switches to console.log; ..
+		// .. borne of an unsuccesful attempt to resize the map on certain tab changes
 		$('.ui-tabs').on('tabsactivate', function(event, ui) {
 			// console.log('activated ' + ui.newTab.filter('#nav-map').length);
 			ui.newTab.each( function () { // .filter('#nav-map').each
