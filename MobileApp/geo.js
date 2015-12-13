@@ -46,6 +46,12 @@ document.addEventListener(
 
 function onCurrenLocationSuccess(position) {
 	logActivity('Location found: (' + position.coords.latitude + ',' + position.coords.longitude + ')');
+	
+	// TODO: don't assume online or map exists
+	// TODO: calculate max zoom if available in config or 18 default, can extract using Leaflet til layer property maxZoom, but gets tricky incorporating layer groups
+	console.log('dashMap to be updated with animation');
+	dashMap.setView([position.coords.latitude,position.coords.longitude], 18, {animate: true});
+
 	map = drawMap('track-canvas', {
 		latlon: [
 			position.coords.latitude,
