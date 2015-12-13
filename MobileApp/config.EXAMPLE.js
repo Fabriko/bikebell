@@ -26,7 +26,7 @@ var config = {
 	enableButtonsWithoutGPS: false,
 	useFauxConnection: false,
 
-	layer: {
+	layer: { // browse some free styles: http://leaflet-extras.github.io/leaflet-providers/preview/index.html
 
 		osm: {
 			tiles: L.tileLayer(
@@ -71,7 +71,11 @@ var config = {
 				doubleClickZoom: false,
 				tap: false,
 			},
-			// TODO: start{} consisting of latlon and zoom properties, and support for them as overrideable settings in drawMap()
+			start: {
+				latlon: [-43.56,172.64],
+				zoom: 11,
+			},
+			underlay: 'nz-dark-matter-460x310', // or a div? // TODO: implement its use
 		},
 	},
 	
