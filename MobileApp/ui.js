@@ -1,4 +1,19 @@
 /* ****** Generic UI code ******* */
+document.addEventListener(
+	'DOMContentLoaded',
+	function () {
+		
+		// set any underlay images defined in config.rendering object structure as ['underlay']
+		for (var identifier in config.rendering) {
+			// console.log(identifier + ': ' + $('#' + identifier + ' .underlay').length);
+			rendering = config.rendering[identifier];
+			if (rendering.hasOwnProperty('underlay')) {
+				$('#' + identifier + ' .underlay').attr('src', 'ui/images/' + rendering.underlay);
+			};
+		}
+	}
+);
+
 $(document).on('pageinit', function() {
 
 	$('.menu-btn').add('.burger.menu li a').click( function() {
