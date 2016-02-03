@@ -8,10 +8,13 @@
 	<title>Bike Bell app</title>
 
     <script src="libs/leaflet.js"></script>
+	<!-- <script src='https://api.mapbox.com/mapbox.js/v2.2.4/mapbox.js'></script> -->
+
     <script src="libs/jquery/jquery-2.1.4.js"></script>
 	<script src="libs/jquery-mobile/jquery.mobile-1.4.5.js"></script>
 
 	<link rel="stylesheet" href="ui/css/leaflet.css" />
+	<!-- <link href='https://api.mapbox.com/mapbox.js/v2.2.4/mapbox.css' rel='stylesheet' /> -->
 	<link rel="stylesheet" href="libs/jquery-mobile/jquery.mobile-1.4.5.css" />
 	<link rel="stylesheet" type="text/css" href="ui/css/fablab.css" />
 
@@ -26,13 +29,13 @@
 	<script src="config.js"></script>
 
 	<script>
-	var _VERSION = '0.2.9';
+	console.log('===========');
+	var _VERSION = '0.3';
 	var settings = window.localStorage;
 
 	document.addEventListener(
 		'DOMContentLoaded',
 		function () {
-			console.log('===========');
 			logActivity('Application version <strong class="meta version">' + _VERSION + '</strong> loaded on ' + formatTimestamp(new Date()) + ' :: events will be logged here');
 		});
 

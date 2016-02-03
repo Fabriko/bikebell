@@ -1,4 +1,15 @@
 /* ****** Generic UI code ******* */
+
+/*
+// from https://wordpress.org/support/topic/map-not-displaying-correctly-when-embeded-in-a-hidden-div
+$(document).ready(function() {
+	map.invalidateSize();
+	$('.ui-tabs').on('tabsactivate', function(event, ui) {
+		map.invalidateSize();
+	});
+});
+*/
+
 document.addEventListener(
 	'DOMContentLoaded',
 	function () {
@@ -6,7 +17,7 @@ document.addEventListener(
 		// set any underlay images defined in config.rendering object structure as ['underlay']
 		for (var identifier in config.rendering) {
 			// console.log(identifier + ': ' + $('#' + identifier + ' .underlay').length);
-			rendering = config.rendering[identifier];
+			var rendering = config.rendering[identifier];
 			if (rendering.hasOwnProperty('underlay')) {
 				$('#' + identifier + ' .underlay').attr('src', 'ui/images/' + rendering.underlay);
 			};
@@ -31,6 +42,17 @@ $(document).on('pageinit', function() {
 
 	$('.ui-tabs-panel.swipeable').on('swipeleft swiperight', onTabSwipe);
 	
+	// log tab switches to console.log and resize maps on tab changes
+	$('.ui-tabs').on('tabsactivate', function(event, ui) {
+		// console.log('activated ' + ui.newTab.filter('#nav-map').length);
+		ui.newTab.each( function () { // .filter('#nav-map').each
+			console.log('Switched tab to ' + $(this).text());
+
+			// TODO: find a way to non-enumeratively loop through Leaflet instances, and preferably only the one related to the tab
+			map.invalidateSize();
+			dashMap.invalidateSize();
+		});
+	});
 });
 
 function switchTab(jqTabItem/*, cb*/) {
