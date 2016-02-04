@@ -104,14 +104,14 @@ function Journey(title) {
 
 	this.addData = function(measure, data, position) {
 		logActivity('Adding ' + measure + ' of ' + data + ' to trail "' + this.title + '" @(' + position[0] + ',' + position[1] + ')');
-		console.log('Journey: ' + JSON.stringify(this));
-		console.log('JSONTrail: ' + JSON.stringify(this.JSONtrail));
 		this.JSONtrail.trail.push( {
 			reading: measure,
 			stamp: formatTimestamp(new Date(), 'W3CDTF'),
 			'position': position,
 			value: data,
 		}); // TODO - make this something an app can use like timestamped geoJSON
+		console.log('Journey: ' + JSON.stringify(this));
+		console.log('JSONTrail: ' + JSON.stringify(this.JSONtrail));
 	}
 	
 	this.start = function(onSuccess) {
@@ -188,8 +188,8 @@ function Journey(title) {
 		var uploadPath = 'http://' + bucket + '.s3.amazonaws.com/' + filename;
 
 		console.log(uploadPath);
-		var payload = makegeoJSON(this.JSONtrail);
-		console.log(JSON.stringify(payload));
+		var payload = JSON.stringify(makegeoJSON(this.JSONtrail));
+		console.log(payload);
 
 		var req = $.ajax({
 			type: "PUT",
