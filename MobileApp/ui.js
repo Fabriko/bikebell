@@ -49,8 +49,8 @@ $(document).on('pageinit', function() {
 			console.log('Switched tab to ' + $(this).text());
 
 			// TODO: find a way to non-enumeratively loop through Leaflet instances, and preferably only the one related to the tab
-			map.invalidateSize();
-			dashMap.invalidateSize();
+			map && map.invalidateSize();
+			dashMap && dashMap.invalidateSize();
 		});
 	});
 });
@@ -88,4 +88,32 @@ function onTabSwipe(event) { //TODO; a transition effect - this is too fast
 	}
 	// console.log('newIndex corrected: ' + newIndex);
 	switchTab($($tabItems[newIndex]));
+}
+
+bellUI = {
+	popup: function(msg, duration, options) {
+		options = options || {};
+		if (window.plugins && window.plugins.toast) {
+			// refer https://github.com/EddyVerbruggen/Toast-PhoneGap-Plugin for option implementation <<-- TODO
+			window.plugins.toast.show(msg, (duration || 'long'), (options.position || 'center'), (options.onSucceed || $.noop()), (options.onFail || $.noop()));
+			logActivity('Notified with window.plugins.toast: ' + msg);
+			options.onSucceed && options.onSucceed.call();
+		}
+		/*
+		else if (someAlternativeNotificationObject) { // e.g. https://www.npmjs.com/package/cordova-plugin-dialogs
+			logActivity(msg);
+			onSucceed.call();
+		}
+		*/
+		else if(options.fallback) {
+			logActivity('Using fallback ' + options.fallback.name + ' instead');
+			options.fallback.call(null, msg, duration, options);
+		}
+		else {
+			logActivity('Failed to notify: ' + msg);
+			if (options.onFail) {
+				options.onFail.call();
+			}
+		}
+	}
 }

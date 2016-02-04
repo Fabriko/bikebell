@@ -10,11 +10,11 @@ document.addEventListener(
 			logActivity('Getting GPS fix ..', 'task');
 
 			if (navigator.connection.type) {
-				logActivity('Online via connection type ' + navigator.connection.type);
+				bellUI.popup('Online via connection type ' + navigator.connection.type, 'medium');
 				dashMap = drawMap('dash-canvas');
 			}
 			else {
-				logActivity('Not online','warning');
+				bellUI.popup('Not online', 'medium', { fallback: window.alert });
 			}
 
 			// kill image?
@@ -45,10 +45,11 @@ function onCurrenLocationSuccess(position) {
 	// TODO: decide between map.locate() and geolocation.watchPosition() here
 
 	var TESTWatchId = navigator.geolocation.watchPosition( function(position) { // TODO: if this code stays, kill the watch at an appropriate time
-		console.log('now marking (' + position.coords.latitude + ',' + position.coords.longitude + ')');
+		console.log('now moved to (' + position.coords.latitude + ',' + position.coords.longitude + ')');
 		if (typeof(mypos) == 'undefined') {
-				mypos = L.marker(L.latLng(position.coords.latitude, position.coords.longitude), {icon:L.icon({iconUrl: locationPinIcon})}).addTo(map);
-				dashPosition = L.marker(L.latLng(position.coords.latitude, position.coords.longitude), {icon:L.icon({iconUrl: 'ui/images/dash-marker.png'})}).addTo(dashMap);
+			var spot = L.latLng(position.coords.latitude, position.coords.longitude);
+			mypos = L.marker(spot, {icon:L.icon({iconUrl: locationPinIcon})}).addTo(map);
+			dashPosition = L.marker(spot, {icon:L.icon({iconUrl: 'ui/images/dash-marker.png'})}).addTo(dashMap);
 		}
 		else {
 			mypos.update();
