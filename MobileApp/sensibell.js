@@ -2,7 +2,6 @@
 var sensortag, blend;
 var SENSOR = blend; // new Sensor(blend); <-- FOR LATER, now it just has to work
 // var sprite;
-var geoWatchID;
 var journey = new Journey('foo');
 var dblClickBuffer = { 
 	key:0, 
