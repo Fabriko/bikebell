@@ -9,6 +9,7 @@ document.addEventListener(
 			console.log('App supports ' + navigator.geolocation + ', using options: ' + JSON.stringify(config.geoOptions));
 			logActivity('Getting GPS fix ..', 'task');
 
+			// refer https://www.npmjs.com/package/cordova-plugin-network-information to handle status changes using 'offline' and 'online' events <<-- TODO
 			if (navigator.connection.type) {
 				bellUI.popup('Online via connection type ' + navigator.connection.type, 'medium');
 				dashMap = drawMap('dash-canvas');
@@ -46,14 +47,17 @@ function onCurrenLocationSuccess(position) {
 
 	var TESTWatchId = navigator.geolocation.watchPosition( function(position) { // TODO: if this code stays, kill the watch at an appropriate time
 		console.log('now moved to (' + position.coords.latitude + ',' + position.coords.longitude + ')');
-		if (typeof(mypos) == 'undefined') {
-			var spot = L.latLng(position.coords.latitude, position.coords.longitude);
-			mypos = L.marker(spot, {icon:L.icon({iconUrl: locationPinIcon})}).addTo(map);
-			dashPosition = L.marker(spot, {icon:L.icon({iconUrl: 'ui/images/dash-marker.png'})}).addTo(dashMap);
+		var spot = L.latLng(position.coords.latitude, position.coords.longitude);
+		if (typeof(trackMarker) == 'undefined') {
+			trackMarker = L.marker(spot, {icon:L.icon({iconUrl: locationPinIcon})}).addTo(map);
+			dashMarker = L.marker(spot, {icon:L.icon({iconUrl: 'ui/images/dash-marker.png'})}).addTo(dashMap);
 		}
 		else {
-			mypos.update();
-			dashPosition.update();
+			dashMarker.setLatLng(spot).update();
+			dashMap.panTo(spot, {animate: true});
+			trackMarker.setLatLng(spot).update();
+			map.panTo(spot, {animate: true});
+			// console.log('updated markers');
 		}
 		},
 		function(e) {
