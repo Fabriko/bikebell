@@ -1,5 +1,6 @@
-var map; // FIXME: rename an globally substitute this to something less generic
-var dashMap;
+var map, trackMarker, trackJourneyLine; // FIXME: rename an globally substitute this to something less generic
+var dashMap, dashMarker, dashJourneyLine;
+var geoWatchID;
 
 document.addEventListener(
 	'deviceready',
@@ -29,36 +30,44 @@ document.addEventListener(
 	});
 
 function onCurrenLocationSuccess(position) {
+	bellUI.popup('Position found at (' + position.coords.latitude + ',' + position.coords.longitude + ')', 'long');
 	logActivity('Location found: (' + position.coords.latitude + ',' + position.coords.longitude + ')');
-	// TODO: https://github.com/m00sey/PhoneGap-Toast here ?
+	var here = L.latLng(position.coords.latitude, position.coords.longitude);
 	
 	// TODO: don't assume online or map exists
 	// TODO: calculate max zoom if available in config or 18 default, can extract using Leaflet til layer property maxZoom, but gets tricky incorporating layer groups
 	console.log('dashMap to be updated with animation'); //TODO: try http://blog.webkid.io/fancy-map-effects-with-css/
-	dashMap.setView([position.coords.latitude,position.coords.longitude], 18, {animate: true});
+	dashMap.setView(here, 18, {animate: true});
 
 	map = drawMap('track-canvas', {
-		latlon: [
-			position.coords.latitude,
-			position.coords.longitude
-			],
+		latlon: here,
 		});
+		
+	dashJourneyLine = L.polyline([here], {color: '#00b2bd', weight:10/*, fill: true, fillColor: '#a4a3ac'*/}).addTo(dashMap); // TODO: I only want to create this line when journey is on (maybe have it dashed before that)
+	trackJourneyLine = L.polyline([here], {color: '#f0f'}).addTo(map); // TODO: have this line dashed before journey starts
+	trackMarker = L.marker(here, {icon:L.icon({iconUrl: locationPinIcon})}).addTo(map);
+	dashMarker = L.marker(here, {icon:L.icon({iconUrl: 'ui/images/dash-marker.png'})}).addTo(dashMap);
+
 	// TODO: decide between map.locate() and geolocation.watchPosition() here
 
-	var TESTWatchId = navigator.geolocation.watchPosition( function(position) { // TODO: if this code stays, kill the watch at an appropriate time
+	geoWatchID = navigator.geolocation.watchPosition( function(position) { // TODO: if this code stays, kill the watch at an appropriate time
 		console.log('now moved to (' + position.coords.latitude + ',' + position.coords.longitude + ')');
-		var spot = L.latLng(position.coords.latitude, position.coords.longitude);
-		if (typeof(trackMarker) == 'undefined') {
-			trackMarker = L.marker(spot, {icon:L.icon({iconUrl: locationPinIcon})}).addTo(map);
-			dashMarker = L.marker(spot, {icon:L.icon({iconUrl: 'ui/images/dash-marker.png'})}).addTo(dashMap);
-		}
-		else {
-			dashMarker.setLatLng(spot).update();
-			dashMap.panTo(spot, {animate: true});
-			trackMarker.setLatLng(spot).update();
-			map.panTo(spot, {animate: true});
-			// console.log('updated markers');
-		}
+		var here = L.latLng(position.coords.latitude, position.coords.longitude);
+		
+		dashMarker.setLatLng(here).update();
+		dashMap.panTo(here, {animate: true});
+		trackMarker.setLatLng(here).update();
+		
+		map.panTo(here, {animate: true});
+		
+		dashJourneyLine.addLatLng(here);
+		trackJourneyLine.addLatLng(here);
+		// console.log('updated markers');
+/*		
+if ( journey && journey.active() ) {
+	console.log(JSON.stringify(journey.JSONtrail));
+}
+*/
 		},
 		function(e) {
 			console.log('watch error code: ' + error.code + ' message: ' + error.message);
@@ -69,6 +78,7 @@ function onCurrenLocationSuccess(position) {
 }
 
 function onCurrentLocationFail(e) { // not doing anything with e ATM
+	bellUI.popup('Problem: location not determined!', 'long');
 	logActivity('Location not determined', 'error');
 	console.log('pretending to be at ' + dummyLoc);
 	// TODO: https://github.com/m00sey/PhoneGap-Toast here ?
