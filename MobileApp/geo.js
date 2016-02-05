@@ -12,11 +12,11 @@ document.addEventListener(
 
 			// refer https://www.npmjs.com/package/cordova-plugin-network-information to handle status changes using 'offline' and 'online' events <<-- TODO
 			if (navigator.connection.type) {
-				bellUI.popup('Online via connection type ' + navigator.connection.type, 'medium');
+				bellUI.popup('Online via connection type ' + navigator.connection.type, 'long');
 				dashMap = drawMap('dash-canvas');
 			}
 			else {
-				bellUI.popup('Not online', 'medium', { fallback: window.alert });
+				bellUI.popup('Not online', 'long', { fallback: window.alert });
 			}
 
 			// kill image?
@@ -56,18 +56,18 @@ function onCurrenLocationSuccess(position) {
 		
 		dashMarker.setLatLng(here).update();
 		dashMap.panTo(here, {animate: true});
-		trackMarker.setLatLng(here).update();
-		
-		map.panTo(here, {animate: true});
-		
 		dashJourneyLine.addLatLng(here);
+
+		trackMarker.setLatLng(here).update();
+		map.panTo(here, {animate: true});
 		trackJourneyLine.addLatLng(here);
+
 		// console.log('updated markers');
-/*		
-if ( journey && journey.active() ) {
-	console.log(JSON.stringify(journey.JSONtrail));
-}
-*/
+
+		if ( journey && journey.active() ) {
+			journey.addPoint([position.coords.longitude, position.coords.latitude]);
+		}
+
 		},
 		function(e) {
 			console.log('watch error code: ' + error.code + ' message: ' + error.message);

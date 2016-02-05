@@ -103,7 +103,7 @@ function Journey(title) {
 	}
 
 	this.addData = function(measure, data, position) {
-		logActivity('Adding ' + measure + ' of ' + data + ' to trail "' + this.title + '" @(' + position[0] + ',' + position[1] + ')');
+		logActivity('Adding ' + measure + ' of ' + data.toString() + ' to trail "' + this.title + '" @(' + position[0] + ',' + position[1] + ')');
 		this.JSONtrail.trail.push( {
 			reading: measure,
 			stamp: formatTimestamp(new Date(), 'W3CDTF'),
@@ -313,11 +313,13 @@ function buttonDispatcher(data, callbacks) {
 
 function buttonGood() {
 	logActivity('Good button pressed', 'action');
+	bellUI.popup('Sweet!', 'short'); // TODO: make this configurable by user
 	processButton('01');
 }
 
 function buttonBad() {
 	logActivity('Bad button pressed', 'action');
+	bellUI.popup('Stink ..', 'short'); // TODO: make this configurable by user
 	processButton('02');
 }
 
