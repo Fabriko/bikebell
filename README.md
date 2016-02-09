@@ -9,7 +9,7 @@ Improving cycle networks by rich, passionately gathered user-generated data:
 
 * Hardware,
 * Firmware,
-* [Cross-platform smartphone app](WebApp/README.md),
+* [Cross-platform smartphone app](MobileApp/README.md),
 
 and another _planned_,
 
