@@ -28,7 +28,7 @@ There are _at least_ two paths ..
 ### What are the app requirements?
 Android, BLE, GPS, online
 
-### Will there be an iOS version, or other patforms?
+### Will there be an iOS version, or other platforms?
 Can you run it on my _[stylish\_machine]_? We've done this using Cordova mostly because we want to produce it for the greatest number of device platforms. So iThings, maybe Windows and others. Having said that, we are yet to try building for another platform.
 
 ### Where is the data stored?
