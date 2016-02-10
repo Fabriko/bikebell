@@ -1,0 +1,66 @@
+html,
+body,
+.track-explorer,
+.map {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	 padding-left: 10%; padding-right:10%;
+}
+
+.track-explorer .map,
+.track-explorer .tools {
+	 padding-left: 1%; padding-right:1%;
+}
+
+.track-explorer .tools {
+	float: right;
+	width: 25%;
+	/* set max height? */
+	max-height: 40em;
+}
+
+.track-explorer .map {
+	float:left;
+	width: 70%;
+}
+
+#track-explorer {
+	float: left;
+	width: 100%;
+	height: 40em;
+	padding-bottom: 2em;
+}
+
+.output {
+	background-color: #000;
+	color: #6c8;
+	border-radius: 5px;
+	border: thick solid #9ca;
+	padding-left: 0.5em; padding-right: 0.5em;
+}
+
+#log {
+	margin-top: 1.5em;
+	font-size: smaller;
+	font-family: monospace;
+}
+
+#meta {
+	clear: both;
+	margin-top: 2em;
+	padding: 1em;
+	font-family: sans-serif;
+}
+
+#meta .description {
+	font-size: larger;
+	font-weight: bolder;
+}
+
+#meta .label {
+	font-weight: bolder;
+}

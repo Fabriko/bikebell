@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html 
+	PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"
+>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-NZ" lang="en-NZ">
+<head>
+	<title>Your brain on cycling</title>
+
+	<link rel="stylesheet" type="text/css" href="ui/css/basic.css" />
+
+	<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.css" />
+	<script src="http://code.jquery.com/jquery-2.2.0.min.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.js"></script>
+
+	<script type="text/javascript">
+		var map;
+		
+		$(document).ready(function() {
+				if ( map === undefined ) {
+					map = L.map('track-canvas').setView([-36.85, 174.76], 13);
+
+					L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+							attribution: '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+						}).addTo(map);
+				}
+
+				console.log(map);
+			});
+
+	</script>
+	<script src="geo-leaflet.js" type="text/javascript"></script>
+	<script src="ui.js" type="text/javascript"></script>
+	
+</head>
+
+<body>
+	
+	<h1>Anatomy of a journey<!-- … --></h1>
+	
+	<div class="track-explorer" id="track-explorer">
+		<div id="track-canvas" class="map"></div>
+		<div class="tools">
+			<input type="file" id="file" name="file" />
+			<div id="log" class="output"></div>
+		</div>
+	</div>
+
+	<div id="meta" class="output"></div>
+
+	<script type="text/javascript">
+		
+		output = { 
+			meta: new OutputSpace('meta'),
+			'log': new OutputSpace('log')
+		};
+
+		// check and report on File API support
+		output['log'].addMessages( [
+			window.File && window.FileReader && window.FileList && window.Blob ?
+			('File API support all good I believe :)') :
+			("You're not going to like this: you can't read files so it's not going to work :(")
+		] );
+	  
+		function fileSelect_change(evt) {
+			var file = evt.target.files[0];
+			var reader = new FileReader();
+
+			reader.onload = function(e) {
+				console.log('this.result: '); console.log(this.result);
+				var GJ = $.parseJSON(this.result);
+				console.log('GJ: '); console.log(GJ);
+				var gJLayer = L.geoJson(GJ).addTo(map);
+				console.log('gJLayer: '); console.log(gJLayer);
+				map.fitBounds(gJLayer.getBounds());
+
+				// console.log(gpx.dom);
+				console.log('this: '); console.log(this);
+				
+				output['log'].addMessage('Loaded: ' + file.name);
+			
+				// gpx.render(); // gpx.addTo(map);
+				
+				/*
+				formattedAttributes = gpx.formatAttributes();
+
+				// show metadata
+				output.meta.replaceNode('dl.values', formattedAttributes, true);
+				output.meta.replaceNode('h2.description', '<h2 class="description">' + gpx.description + '</h2>', true);
+				*/
+			};
+
+			reader.readAsText(file);
+		}
+		
+		document.getElementById('file').addEventListener('change', fileSelect_change, false);
+
+	</script>
+
+</body>
