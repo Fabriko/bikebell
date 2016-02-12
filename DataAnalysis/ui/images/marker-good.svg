@@ -1,0 +1,7 @@
+<?xml version="1.0" standalone="no"?>
+<svg width="4cm" height="4cm" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" version="1.1">
+  <desc>Red map marker for bad points</desc>
+
+  <circle cx="200" cy="200" r="150" fill="#00b2bd" />
+  <circle cx="200" cy="200" r="180" fill="none" stroke="#4af60e" stroke-width="20"  />
+</svg>

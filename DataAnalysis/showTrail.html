@@ -11,6 +11,7 @@
 
 	<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.css" />
 	<script src="http://code.jquery.com/jquery-2.2.0.min.js"></script>
+	<script src="https://github.com/agschwender/jquery.formatDateTime/raw/master/dist/jquery.formatDateTime.min.js"></script>
 	<script src="http://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.js"></script>
 
 	<script type="text/javascript">
@@ -46,12 +47,12 @@
 		</div>
 	</div>
 
-	<div id="meta" class="output"></div>
+	<!-- <div id="meta" class="output"></div> -->
 
 	<script type="text/javascript">
 		
 		output = { 
-			meta: new OutputSpace('meta'),
+			// meta: new OutputSpace('meta'),
 			'log': new OutputSpace('log')
 		};
 
@@ -70,8 +71,29 @@
 				console.log('this.result: '); console.log(this.result);
 				var GJ = $.parseJSON(this.result);
 				console.log('GJ: '); console.log(GJ);
-				var gJLayer = L.geoJson(GJ).addTo(map);
-				console.log('gJLayer: '); console.log(gJLayer);
+				var lineStringLayer; 
+				var gJLayer = L.geoJson(GJ, {
+					onEachFeature: function(feature, layer) {
+						if (feature.properties && feature.properties.measure && feature.properties.measure == 'button') {
+							var displayMarker = L.icon( {
+								iconUrl: ( feature.properties.value == '01' ? 'ui/images/marker-good.png' : 'ui/images/marker-bad.png' ) // TODO: icon URLs from config
+								});
+							var displayValue = feature.properties.value == '01' ? 'Sweet!' : 'Stink'; // TODO: captions from config
+							var formattedDate = $.formatDateTime('D MM d, yy hh:ii', new Date(feature.properties.time.replace('Z','+13:00'))); // see also http://momentjs.com
+							var popupContent = '<h2>' + displayValue + '</h2>\n<p>' + formattedDate + '</p>';
+							layer.setIcon(displayMarker);
+							layer.bindPopup(popupContent);
+						}
+						if (feature.geometry && feature.geometry.type && feature.geometry.type == 'LineString') {
+							lineStringLayer = layer; // FIXME; should really be an array as we could have more than one in the real world - see http://stackoverflow.com/a/19118143
+						}
+					},
+					}).addTo(map);
+
+				// console.log('lineStringLayer: '); console.log(lineStringLayer);
+				lineStringLayer.bindPopup('<h2>Journey details</h2>\n' + formatAttributes(GJ));
+
+				// console.log('gJLayer: '); console.log(gJLayer);
 				map.fitBounds(gJLayer.getBounds());
 
 				// console.log(gpx.dom);

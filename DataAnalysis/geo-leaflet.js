@@ -139,6 +139,25 @@ function GPXData(contents) {
 	}
 }
 
+// L.geoJson.prototype.formatAttributes = function() {
+// FIXME: this should be an extension for L.geoJson but isn't working as such, so for now ..
+formatAttributes = function(GJ) {
+		attributeLabels = {
+			name: 'Track name',
+			version: 'App version',
+		}
+	
+		markup = '<dl class="values">\n';
+		for ( prop in attributeLabels ) {
+			if (attributeLabels.hasOwnProperty(prop)) {
+				markup += '<dt>' + attributeLabels[prop] + '</dt>\n';
+				markup += '<dd>' + GJ.properties[prop] + '</dd>\n';
+			}
+		}					
+		markup += '</dl>\n';
+		return markup;
+	};
+
 function reverseGeocode(location, zoom, provider) {
 	console.log('reverseGeocode((' + location.lat + ',' + location.lng + '), ' + zoom + (provider === undefined ? '' : provider) + ')');
 	if ( provider === undefined ) {
