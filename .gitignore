@@ -1,0 +1,4 @@
+# eliminate some of the files I'm creating to copy, and also IDE project files
+*.project
+*.zip
+*.tar.gz
