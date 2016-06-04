@@ -4,17 +4,11 @@
 
 // this is pretty damn handy: http://evothings.com/arduino-ble-quick-walk-through/
 
-/**
- * The BLE plugin is loaded asynchronously so the ble
- * variable is set in the onDeviceReady handler.
- */
-var ble = null;
-
-var app = {
+function Sensor() {
 	// Reference to the device we are connecting to.
-	connectee: null,
+	this['connectee'] = null;
 
-	scan: function(success/*, failure*/) {
+	this.scan = function(success/*, failure*/) {
 		SENSOR = SENSOR || this.setSensor(); // FIXME: I'm not sure this works (assign properly to SENSOR) if there's no value
 		console.log(SENSOR.target);
 		evothings.easyble.stopScan();
@@ -46,9 +40,9 @@ var app = {
 				// failure(target); TODO
 			}
 		);
-	},
+	}
 
-	conn: function(target, onSuccess, onFail) {
+	this.conn = function(target, onSuccess, onFail) {
 		logActivity('Connecting to ... ' + target);
 		//TODO; we need a spinner or whatever here
 		evothings.arduinoble.connect(
@@ -68,9 +62,9 @@ var app = {
 				adaptiveButton('connect');
 				onFail && onFail.call();
 			});
-	},
+	}
 
-	connectFromScratch: function(success) {
+	this.connectFromScratch = function(success) {
 		SENSOR = SENSOR || this.setSensor(); // FIXME: I'm not sure this works (assign properly to SENSOR) if there's no value
 
 		if(config.useFauxConnection) {
@@ -93,9 +87,9 @@ var app = {
 					SENSOR.conn(SENSOR.target, success);
 				});
 		}
-	},
+	}
 
-	setSensor: function() {
+	this.setSensor = function() {
 		displayStatus('Not connected', 'warning');
 		do {
 			SENSOR.target = getPairingTarget();
@@ -109,9 +103,9 @@ var app = {
 		ble = evothings.ble; // FIXME: this does SFA, amiright?
 
 		logActivity('.. Blend SET.');
-	},
+	}
 
-	listen: function(callbacks) {
+	this.listen = function(callbacks) {
 		logActivity('Listening to notifications for ' + app.connectee.name);
 		evothings.printObject(app.connectee.advertisementData);
 
@@ -146,9 +140,9 @@ var app = {
 			function(errorCode)	{
 				logActivity('BLE enableNotification error: ' + errorCode);
 			});
-	},
+	}
 
-	disconn: function(nextButton, statusMessage) {
+	this.disconn = function(nextButton, statusMessage) {
 		nextButton = nextButton || 'connect';
 		statusMessage = statusMessage || 'Disconnected';
 		if (config.useFauxConnection) {
@@ -166,8 +160,7 @@ var app = {
 		}
 			displayStatus(statusMessage, 'warning');
 			adaptiveButton(nextButton);
-	},
+	}
 
-};
+}
 
-blend = app; // FIXME, this sucks

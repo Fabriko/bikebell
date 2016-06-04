@@ -1,7 +1,15 @@
-// Globals
-var sensortag, blend;
+/* Globals */
+
+// Hardware
+sensor = new Sensor();
+
+// oh, what a mess! some legacy stuff we can probably kill eventually
+var app = sensor;
+var blend = app; // FIXME, this sucks
+var sensortag;
 var SENSOR = blend; // new Sensor(blend); <-- FOR LATER, now it just has to work
-// var sprite;
+
+// Data
 var journey = new Journey('foo');
 var dblClickBuffer = { 
 	key:0, 
