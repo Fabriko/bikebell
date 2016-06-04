@@ -5,8 +5,23 @@
 // this is pretty damn handy: http://evothings.com/arduino-ble-quick-walk-through/
 
 function Sensor() {
-	// Reference to the device we are connecting to.
-	this['connectee'] = null;
+
+	this.init = function() {
+		this['target'] = null;
+		this['connectee'] = null; // FIXME - legacy, kill kill eventually kill
+	}
+
+	this.set = function() {
+
+		displayStatus('Not connected', 'warning');
+
+		do {
+			this.target = getPairingTarget();
+		}
+		while (!this.target);
+
+		logActivity('This is handset device ' + device.uuid + ' wanting to pair with ' + ( this.target ? this.target : '[unpaired]' )); // shouldn't need that last ternary while above do/while is in place
+	}
 
 	this.scan = function(success/*, failure*/) {
 		SENSOR = SENSOR || this.setSensor(); // FIXME: I'm not sure this works (assign properly to SENSOR) if there's no value
@@ -89,22 +104,6 @@ function Sensor() {
 		}
 	}
 
-	this.setSensor = function() {
-		displayStatus('Not connected', 'warning');
-		do {
-			SENSOR.target = getPairingTarget();
-		}
-		while (!SENSOR.target);
-
-		logActivity('This is handset device ' + device.uuid + ' wanting to pair with ' + ( SENSOR.target ? SENSOR.target : '[unpaired]' )); // shouldn't need that last ternary while above do/while is in place
-
-		logActivity('Setting Blend ..');
-
-		ble = evothings.ble; // FIXME: this does SFA, amiright?
-
-		logActivity('.. Blend SET.');
-	}
-
 	this.listen = function(callbacks) {
 		logActivity('Listening to notifications for ' + app.connectee.name);
 		evothings.printObject(app.connectee.advertisementData);
@@ -161,6 +160,8 @@ function Sensor() {
 			displayStatus(statusMessage, 'warning');
 			adaptiveButton(nextButton);
 	}
+
+	this.init();
 
 }
 

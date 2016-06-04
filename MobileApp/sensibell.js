@@ -19,7 +19,7 @@ var dblClickBuffer = {
 document.addEventListener(
 	'deviceready',
 	function() {
-		evothings.scriptsLoaded(initSensor);
+		evothings.scriptsLoaded(setSensor);
 		// evothings.scriptsLoaded(connectSensor);
 	},
 	false
@@ -282,9 +282,9 @@ function setPairingTarget() {
 	return response;
 }
 
-function initSensor() {
-	console.log('Shouldinit Blendo');
-	blend.setSensor();
+function setSensor() {
+	console.log('We are going to set the sensor');
+	sensor.set();
 }
 
 function connectSensor() {
