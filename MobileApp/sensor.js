@@ -5,10 +5,11 @@
 // this is pretty damn handy: http://evothings.com/arduino-ble-quick-walk-through/
 
 function Sensor() {
+	__this = this;
 
 	this.init = function() {
 		this['target'] = null;
-		this['connectee'] = null; // FIXME - legacy, kill kill eventually kill
+		this['connectedDevice'] = null;
 	}
 
 	this.set = function() {
@@ -23,68 +24,13 @@ function Sensor() {
 		logActivity('This is handset device ' + device.uuid + ' wanting to pair with ' + ( this.target ? this.target : '[unpaired]' )); // shouldn't need that last ternary while above do/while is in place
 	}
 
-	this.scan = function(success/*, failure*/) {
-		SENSOR = SENSOR || this.setSensor(); // FIXME: I'm not sure this works (assign properly to SENSOR) if there's no value
-		console.log(SENSOR.target);
-		evothings.easyble.stopScan();
-		evothings.easyble.reportDeviceOnce(true);
-		evothings.easyble.startScan(
-			function(deviceInfo) {
-				// evothings.printObject(deviceInfo);
-				if(deviceInfo.hasName(SENSOR.target)) {
-					// evothings.printObject(deviceInfo);
-					deviceInfo.name = SENSOR.target; // seems .name is not reliably set on scan, even though .hasName() works
-					logActivity('Target EasyBLE device FOUND: ' + deviceInfo.name + ' - ' + deviceInfo.address, 'success');
-					evothings.easyble.stopScan();
-					if (success) {
-						success.call(SENSOR.target);
-					}
-				}
-				else {
-					// evothings.printObject(deviceInfo);
-					deviceInfo.name = (
-						deviceInfo.name ? 
-						deviceInfo.name :
-						(deviceInfo.advertisementData ? deviceInfo.advertisementData.kCBAdvDataLocalName : null)
-						);
-					logActivity('Foreign device found: ' + deviceInfo.name + ' with address ' + deviceInfo.address, 'notice');
-				}
-			},
-			function (error) {
-				logActivity('BLE Scan error: ' + error, 'error');
-				// failure(target); TODO
-			}
-		);
-	}
-
-	this.conn = function(target, onSuccess, onFail) {
-		logActivity('Connecting to ... ' + target);
-		//TODO; we need a spinner or whatever here
-		evothings.arduinoble.connect(
-			target,
-			function(connectedDevice) {
-				app.connectee = connectedDevice;
-				logActivity('CONNECTED to ' +  target);
-				displayStatus('Connected', 'success');
-				adaptiveButton('start');
-				onSuccess && onSuccess.call();
-			},
-			function(errorCode)	{
-				statusMessage = ( errorCode == 'EASYBLE_ERROR_DISCONNECTED' ? 'Disconnected' : 'Not connected' );
-				app.connectee = null;
-				logActivity('Connect error with ' + target + ': ' + errorCode, 'error');
-				displayStatus(statusMessage, 'warning');
-				adaptiveButton('connect');
-				onFail && onFail.call();
-			});
-	}
-
-	this.connectFromScratch = function(success) {
-		SENSOR = SENSOR || this.setSensor(); // FIXME: I'm not sure this works (assign properly to SENSOR) if there's no value
+	this.connectFromScratch = function(success) { // TODO: success param not implemented 
+		if ( typeof(this.target) === undefined ) {  // TODO: test this predicate
+			this.set();
+		}
 
 		if(config.useFauxConnection) {
-			logActivity('(Fake) Connecting, certainly not to ' + SENSOR.target, 'notice');
-			app.connectee = null;
+			logActivity('(Fake) Connecting, certainly not to ' + this.target, 'notice');
 			fauxConnected();
 			/* // current thinking: this is neither a success or fail
 				if (onSuccess) {
@@ -93,55 +39,123 @@ function Sensor() {
 			*/
 		}
 		else {
-			console.log('connectFromScratch to ' + SENSOR.target);
+			console.log('connectFromScratch to ' + this.target);
+			console.log('Scanning for ' + this.target);
 
-			this.scan(
-				function(target) { //FIXME; param necessary?
-					console.log('Target for scan was ' + SENSOR.target);
-					console.log('Success callback is ' + ( typeof(success) == 'function' ? 'set' : 'not set') );
-					SENSOR.conn(SENSOR.target, success);
-				});
+			evothings.easyble.startScan(
+				function(foundDevice) {
+					// evothings.printObject(foundDevice);
+					foundDevice.name = foundDevice.name || (foundDevice.advertisementData ? foundDevice.advertisementData.kCBAdvDataLocalName : null);
+					if(foundDevice.hasName(__this.target)) {
+						// evothings.printObject(foundDevice);
+						logActivity('Target EasyBLE device FOUND: ' + foundDevice.name + ' with address ' + foundDevice.address, 'success');
+						evothings.easyble.stopScan();
+						__this.connect(foundDevice, success);
+/*
+						if (success) {
+							success.call(foundDevice);
+						}
+*/
+					}
+					else {
+						// evothings.printObject(deviceInfo);
+						logActivity('Foreign device found: ' + deviceInfo.name + ' with address ' + deviceInfo.address, 'notice');
+					}
+				},
+				function (error) {
+					logActivity('BLE Scan error: ' + error, 'error');
+					// failure(target); TODO
+				}
+			);
 		}
 	}
 
-	this.listen = function(callbacks) {
-		logActivity('Listening to notifications for ' + app.connectee.name);
-		evothings.printObject(app.connectee.advertisementData);
-
-		// Turn notifications on.
-		// FIXME - I don't understand what goes on here
-		app.connectee.writeDescriptor(
-			'713d0002-503e-4c75-ba94-3148f18d941e',
-			'00002902-0000-1000-8000-00805f9b34fb',
-			new Uint8Array([1,0]),
-			function() {
-				console.log('writeDescriptor: 00002902-0000-1000-8000-00805f9b34fb success.');
-			},
-			function(errorCode) {
-				console.log('writeDescriptor: 00002902-0000-1000-8000-00805f9b34fb error: ' + errorCode);
-			}
-		);
-
-		app.connectee.enableNotification(
-			'713d0002-503e-4c75-ba94-3148f18d941e', // i.e. Read
-			function(data) {
-				input = evothings.ble.fromUtf8(data);
-				logActivity('READ data from ' + app.connectee.name + ': ' + input);
-
-				if (input.length > 4) { // FIXME: truncating input data because sometimes it buffers
-					input = input.trim().substr(0,4);
-					logActivity('Truncated input data to ' + input, 'information');
-				}
-
-				// FIXME: - use mapping of values to callbacks passed in instead, like callbacks[input].call()
-				buttonDispatcher(input);
+	this.connect = function(foundDevice, onSuccess, onFail) {
+ 		logActivity('Connecting to ' + foundDevice.name + ' ...');
+		//TODO; we need a spinner or whatever here
+		foundDevice.connect(
+			function(connectedDevice) {
+				__this.connectedDevice = connectedDevice;
+				logActivity('CONNECTED to ' +  connectedDevice.name);
+				displayStatus('Connected', 'success');
+				adaptiveButton('start');
+				onSuccess && onSuccess.call();
 			},
 			function(errorCode)	{
-				logActivity('BLE enableNotification error: ' + errorCode);
+				statusMessage = ( errorCode == 'EASYBLE_ERROR_DISCONNECTED' ? 'Disconnected' : 'Not connected' );
+				__this.connectedDevice = null;
+				logActivity('Connect error with ' + foundDevice.name + ': ' + errorCode, 'error');
+				displayStatus(statusMessage, 'warning');
+				adaptiveButton('connect');
+				onFail && onFail.call();
 			});
 	}
 
-	this.disconn = function(nextButton, statusMessage) {
+	this.listen = function(success, fail) {
+		logActivity('Listening to notifications for ' + this.target);
+		// evothings.printObject(this.connectedDevice.advertisementData);
+
+		// FIXME - I don't understand what goes on here
+		this.connectedDevice.readServices(
+			null, // null means read info for all services
+			function(connectedDevice) {
+				__this.addMethodsToDeviceObject(connectedDevice);
+				success(connectedDevice);
+			},
+			function(errorCode)	{
+				fail(errorCode);
+			});
+	}
+
+	// The addMethodsToDeviceObject method is almost completely copied from code supplied by a colleague who is nameless until I ask permission to credit him (or her)
+	// The comments are left intact. I don;t claim to understand it, but agree with the comment that it's weird!
+	/**
+	 * Add instance methods to the device object.
+	 * @private
+	 */
+	this.addMethodsToDeviceObject = function(connectedDevice) {
+		/**
+		 * Object that holds info about a Sensibell device.
+		 * @namespace evothings.sensibell.sensibellDevice
+		 */
+
+		/**
+		 * @function setNotification
+		 * @description Set a notification callback.
+		 * @param {Uint8Array} uint8array - The data to be written.
+		 * @memberof evothings.sensibell.sensibellDevice
+		 * @instance
+		 * @public
+		 */
+		connectedDevice.setNotification = function(callback) {
+			// Debug logging.
+			//console.log('setNotification');
+
+			// Must write this descriptor value to enable enableNotification().
+			// Yes, it's weird.
+			// Without it, enableNotification() fails silently;
+			// we never get the data we should be getting.
+			connectedDevice.writeDescriptor(
+				'91a6b702-bcb7-4c9b-c546-75aa0000c47e',
+				'00002902-0000-1000-8000-00805f9b34fb',
+				new Uint8Array([1,0]),
+				function() {
+					console.log('writeDescriptor success');
+				},
+				function(errorCode) {
+					console.log('writeDescriptor error: ' + errorCode);
+				});
+
+			connectedDevice.enableNotification(
+				'91a6b702-bcb7-4c9b-c546-75aa0000c47e',
+				callback,
+				function(errorCode) {
+					console.log('enableNotification error: ' + errorCode);
+				});
+		};
+	}
+
+	this.disconnect = this.disconn = function(nextButton, statusMessage) {
 		nextButton = nextButton || 'connect';
 		statusMessage = statusMessage || 'Disconnected';
 		if (config.useFauxConnection) {
@@ -153,9 +167,9 @@ function Sensor() {
 		else {
 			// TODO: some check of the target device being disconnected
 			// displayStatus('Disconnecting');
-			logActivity('Closing connection to ' + app.connectee.name + ' (FIXME: without checking)');
-			evothings.arduinoble.close();
-			logActivity('DISCONNECTED from ' + app.connectee.name, 'notice');
+			logActivity('Closing connection to ' + this.target + ' (FIXME: without checking)');
+			this.connectedDevice.close();
+			logActivity('DISCONNECTED from ' + this.target, 'notice');
 		}
 			displayStatus(statusMessage, 'warning');
 			adaptiveButton(nextButton);

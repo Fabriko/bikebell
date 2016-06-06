@@ -1,5 +1,5 @@
 config.js
-sensor-*.js
+*.crufty.*
 commit.txt
 evothings.json
 *.kate-swp

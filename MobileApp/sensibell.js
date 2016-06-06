@@ -288,18 +288,19 @@ function setSensor() {
 }
 
 function connectSensor() {
-	/*
-	if (SENSOR === sensortag) {
-		console.log('Shouldconnect tag');
-		connect();
-	}
-	else if(SENSOR === blend) {
-	*/
-		console.log('Shouldconnect Blendo');
-		blend.connectFromScratch(blend.listen); // , {'B:01':buttonGood,'B:02':buttonBad} );
-	/*
-	}
-	*/
+	console.log("We'll now connect to " + sensor.target);
+	sensor.connectFromScratch( function() {
+		sensor.listen( function(connectedDevice) {
+				connectedDevice.setNotification( function(data) {
+					var input = new Uint8Array(data)[0];
+					console.log('Pressed: ' + input);
+					buttonDispatcher(input);
+					});
+			},
+			function(errorCode)	{
+				console.log('Connect error: ' + errorCode + '.');
+			});
+		}); // , {'B:01':buttonGood,'B:02':buttonBad} );
 }
 
 function fauxConnected() {
@@ -311,12 +312,14 @@ function fauxConnected() {
 	// TODO - any other unintended consequences of going sensorless while pretending ??
 }
 
-function buttonDispatcher(data, callbacks) {
+function buttonDispatcher(value, callbacks) {
 	callbacks = callbacks || {
-		'B:01': buttonGood,
-		'B:02': buttonBad,
+		1: buttonGood,
+		2: buttonBad,
 		};
-	callbacks[data].call();
+	if (callbacks.hasOwnProperty(value)) {
+		callbacks[value].call();
+	}
 }
 
 function buttonGood() {
