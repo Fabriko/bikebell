@@ -30,7 +30,7 @@
 
 	<script>
 	console.log('===========');
-	var _VERSION = '0.4';
+	var _VERSION = '0.4.1';
 	var settings = window.localStorage;
 
 	document.addEventListener(
@@ -133,6 +133,7 @@
 					</div>
 						
 						<div data-role="controlgroup" data-type="horizontal" class="outer majora">
+							<input type="button" disabled="disabled" value="Wait" data-wrapper-class="inner majora adaptive wait" id="adaptive-wait" />
 							<input type="button" onclick="connectSensor();" value="Connect" data-wrapper-class="inner majora adaptive connect" id="adaptive-connect" />
 							<input type="button" onclick="adaptiveStart();" value="Start" data-wrapper-class="inner majora adaptive start" id="adaptive-start" />
 							<input type="button" onclick="adaptiveFinish();" value="Finish" data-wrapper-class="inner majora adaptive stop" id="adaptive-stop" />

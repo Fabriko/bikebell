@@ -68,7 +68,7 @@ function clearWatch() {
 	}
 }
 
-function displayStatus(status, classes) {
+function displayStatus(status, classes) { // TODO: make classes an array, would be more useful that way
 	console.log('Status to "' + status + '"' + ( classes ? ' (' + classes + ')' : '' ) );
 	if (!status) {
 		status = 'Ready';
@@ -126,10 +126,12 @@ function Journey(title) {
 		this.makeTracks();
 		// TODO: put a watch in the position and map it - see deprecated initialiseGPS() in this file
 		onSuccess && onSuccess.call();
+		sensibelStatus.add('tracking');
 	}
 	
 	this.finish = function(onSuccess, onFail) { // FIXME: deprecate
 
+		sensibelStatus.remove('tracking');
 		clearWatch();
 		
 		console.log(JSON.stringify(this.JSONtrail));
@@ -224,21 +226,20 @@ function adaptiveStart() {
 	console.log('Big button Start journey pressed');
 	journey.start( function() {
 		logActivity('Journey STARTED');
-		displayStatus('Tracking', 'stop');
-		adaptiveButton('stop');
-	});
+		});
 }
 
 function adaptiveFinish() {
 	console.log('Big button Finish journey pressed');
 	journey.finish( function() {
 		logActivity('Journey ENDED');
-		SENSOR.disconn('review', 'Not connected');
-	},
+		sensor.disconnect();
+		},
 		function() {
 		logActivity('Journey not ended', 'warning');
 		//TODO: a flash notification here I think
-	});
+		sensor.disconnect(); // FIXME: hmm, this is less confusing but may lead the user to wonder why their track never uploaded
+		});
 }
 
 function adaptiveReview() {
@@ -406,3 +407,118 @@ function makegeoJSON(track) {
 	
 	return geoJSON;
 }
+
+function appStatus(initialState) {
+	this.state = {};
+
+	this.__reset = function(statuses) { // FIXME: something something scope something -should be private methods
+		console.log(JSON.stringify(statuses));
+		var defaultStatuses = {
+			'net': false,
+			'GPS': false,
+			'BLE': false,
+			'tracking': false,
+			};
+		this.state = Object.assign({}, defaultStatuses, ( statuses ? statuses : {} ));
+		console.log(JSON.stringify(this.state));
+		this.__reflect();
+
+	};
+
+	this.add = function(property) {
+		if(this.state.hasOwnProperty(property)) {
+			this.state[property] = true;
+			this.__reflect();
+		}
+	};
+
+	this.remove = function(property) {
+		if(this.state.hasOwnProperty(property)) {
+			this.state[property] = false;
+			this.__reflect();
+		}
+	};
+
+	this.__reflect = function() {
+		console.log('Reflecting state ' + JSON.stringify(this.state));
+
+		if(this.state.tracking) {
+			adaptiveButton('stop');
+		}
+
+		if (this.state.GPS) {
+			if(this.state.BLE) {
+				if(this.state.tracking) {
+					displayStatus('Tracking', 'tracking'); // ******* F
+				}
+				else {
+					displayStatus('Connected', 'ready'); // ******* E
+					adaptiveButton('start');
+				}
+			}
+			else {
+				if(this.state.tracking) {
+					displayStatus('Disconnected', 'warning'); // ******** H
+				}
+				else {
+					displayStatus('Not connected', 'warning'); // ********* D
+					adaptiveButton('connect');
+				}
+			}
+
+		}
+		else {
+			if(this.state.BLE) {
+				if(this.state.tracking) {
+					displayStatus('Lost GPS', 'warning'); // ******* C
+				}
+				else {
+					displayStatus('Lost GPS', 'pending'); // ******* B
+					adaptiveButton('wait');
+				}
+			}
+			else {
+				if(this.state.tracking) {
+					displayStatus('Lost GPS + Disconnected', 'warning'); // ****** G
+				}
+				else {
+					displayStatus('Finding GPS', 'pending');
+					adaptiveButton('wait'); // ****** A
+				}
+			}
+		}
+
+	};
+
+	this.__reset(initialState);
+
+}
+
+testState = {
+	a: {}, // f,f,f
+	b: {GPS: false, BLE: true,  tracking: false},
+	c: {GPS: false, BLE: true,  tracking: true },
+	d: {GPS: true,  BLE: false, tracking: false},
+	e: {GPS: true,  BLE: true,  tracking: false},
+	f: {GPS: true,  BLE: true,  tracking: true },
+	g: {GPS: false, BLE: false, tracking: true },
+	h: {GPS: true , BLE: false, tracking: true },
+	};
+
+var sensibelStatus = new appStatus();
+console.log('State is - ' + JSON.stringify(sensibelStatus));
+
+/*
+	GPS		BLE		Journey	Review	Status	Message		Button		Callback	Log
+a	x		x		x				Pending	Waiting GPS	(spinner)
+b	x		/		x				Pending	Lost GPS	(spinner)
+c	x		/		/				warning	Lost GPS	Stop
+d	/		x		x				warning	Not connected Connect
+e	/		/		x		.		Ready 	Connected	Start
+f	/		/		/				trackingTracking	Stop
+g	x		x		/				warning	Lost GPS & Dis	Stop
+h	/		x		/				warning	Disconnected	Stop
+
+buttons - wait, connect, start, stop, -->review
+status: pending=grey, warning=red, ready=green, tracking=blue            , finished
+*/

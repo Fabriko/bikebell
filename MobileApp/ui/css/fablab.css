@@ -18,7 +18,7 @@
 }
 
 .inner.majora.start {
-	/* for background-color, see .status.success */
+	/* for background-color, see .status.ready */
 	content: 'Start';
 }
 
@@ -86,6 +86,11 @@
 	background-color: #ea3527;
 }
 
+.inner.majora.wait,
+.status.pending {
+	background-color: #aaa;
+}
+
 .inner.majora.review {
 	background-color: #ecd53b;
 }
@@ -98,12 +103,15 @@
 	border-color: #54dfb3 !important;
 }
 
-.status.success,
+.status.ready,
 .inner.majora.start {
 	background-color: #00b2bd;
 }
 
-.status.stop {
+/* #00b2bd; blue */
+/* #22ee88; green */
+
+.status.tracking {
 	background-color: #22ee88;
 }
 

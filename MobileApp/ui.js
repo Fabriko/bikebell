@@ -31,8 +31,6 @@ $(document).on('pageinit', function() {
 		$('.burger.menu').toggleClass('out'); // FIXME: can possibly use https://api.jqueryui.com/theming/stacking-elements/ from the framework instead here
 	});
 
-	adaptiveButton('connect');
-
 	$('#dev\\.diagnostics').toggle();
 	$(".menu a:contains('Developer options') img").toggle(); 
 
@@ -66,8 +64,9 @@ function switchTab(jqTabItem/*, cb*/) {
 }// TODO: a similar function that allows specifying the tab panel instead, so we don't have to figure out (or even set) its corresponding navbar id
 
 function adaptiveButton(id) {
+	console.log('Big button to show ' + id);
 	$('.inner.majora.adaptive').hide('fast', function() {
-			$('#adaptive-' + id).parents('.inner.majora').show()
+			$('#adaptive-' + id).parents('.inner.majora').show();
 		});
 }
 

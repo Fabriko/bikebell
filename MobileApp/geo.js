@@ -30,6 +30,8 @@ document.addEventListener(
 	});
 
 function onCurrenLocationSuccess(position) {
+
+	sensibelStatus.add('GPS');
 	bellUI.popup('Position found at (' + position.coords.latitude + ',' + position.coords.longitude + ')', 'long');
 	logActivity('Location found: (' + position.coords.latitude + ',' + position.coords.longitude + ')');
 	var here = L.latLng(position.coords.latitude, position.coords.longitude);
@@ -78,10 +80,11 @@ function onCurrenLocationSuccess(position) {
 }
 
 function onCurrentLocationFail(e) { // not doing anything with e ATM
+	
+	sensibelStatus.remove('GPS');
 	bellUI.popup('Problem: location not determined!', 'long');
 	logActivity('Location not determined', 'error');
 	console.log('pretending to be at ' + dummyLoc);
-	// TODO: https://github.com/m00sey/PhoneGap-Toast here ?
 
 	if (dummyLoc.length) {
 		map = drawMap('track-canvas', {

@@ -14,8 +14,6 @@ function Sensor() {
 
 	this.set = function() {
 
-		displayStatus('Not connected', 'warning');
-
 		do {
 			this.target = getPairingTarget();
 		}
@@ -50,7 +48,9 @@ function Sensor() {
 						// evothings.printObject(foundDevice);
 						logActivity('Target EasyBLE device FOUND: ' + foundDevice.name + ' with address ' + foundDevice.address, 'success');
 						evothings.easyble.stopScan();
-						__this.connect(foundDevice, success);
+						__this.connect(foundDevice, function() {
+							success.call();
+							});
 /*
 						if (success) {
 							success.call(foundDevice);
@@ -77,16 +77,14 @@ function Sensor() {
 			function(connectedDevice) {
 				__this.connectedDevice = connectedDevice;
 				logActivity('CONNECTED to ' +  connectedDevice.name);
-				displayStatus('Connected', 'success');
-				adaptiveButton('start');
+				sensibelStatus.add('BLE');
 				onSuccess && onSuccess.call();
 			},
 			function(errorCode)	{
 				statusMessage = ( errorCode == 'EASYBLE_ERROR_DISCONNECTED' ? 'Disconnected' : 'Not connected' );
 				__this.connectedDevice = null;
 				logActivity('Connect error with ' + foundDevice.name + ': ' + errorCode, 'error');
-				displayStatus(statusMessage, 'warning');
-				adaptiveButton('connect');
+				sensibelStatus.remove('BLE');
 				onFail && onFail.call();
 			});
 	}
@@ -155,9 +153,7 @@ function Sensor() {
 		};
 	}
 
-	this.disconnect = this.disconn = function(nextButton, statusMessage) {
-		nextButton = nextButton || 'connect';
-		statusMessage = statusMessage || 'Disconnected';
+	this.disconnect = this.disconn = function() {
 		if (config.useFauxConnection) {
 			document.removeEventListener('volumeupbutton', buttonGood);
 			document.removeEventListener('volumedownbutton', buttonBad);
@@ -166,13 +162,12 @@ function Sensor() {
 		}
 		else {
 			// TODO: some check of the target device being disconnected
-			// displayStatus('Disconnecting');
 			logActivity('Closing connection to ' + this.target + ' (FIXME: without checking)');
 			this.connectedDevice.close();
 			logActivity('DISCONNECTED from ' + this.target, 'notice');
 		}
-			displayStatus(statusMessage, 'warning');
-			adaptiveButton(nextButton);
+
+		sensibelStatus.remove('BLE');
 	}
 
 	this.init();
