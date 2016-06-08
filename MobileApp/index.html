@@ -30,7 +30,7 @@
 
 	<script>
 	console.log('===========');
-	var _VERSION = '0.4.2';
+	var _VERSION = '0.4.3';
 	var settings = window.localStorage;
 
 	document.addEventListener(
@@ -59,7 +59,7 @@
 				<div class="burger menu">
 					<ul>
 						<li><a href="javascript: switchTab($('#nav-map'));"><img src="ui/images/smico3.png" />Map</a></li>
-						<li><a id="menu.settings" href="javascript: showSettings();">Settings</a></li>
+						<li><a onclick="$('#dev\\.diagnostics').toggle(); $(this).children('img').toggle();"><img type="application/xml+svg" src="libs/jquery-mobile/images/icons-svg/check-white.svg" />Developer options</a></li>
 					</ul>
 <!--
 				<menuitem>
@@ -78,10 +78,10 @@
 					<a onclick="navigator.app.exitApp();">Restart</a>
 				</menuitem>
 -->
-					<h3>Somebody FIXME</h3>
+					<h3>A group divider</h3>
 					<ul>
-						<li><a onclick="$('#dev\\.diagnostics').toggle(); $(this).children('img').toggle();"><img type="application/xml+svg" src="libs/jquery-mobile/images/icons-svg/check-white.svg" />Developer options</a></li>
-						<li><a onclick="SENSOR.disconn();">Disconnect</a></li>
+						<!-- <li><a onclick="SENSOR.disconn();">Disconnect</a></li> -->
+						<li><a id="menu.settings" href="javascript: showSettings();">Settings</a></li>
 						<li><a onclick="window.location.reload();">Restart</a></li>
 						<li><a onclick="navigator.app.exitApp();">Exit</a></li>
 					</ul>
