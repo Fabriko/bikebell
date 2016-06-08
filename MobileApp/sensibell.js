@@ -10,7 +10,7 @@ var sensortag;
 var SENSOR = blend; // new Sensor(blend); <-- FOR LATER, now it just has to work
 
 // Data
-var journey = new Journey('foo');
+var journey = new Journey('Sensibel-' + formatTimestamp(new Date()));
 var dblClickBuffer = { 
 	key:0, 
 	stamp:0
@@ -188,6 +188,36 @@ function Journey(title) {
 		// location.href = '#track'; // TODO: uncomment when map canvas is more reliable
 	}
 
+	this.promptTitle = function() {
+		var promptDefault = this.__deriveTitle();
+
+		var response = window.prompt(
+			'Edit the name of your journey?',
+			promptDefault
+			);
+
+		return response;
+
+	}
+
+	this.__deriveTitle = function() {
+		var newTitle = formatTimestamp(new Date(), 'trackname');
+
+
+
+		return newTitle;
+	}
+
+	this.changeTitle = function(newTitle) {
+		console.log('Renaming track');
+
+
+		this.JSONtrail.name = newTitle;
+		// this.title?? TODO
+		console.log('New trackname: ' + newTitle);
+
+	}
+
 	this.upload = function(onSuccess, onFail) {
 		// based on http://jsfiddle.net/tednaleid/7eWgb/
 		logActivity('Uploading track "' + this.title + '" to AWS');
@@ -225,22 +255,29 @@ function Journey(title) {
 function adaptiveStart() {
 	console.log('Big button Start journey pressed');
 	journey.start( function() {
-		logActivity('Journey STARTED');
+		logActivity('Journey ' + journey.title + ' STARTED');
 		});
 }
 
 function adaptiveFinish() {
 	console.log('Big button Finish journey pressed');
-	journey.finish( function() {
-		logActivity('Journey ENDED');
-		sensor.disconnect();
-		},
-		function() {
-		logActivity('Journey not ended', 'warning');
-		//TODO: a flash notification here I think
-		sensor.disconnect(); // FIXME: hmm, this is less confusing but may lead the user to wonder why their track never uploaded
-		});
+
+	var title = journey.promptTitle();
+	if ( title !== null) {
+		journey.changeTitle(title);
+
+		journey.finish( function() {
+			logActivity('Journey ENDED');
+			sensor.disconnect();
+			},
+			function() {
+			logActivity('Journey not ended', 'warning');
+			//TODO: a flash notification here I think
+			sensor.disconnect(); // FIXME: hmm, this is less confusing but may lead the user to wonder why their track never uploaded
+			});
+	}
 }
+
 
 function adaptiveReview() {
 	console.log('Review journey pressed');

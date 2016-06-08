@@ -55,13 +55,15 @@ function logTimestampFormatDuJour(stamp) {
 }
 
 function formatTimestamp(stamp, format) {
-	year = stamp.getFullYear();
-	month = (stamp.getMonth() + 1).leadZeros(1);
-	dom = stamp.getDate().leadZeros(1);
-	hour = stamp.getHours().leadZeros(1);
-	minute = stamp.getMinutes().leadZeros(1);
-	second = stamp.getSeconds().leadZeros(1);
-	millisecond = stamp.getMilliseconds().leadZeros(2);
+	var year = stamp.getFullYear();
+	var month = (stamp.getMonth() + 1).leadZeros(1);
+	var dom = stamp.getDate().leadZeros(1);
+	var hour = stamp.getHours().leadZeros(1);
+	var minute = stamp.getMinutes().leadZeros(1);
+	var second = stamp.getSeconds().leadZeros(1);
+	var millisecond = stamp.getMilliseconds().leadZeros(2);
+
+	var dow = stamp.getDay();
 
 	switch(format) {
 		case 'YYYY-MM-DD hh:nn:ss.sss':
@@ -79,6 +81,37 @@ function formatTimestamp(stamp, format) {
 				hour +
 				minute + 
 				second;
+		case 'trackname':
+			var days = { // yeech!
+				0: 'Sun',
+				1: 'Mon',
+				2: 'Tue',
+				3: 'Wed',
+				4: 'Thu',
+				5: 'Fri',
+				6: 'Sat',
+				7: 'Sun',
+				};
+			var months = { // ditto
+				1: 'Jan',
+				2: 'Feb',
+				3: 'Mar',
+				4: 'Apr',
+				5: 'May',
+				6: 'Jun',
+				7: 'Jul',
+				8: 'Aug',
+				9: 'Sep',
+				10: 'Oct',
+				11: 'Nov',
+				12: 'Dec',
+				};
+			return days[dow] + ' ' +
+				parseInt(dom) + ' ' +
+				months[parseInt(month)] + ', ' +
+				year + ' @' +
+				parseInt(hour) + ':' +
+				minute;
 		default: // use W3CDTF == 'YYYY-MM-DDThh:nn:ss.sssZ'
 			return year + '-' +
 				month + '-' +
