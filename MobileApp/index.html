@@ -30,7 +30,7 @@
 
 	<script>
 	console.log('===========');
-	var _VERSION = '0.4.3';
+	var _VERSION = '0.4.4';
 	var settings = window.localStorage;
 
 	document.addEventListener(
@@ -81,7 +81,7 @@
 					<h3>A group divider</h3>
 					<ul>
 						<!-- <li><a onclick="SENSOR.disconn();">Disconnect</a></li> -->
-						<li><a id="menu.settings" href="javascript: showSettings();">Settings</a></li>
+						<li><a id="menu.settings" data-rel="popup" href="#settings" data-position-to="window" data-transition="slideup">Settings</a></li>
 						<li><a onclick="window.location.reload();">Restart</a></li>
 						<li><a onclick="navigator.app.exitApp();">Exit</a></li>
 					</ul>
@@ -179,8 +179,22 @@ hopes
 			</div>
 
 		</div>
+		
+		<div data-role="popup" id="settings" class="ui-content" data-title="Settings" data-dismissible="false">
+			<h4>Sensibel settings</h4>
+			<form>
+				<label for="pairedDevice">Device name:</label>
+				<input type="text" data-setting="pairedDevice" name="pairedDevice" id="pairedDevice" />
+				<label for="riderName">Rider:</label>
+				<input type="text" data-setting="riderName" name="riderName" id="riderName" />
+				<input type="reset" value="Cancel" id="action-cancel" />
+				<input type="submit" value="Save" id="action-save" />
+			</form>
+			
+		</div>	
 
 	</div>
+
 
 	<!-- library code -->
 	<script src="cordova.js"></script>

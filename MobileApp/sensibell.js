@@ -97,6 +97,9 @@ function Journey(title) {
 			version: _VERSION,
 			trail: [],
 		}
+		if (riderName = settings.getItem('riderName') ) {
+			this.JSONtrail['rider'] = riderName;
+		}
 		console.log('ran Journey.maketracks()');
 		// console.log(this.gpx);
 	}
@@ -125,8 +128,8 @@ function Journey(title) {
 	this.start = function(onSuccess) {
 		this.makeTracks();
 		// TODO: put a watch in the position and map it - see deprecated initialiseGPS() in this file
-		onSuccess && onSuccess.call();
 		sensibelStatus.add('tracking');
+		onSuccess && onSuccess.call();
 	}
 	
 	this.finish = function(onSuccess, onFail) { // FIXME: deprecate
@@ -252,6 +255,10 @@ function Journey(title) {
 
 }
 
+var Track = function() {
+	
+}
+
 function adaptiveStart() {
 	console.log('Big button Start journey pressed');
 	journey.start( function() {
@@ -286,7 +293,8 @@ function adaptiveReview() {
 }
 
 function showSettings() {
-	setPairingTarget();
+	// setPairingTarget();
+	// $('#settings').dialog().open();
 }
 
 function getPairingTarget() {
@@ -439,7 +447,8 @@ function makegeoJSON(track) {
 	);
 	geoJSON['properties'] = {
 		name: track.name,
-		version: track.version
+		version: track.version,
+		rider: track.rider,
 	};
 	
 	return geoJSON;
