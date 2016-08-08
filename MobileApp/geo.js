@@ -71,7 +71,7 @@ function onCurrenLocationSuccess(position) {
 		}
 
 		},
-		function(e) {
+		function(error) {
 			console.log('watch error code: ' + error.code + ' message: ' + error.message);
 		},
 		config.geoPositionOptions

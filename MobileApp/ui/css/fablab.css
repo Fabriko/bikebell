@@ -247,6 +247,10 @@
 	background-color: #32394A;
 }
 
+.modal {
+	display: none;
+}
+
 /*	refer https://github.com/tegansnyder/JQuery-Mobile-Slide-Menu/blob/master/css/jqm.slidemenu.css
 	and https://github.com/tegansnyder/JQuery-Mobile-Slide-Menu/blob/master/index.html
 	to finish this, it probably needs lots of other guff loaded */
