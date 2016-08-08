@@ -64,7 +64,7 @@ $(document).on('pageinit', function() {
 	$('#settings :reset').click( function(event) {
 		event.preventDefault();
 		$('#settings').popup('close');
-		bellUI.popup('Settings cancelled'); // TODO: make popup fail themed (red?)
+		bellUI.popup('Changes cancelled'); // TODO: make popup fail themed (red?)
 	});
 
 	$('#settings').submit( function(event) {
