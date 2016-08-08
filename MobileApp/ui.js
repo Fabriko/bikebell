@@ -51,6 +51,32 @@ $(document).on('pageinit', function() {
 			dashMap && dashMap.invalidateSize();
 		});
 	});
+	
+	//$('#settings [data-setting]').val( function() {
+		//return settings.getItem($(this).data('setting'));
+	//});
+	$('#settings').on('popupafteropen', function() {
+		$(this).find('[data-setting]').val( function() {
+			return settings.getItem($(this).data('setting'));
+		});
+	});
+
+	$('#settings :reset').click( function(event) {
+		event.preventDefault();
+		$('#settings').popup('close');
+		bellUI.popup('Settings cancelled'); // TODO: make popup fail themed (red?)
+	});
+
+	$('#settings').submit( function(event) {
+		event.preventDefault();
+		// console.log('Pressed!**');
+		$(this).find('[data-setting]:input').each( function() { // FIXME: ideally flag and only save the fields that were changed
+			settings.setItem($(this).data('setting'), $(this).val());
+		});
+		$(this).popup('close');
+		bellUI.popup('Settings saved'); // TODO: make popup success themed (green?)
+	});
+
 });
 
 function switchTab(jqTabItem/*, cb*/) {
@@ -116,3 +142,4 @@ bellUI = {
 		}
 	}
 }
+
