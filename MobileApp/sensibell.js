@@ -11,6 +11,8 @@ var SENSOR = blend; // new Sensor(blend); <-- FOR LATER, now it just has to work
 
 // Data
 var journey = new Journey('Sensibel-' + formatTimestamp(new Date()));
+var j2 = new J2('Sensibel-' + formatTimestamp(new Date()));
+
 var dblClickBuffer = { 
 	key:0, 
 	stamp:0
@@ -87,6 +89,26 @@ function logActivity(msg) {
 		'<br/>'
 	);
 }
+
+function J2(title) {
+	this['track'] = null;
+	this['title'] = title;
+	this['status'] = 'pending';
+	
+	this.start = function(onSuccess) {
+		this.track = new T2();
+		this.status = 'active';
+
+		// TODO: put a watch in the position and map it - see deprecated initialiseGPS() in this file
+		onSuccess && onSuccess.call();
+	};
+
+	console.log('Initialised J2 object');
+	};
+	
+function T2() {
+	sensibelStatus.add('tracking');
+	};
 
 function Journey(title) {
 	
@@ -255,14 +277,13 @@ function Journey(title) {
 
 }
 
-var Track = function() {
-	
-}
-
 function adaptiveStart() {
 	console.log('Big button Start journey pressed');
 	journey.start( function() {
 		logActivity('Journey ' + journey.title + ' STARTED');
+		});
+	j2.start( function() {
+		logActivity('J2 ' + j2.title + ' STARTED');
 		});
 }
 
