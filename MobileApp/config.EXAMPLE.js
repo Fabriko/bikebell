@@ -1,5 +1,16 @@
 var config = {
 	// TODO: sensor: blend
+
+	POSITION_LOGGING: false,
+	DB_LOGGING: false,
+	UPLOAD_ON_FINISH: true,
+	
+	databaseParams: {
+		'name':    'Tracks',
+		'version': '',
+		'title':   'Sensibel tracks',
+		'size':    5 * 1024 * 1024, // 5MB
+	},
 	
 	AWS_S3: {
 		credentials: {},

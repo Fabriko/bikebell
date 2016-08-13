@@ -53,7 +53,7 @@ function onCurrenLocationSuccess(position) {
 	// TODO: decide between map.locate() and geolocation.watchPosition() here
 
 	geoWatchID = navigator.geolocation.watchPosition( function(position) { // TODO: if this code stays, kill the watch at an appropriate time
-		console.log('now moved to (' + position.coords.latitude + ',' + position.coords.longitude + ')');
+		config.POSITION_LOGGING && console.log('now moved to (' + position.coords.latitude + ',' + position.coords.longitude + ')');
 		var here = L.latLng(position.coords.latitude, position.coords.longitude);
 		
 		dashMarker.setLatLng(here).update();
@@ -68,6 +68,10 @@ function onCurrenLocationSuccess(position) {
 
 		if ( journey && journey.active() ) {
 			journey.addPoint([position.coords.longitude, position.coords.latitude]);
+		}
+
+		if ( j2 && j2.isActive() ) {
+			j2.track.addBreadcrumb([position.coords.longitude, position.coords.latitude]);
 		}
 
 		},

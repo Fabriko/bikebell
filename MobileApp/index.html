@@ -30,18 +30,20 @@
 
 	<script>
 	console.log('===========');
-	var _VERSION = '0.4.4';
+	var _VERSION = '0.4.6';
 	var settings = window.localStorage;
 
 	document.addEventListener(
 		'DOMContentLoaded',
 		function () {
 			logActivity('Application version <strong class="meta version">' + _VERSION + '</strong> loaded on ' + formatTimestamp(new Date()) + ' :: events will be logged here');
+
 		});
 
 	</script>
 
 	<script src="geo.js"></script>
+	<!-- <script src="libs/localforage.min.js"></script> --> <!-- doesn't work as advertised -->
 
 </head>
 

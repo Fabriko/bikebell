@@ -59,7 +59,7 @@ function Sensor() {
 					}
 					else {
 						// evothings.printObject(deviceInfo);
-						logActivity('Foreign device found: ' + deviceInfo.name + ' with address ' + deviceInfo.address, 'notice');
+						logActivity('Foreign device found: ' + foundDevice.name + ' with address ' + foundDevice.address, 'notice');
 					}
 				},
 				function (error) {

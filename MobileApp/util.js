@@ -122,3 +122,78 @@ function formatTimestamp(stamp, format) {
 				millisecond + 'Z';
 	}
 }
+
+var outcome = {
+	onSuccess: function() {
+		var msg = 'It worked!';
+		console.log(msg);
+		},
+	onFail: function() {
+		var msg = 'It failed :(';
+		console.log(msg);
+		},
+	};
+
+var query = {
+	onSuccess: function(transaction, resultSet) {
+		// console.log('Query completed: ' + JSON.stringify(resultSet.rows)); //  + transaction.toString()
+		console.log(resultSet.rowsAffected + ' rows affected');
+		if(config.DB_LOGGING && resultSet.rows.length > 0) {
+			for(var i = 0; i < resultSet.rows.length; i++) {
+				console.log('Result ' + i + ': ' + JSON.stringify(resultSet.rows.item(i)));
+			}
+		}
+
+		},
+
+	onFail: function(transaction, error) {
+		console.log('Query failed: ' + error.message);
+		},
+	};
+
+query.testInsert = function() {
+	myTracks.transaction(function (tx) {
+		var qry = 'INSERT INTO tracks(name, geoJSON, stamp) VALUES (?,?, ?)';
+		tx.executeSql(qry, ['test-' + new Date().toUTCString(), JSON.stringify({hello:'world'}), new Date().toUTCString()], fooFunc, query.onFail);
+	});
+	
+	var fooFunc = function() {	myTracks.readTransaction(function (tx) {
+		var qry = 'SELECT * FROM tracks;';
+		tx.executeSql(qry, [], function(transaction, resultSet) {
+			console.log('Select completed: ' + JSON.stringify(resultSet.rows));
+			if(config.DB_LOGGING && resultSet.rows.length > 0) {
+				for(var i = 0; i < resultSet.rows.length; i++) {
+					console.log('Result ' + i + ': ' + resultSet.rows.item(i).geoJSON);
+					console.log(JSON.parse(resultSet.rows.item(i).geoJSON).hello)
+				}
+			}}, query.onFail);
+			});
+		};
+}
+
+query.dump = function(table) {
+	myTracks.readTransaction(function (tx) {
+		tx.executeSql('SELECT * FROM ' + table, [], query.onSuccess, query.onFail);
+	});
+}
+
+query.drop = function(table) {
+	myTracks.transaction(function (tx) {
+		tx.executeSql('DROP TABLE IF EXISTS ' + table, [], query.onSuccess, query.onFail);
+	});
+}
+	
+/*
+var dbSize = 5 * 1024 * 1024; // 5MB
+
+var db = window.openDatabase("Todo", "", "Todo manager", dbSize, function() {
+    console.log('db successfully opened or created');
+});
+db.transaction(function (tx) {
+    tx.executeSql("CREATE TABLE IF NOT EXISTS todo(ID INTEGER PRIMARY KEY ASC, todo TEXT, added_on TEXT)",
+        [], query.onSuccess, query.onFail);
+    tx.executeSql("INSERT INTO todo(todo, added_on) VALUES (?,?)", ['my todo item 2', new Date().toUTCString()], query.onSuccess, query.onFail);
+});
+
+
+*/
