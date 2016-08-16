@@ -66,8 +66,8 @@ function onCurrenLocationSuccess(position) {
 
 		// console.log('updated markers');
 
-		if ( j2 && j2.isActive() ) {
-			j2.track.addBreadcrumb([position.coords.longitude, position.coords.latitude]);
+		if ( journey && journey.isActive() ) {
+			journey.track.addBreadcrumb([position.coords.longitude, position.coords.latitude]);
 		}
 
 		},

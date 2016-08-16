@@ -10,7 +10,7 @@ var sensortag;
 var SENSOR = blend; // new Sensor(blend); <-- FOR LATER, now it just has to work
 
 // Data
-var j2 = new J2('Sensibel-' + formatTimestamp(new Date()));
+var journey = new Journey('Sensibel-' + formatTimestamp(new Date()));
 
 var dblClickBuffer = {
 	key: 0,
@@ -110,14 +110,14 @@ function logActivity(msg) {
 	);
 }
 
-function J2(title) {
+function Journey(title) {
 	var __this = this;
 	this['track'] = null;
 	this['title'] = title;
 	this['status'] = 'pending';
 
 	this.start = function(onSuccess) {
-		this.track = new T2(this);
+		this.track = new Track(this);
 		this.track.create();
 		// this.track.properties
 		this.status = 'active';
@@ -210,7 +210,7 @@ function J2(title) {
 		// TODO:add the track title as a heading here
 	}
 
-	console.log('Initialised J2 object');
+	console.log('Initialised Journey object');
 
 	/* *** TODO
 	Methods: /isActive, -finish, abort, review
@@ -218,7 +218,7 @@ function J2(title) {
 	*/
 	};
 
-function T2(jy) {
+function Track(parentJourney) {
 	var __this = this
 	this.cache = {};
 
@@ -234,7 +234,7 @@ function T2(jy) {
 					}
 				}],
 			'properties': {
-				'name': jy.title,
+				'name': parentJourney.title,
 				'version': _VERSION,
 				'started': created,
 				},
@@ -242,7 +242,7 @@ function T2(jy) {
 
 		dbConnection.transaction(function (tx) {
 			var qry = 'INSERT INTO tracks(name, geoJSON, stamp) VALUES (?,?,?)';
-			tx.executeSql(qry, [jy.title, JSON.stringify(skeleton), Date.now()], function(transaction, result){
+			tx.executeSql(qry, [parentJourney.title, JSON.stringify(skeleton), Date.now()], function(transaction, result){
 				__this.cache = skeleton;
 				if (riderName = settings.getItem('riderName') ) {
 					console.log('Adding rider name metadata: ' + riderName);
@@ -256,7 +256,7 @@ function T2(jy) {
 	this.sync = function() {
 		dbConnection.transaction(function (tx) {
 			var qry = 'UPDATE tracks SET geoJSON=? WHERE name=?';
-			tx.executeSql(qry, [JSON.stringify(__this.cache), jy.title], query.onSuccess, query.onFail);
+			tx.executeSql(qry, [JSON.stringify(__this.cache), parentJourney.title], query.onSuccess, query.onFail);
 			});
 		};
 		
@@ -278,7 +278,7 @@ function T2(jy) {
 	this.addData = function(measure, position, data) {
 		isBreadcrumb = (measure == 'position');
 		var logThis = config.POSITION_LOGGING || !isBreadcrumb;
-		logThis && logActivity('Adding ' + (isBreadcrumb ? '' : measure + ' of ' + data.toString() + ' ') + 'to trail "' + jy.title + '" @(' + position[0] + ',' + position[1] + ')');
+		logThis && logActivity('Adding ' + (isBreadcrumb ? '' : measure + ' of ' + data.toString() + ' ') + 'to trail "' + parentJourney.title + '" @(' + position[0] + ',' + position[1] + ')');
 		
 		this.cache.features[0].geometry.coordinates.push(position); // FIXME - not keen on relying on first position in this.cache.features array to identify the linestring (trail)
 		if (!isBreadcrumb) {
@@ -309,7 +309,7 @@ function T2(jy) {
 
 	this.upload = function(onSuccess, onFail) {
 		// based on http://jsfiddle.net/tednaleid/7eWgb/
-		logActivity('Uploading track "' + jy.title + '" to AWS');
+		logActivity('Uploading track "' + parentJourney.title + '" to AWS');
 
 		var filename = ( settings.getItem('file.prefix') ? settings.getItem('file.prefix') : '' ) + formatTimestamp(new Date(), 'filename') + '-' + device.uuid + '.json';
 
@@ -377,20 +377,20 @@ function T2(jy) {
 	
 function adaptiveStart() {
 	console.log('Big button Start journey pressed');
-	j2.start( function() {
-		logActivity('J2 ' + j2.title + ' STARTED');
-		logActivity(JSON.stringify(j2.track.cache));
+	journey.start( function() {
+		logActivity('Journey ' + journey.title + ' STARTED');
+		logActivity(JSON.stringify(journey.track.cache));
 		});
 }
 
 function adaptiveFinish() {
 	console.log('Big button Finish journey pressed');
 
-	var title = j2.track.promptName();
+	var title = journey.track.promptName();
 	if (title !== null) {
-		j2.track.rename(title);
+		journey.track.rename(title);
 
-		j2.finish( function() {
+		journey.finish( function() {
 			logActivity('Journey2 ENDED');
 			sensor.disconnect();
 			query.lastTrack();
@@ -405,7 +405,7 @@ function adaptiveFinish() {
 
 function adaptiveReview() {
 	console.log('Review journey2 pressed');
-	j2.review();
+	journey.review();
 	switchTab($('#nav-map'));
 }
 
@@ -520,9 +520,9 @@ function markPosition(map, latlon, options) {
 }
 
 function recordWaypoint(field, val, latlon) {
-	if (j2 && j2.isActive()) {
+	if (journey && journey.isActive()) {
 		console.log('Recording position (' + latlon.latitude + ',' + latlon.longitude + ')');
-		j2.track.addData(field, [latlon.longitude, latlon.latitude], val);
+		journey.track.addData(field, [latlon.longitude, latlon.latitude], val);
 	}
 	else {
 		console.log('No journey to record (' + latlon.latitude + ',' + latlon.longitude + ') to!');
