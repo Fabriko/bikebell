@@ -5,6 +5,8 @@ var config = {
 	DB_LOGGING: false,
 	UPLOAD_ON_FINISH: true,
 	
+	VIEWER_FILE_PREFIX: '2016', // to filter developer file uploads or recently dated files
+	
 	databaseParams: {
 		'name':    'Tracks',
 		'version': '',
@@ -31,7 +33,7 @@ var config = {
 	geoPositionOptionOverrides: {
 		// NB: use geoPositionOptions defined below, generally not this property directly
 		// this setting will override geoOptions for positioning calls like getCurrentPosition()
-		timeout: 1000, // we want a faster timeout for one-off position calls, as opposed to calls establishing a fix
+		timeout: 1500, // we want a faster timeout for one-off position calls, as opposed to calls establishing a fix
 	},
 
 	enableButtonsWithoutGPS: false,

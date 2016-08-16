@@ -10,24 +10,32 @@ var sensortag;
 var SENSOR = blend; // new Sensor(blend); <-- FOR LATER, now it just has to work
 
 // Data
-var journey = new Journey('Sensibel-' + formatTimestamp(new Date()));
 var j2 = new J2('Sensibel-' + formatTimestamp(new Date()));
 
 var dblClickBuffer = {
-	key:0,
-	stamp:0
+	key: 0,
+	stamp: 0,
 };
 
-var myTracks = window.openDatabase(config.databaseParams.name, config.databaseParams.version, config.databaseParams.title, config.databaseParams.size, function() {
+var dbConnection = window.openDatabase(config.databaseParams.name, config.databaseParams.version, config.databaseParams.title, config.databaseParams.size, function() {
     logActivity('Database ' + config.databaseParams.name + ' successfully opened or created.');
 });
 // query.drop('tracks');
-myTracks.transaction(function (tx) {
-    tx.executeSql('CREATE TABLE IF NOT EXISTS tracks(name TEXT PRIMARY KEY, geoJSON TEXT, stamp TEXT, uploaded INTEGER NULL)', [], query.onSuccess, query.onFail);
+dbConnection.transaction(function (tx) {
+	// FIXME: stamp can has something like DEFAULT CURRENT_TIMESTAMP, however, sucky sucky SQLite docs
+	var SQL = 'CREATE TABLE IF NOT EXISTS tracks ( \
+		name TEXT PRIMARY KEY, \
+		geoJSON TEXT, \
+		stamp INTEGER, \
+		uploaded INTEGER NULL \
+		);'
+    tx.executeSql(SQL, [], query.onSuccess, query.onFail);
 });
 
 // query.testInsert();
 query.dump('tracks');
+// settings.setItem('file.prefix', 'dev-'); // console.log(settings.getItem('file.prefix'));
+// settings.removeItem('file.prefix');
 
 document.addEventListener(
 	'deviceready',
@@ -113,6 +121,7 @@ function J2(title) {
 		this.track.create();
 		// this.track.properties
 		this.status = 'active';
+		sensibelStatus.add('tracking');
 
 		// TODO: put a watch in the position and map it - see deprecated initialiseGPS() in this file
 		onSuccess && onSuccess.call();
@@ -132,16 +141,19 @@ function J2(title) {
 
 		console.log(JSON.stringify(this.track.cache));
 
-		if (this.hasTracks()) {
+		if (this.track.hasTracks()) {
 			L.geoJson(this.track.cache).addTo(map);
 			
 			// TODO: add annotation actions (here I think)
 
 			this.track.upload( function() {
 				// upload flag in DB to true
-				myTracks.transaction(function (tx) {
+				dbConnection.transaction(function (tx) {
+					// query.dump('tracks');
 					var qry = 'UPDATE tracks SET uploaded=1 WHERE name=?';
 					tx.executeSql(qry, [__this.title], query.onSuccess, query.onFail);
+					// console.log(qry + ' **** ' + __this.title);
+					// evothings.printObject(tx);
 					});
 					
 				__this.status = 'uploaded';
@@ -158,45 +170,60 @@ function J2(title) {
 	this.abort = function() {
 		// TODO
 		this.status = 'saved';
+		sensibelStatus.remove('tracking');
 		};
+
+	this.review = function() { // CHECKME: I don't think this is currently being invoked, hasn't been tested since j2
+		// TODO: this is still a bare beginning
+		var gJ = this.track.cache;
+
+		console.log(JSON.stringify(gJ));
+
+		// TODO: here I need to pull all the points I added from the map display
+		
+		// TODO: make the points click-and-annotatable
+
+		var trackLayer = L.geoJson(gJ, {
+			style: function(feature) {
+				// console.log('Feature of type ' + JSON.stringify(feature.geometry.type));
+				return ( feature.geometry.type == 'LineString' ? { color: '#f00' } : {} );
+			},
+			// TODO: test if this stanza has any effect on the map
+			pointToLayer: function (feature, latlng) {
+				if (feature.properties.measure && feature.properties.measure == 'button') {
+					return L.circleMarker(latlng, { // just pinched the concept from http://leafletjs.com/examples/geojson.html
+						radius: 4,
+						fillColor: ( feature.properties.value == '01' ? 'green' : 'red' ),
+						color: "#000",
+						weight: 1,
+						opacity: 1,
+						fillOpacity: 0.8,
+					});
+				}
+			},
+		});
+		console.log(trackLayer.getBounds().toBBoxString());
+		map.fitBounds(trackLayer.getBounds());
+		trackLayer.addTo(map);
+		// location.href = '#track'; // TODO: uncomment when map canvas is more reliable
+		
+		// TODO:add the track title as a heading here
+	}
 
 	console.log('Initialised J2 object');
 
 	/* *** TODO
-	Methods: /isActive, finish, abort, review, rename
-	Properties: hasTracks, __stats? title, status
+	Methods: /isActive, -finish, abort, review
+	Properties: __stats? title, status
 	*/
-	
 	};
-
-/*
-function T2(title) {
-	var __this = this;
-	var skeleton = {
-		'type':       'FeatureCollection',
-		'properties': {
-			'name': title,
-			'version': _VERSION,
-			// rider: track.rider, // TODO
-			},
-		'features':   [],
-		};
-
-	localforage.setItem(title, skeleton, function(error, value) {
-		sensibelStatus.add('tracking');
-		__this['cache'] = value;
-		console.log(JSON.stringify(value));
-		});
-
-	};
-*/
 
 function T2(jy) {
 	var __this = this
 	this.cache = {};
 
 	this.create = function() {
-		var created = new Date().toUTCString();
+		var created = new Date().toUTCString(); // CHECKME: might be better off storing in UTC (also track.finished)
 		var skeleton = {
 			'type':     'FeatureCollection',
 			'features': [{
@@ -213,9 +240,9 @@ function T2(jy) {
 				},
 		};
 
-		myTracks.transaction(function (tx) {
+		dbConnection.transaction(function (tx) {
 			var qry = 'INSERT INTO tracks(name, geoJSON, stamp) VALUES (?,?,?)';
-			tx.executeSql(qry, [jy.title, JSON.stringify(skeleton), created], function(transaction, result){
+			tx.executeSql(qry, [jy.title, JSON.stringify(skeleton), Date.now()], function(transaction, result){
 				__this.cache = skeleton;
 				if (riderName = settings.getItem('riderName') ) {
 					console.log('Adding rider name metadata: ' + riderName);
@@ -227,7 +254,7 @@ function T2(jy) {
 		};
 
 	this.sync = function() {
-		myTracks.transaction(function (tx) {
+		dbConnection.transaction(function (tx) {
 			var qry = 'UPDATE tracks SET geoJSON=? WHERE name=?';
 			tx.executeSql(qry, [JSON.stringify(__this.cache), jy.title], query.onSuccess, query.onFail);
 			});
@@ -258,13 +285,13 @@ function T2(jy) {
 			this.cache.features.push({
 				type: 'Feature',
 					geometry: {
-						'type': 'Point',
-						coordinates: position
+						'type':        'Point',
+						'coordinates': position,
 					},
 					properties: {
-						time: formatTimestamp(new Date(), 'W3CDTF'), // FIXME ??
-						reading: measure,
-						value: data,
+						'time':    formatTimestamp(new Date(), 'W3CDTF'), // FIXME ??
+						'measure': measure,
+						'value':   data,
 					}
 				});
 		}
@@ -272,20 +299,19 @@ function T2(jy) {
 		this.sync();
 		
 		logThis && ( function() { // that is one pretentious if statement ;)
-			console.log('Journey2: ' + JSON.stringify(journey));
 			console.log('Track2: ' + JSON.stringify(__this.cache));
 			})();
-		;}
+		};
 		
 	this.close = function() {
-		this.updateMetadata({'ended': new Date().toUTCString()});
+		this.updateMetadata({'ended': new Date().toUTCString()}); // CHECKME: might be better off storing in UTC (also track.started)
 	}
 
-	this.upload = function(onSuccess, onFail) { // FIXME: untested
+	this.upload = function(onSuccess, onFail) {
 		// based on http://jsfiddle.net/tednaleid/7eWgb/
 		logActivity('Uploading track "' + jy.title + '" to AWS');
 
-		var filename = formatTimestamp(new Date(), 'filename') + '-' + device.uuid + '.json';
+		var filename = ( settings.getItem('file.prefix') ? settings.getItem('file.prefix') : '' ) + formatTimestamp(new Date(), 'filename') + '-' + device.uuid + '.json';
 
 		var bucket = config.AWS_S3.bucket;
 		var uploadPath = 'http://' + bucket + '.s3.amazonaws.com/' + filename;
@@ -304,7 +330,10 @@ function T2(jy) {
 			});
 
 			req.done( function (msg) {
-				logActivity('Upload to ' + uploadPath + ' succeeded: ' + msg);
+				logActivity('Upload succeeded: ' + uploadPath);
+				if (msg) {
+					logActivity('Upload message: ' + msg);
+				}
 				onSuccess && onSuccess.call();
 			});
 
@@ -318,196 +347,36 @@ function T2(jy) {
 			onFail && onFail.call(); // ??? FIXME - good idea?
 		}
 	};
-		
-	/*
-	// this['cache'] = localforage.setItem(title, skeleton, function() {
-	localforage.setItem(title, skeleton, function(value) {
-		console.log(value);
-		sensibelStatus.add('tracking');
-		});
-	*/
 	
+	// NB. this does not change the (parent) journey *title* which is used as a database id (in the 'name' column :/)
+	this.rename = function(newTitle) {
+		console.log('Renaming track');
+		this.updateMetadata({'name': newTitle});
+		logActivity('New trackname: ' + newTitle);
+	}
+
+	this.promptName = function() {
+		var promptDefault = __defaultTitle();
+
+		return window.prompt(
+			'Edit the name of your journey?',
+			promptDefault
+			);
+	}
+
+	var __defaultTitle = function() {
+		return formatTimestamp(new Date(), 'trackname');
+	}
+
 	/* *** TODO
-	Methods: /create?, upload, /sync, /addMetadata, /addData, close, addMedia, __save, load
+	Methods: /create?, upload, /sync, /addMetadata, /addData, /hasTracks, /rename, /promptName, /__defaultName, close, addMedia, __save, load
 	Properties: source, __stats
 	*/
 	
 	};
 	
-function Journey(title) {
-
-	this.makeTracks = function() {
-		this['title'] = title; // NB: presence of this property is used to indicate an active track
-		this['JSONtrail'] = {
-			name: title,
-			version: _VERSION,
-			trail: [],
-		}
-		if (riderName = settings.getItem('riderName') ) {
-			this.JSONtrail['rider'] = riderName;
-		}
-		console.log('ran Journey.maketracks()');
-		// console.log(this.gpx);
-	}
-	//TODO: make this into a property of type JSONTrail and define that class too!
-
-	this.active = function() {
-		return Boolean(this.title);
-	}
-
-	this.addPoint = function(lonlat) {
-		this.addData('position', lonlat, lonlat);
-	}
-
-	this.addData = function(measure, data, position) {
-		(config.POSITION_LOGGING || measure != 'position') && logActivity('Adding ' + measure + ' of ' + data.toString() + ' to trail "' + this.title + '" @(' + position[0] + ',' + position[1] + ')');
-		this.JSONtrail.trail.push( {
-			reading: measure,
-			stamp: formatTimestamp(new Date(), 'W3CDTF'),
-			'position': position,
-			value: data,
-		}); // TODO - make this something an app can use like timestamped geoJSON
-		var __this = this;
-		(config.POSITION_LOGGING || measure != 'position') && ( function() {
-			console.log('Journey: ' + JSON.stringify(__this));
-			console.log('JSONTrail: ' + JSON.stringify(__this.JSONtrail));
-			})();
-	}
-
-	this.start = function(onSuccess) {
-		this.makeTracks();
-		// TODO: put a watch in the position and map it - see deprecated initialiseGPS() in this file
-		sensibelStatus.add('tracking');
-		onSuccess && onSuccess.call();
-	}
-
-	this.finish = function(onSuccess, onFail) { // FIXME: deprecate
-
-		sensibelStatus.remove('tracking');
-		clearWatch();
-
-		console.log(JSON.stringify(this.JSONtrail));
-
-		if (this.hasTracks()) {
-			var gJ = makegeoJSON(this.JSONtrail);
-			L.geoJson(gJ).addTo(map);
-
-			this.upload( function() {
-				onSuccess && onSuccess.call();
-			});
-		}
-		else {
-			logActivity('No waypoints recorded, not uploading', 'warning');
-			onFail && onFail.call();
-		}
-	}
-
-	this.hasTracks = function() {
-		return (this.JSONtrail && this.JSONtrail.trail.length);
-	}
-
-	this.review = function() {
-		// TODO: this is still a bare beginning
-		var trail = ( this.hasTracks() ? this.JSONtrail : dummyTrail );
-		var gJ = makegeoJSON(trail);
-
-		// var gJ = dummyGeoJSON; // FIXME - testing only
-		console.log(JSON.stringify(gJ));
-
-		// TODO: here I need to pull all the points I added from the map display
-
-		trackLayer = L.geoJson(gJ, {
-			style: function(feature) {
-				// console.log('Feature of type ' + JSON.stringify(feature.geometry.type));
-				return ( feature.geometry.type == "LineString" ? { color: '#f00' } : {} );
-			},
-			pointToLayer: function (feature, latlng) {
-				if ( feature.properties.measure && feature.properties.measure == 'button' ) {
-					return L.circleMarker(latlng, { // just pinched the concept from http://leafletjs.com/examples/geojson.html
-						radius: 4,
-						fillColor: ( feature.properties.value == '01' ? 'green' : 'red' ),
-						color: "#000",
-						weight: 1,
-						opacity: 1,
-						fillOpacity: 0.8
-					});
-				}
-			},
-		});
-		console.log(trackLayer.getBounds().toBBoxString());
-		map.fitBounds(trackLayer.getBounds());
-		trackLayer.addTo(map);
-		// location.href = '#track'; // TODO: uncomment when map canvas is more reliable
-	}
-
-	this.promptTitle = function() {
-		var promptDefault = this.__deriveTitle();
-
-		var response = window.prompt(
-			'Edit the name of your journey?',
-			promptDefault
-			);
-
-		return response;
-
-	}
-
-	this.__deriveTitle = function() {
-		var newTitle = formatTimestamp(new Date(), 'trackname');
-
-
-
-		return newTitle;
-	}
-
-	this.changeTitle = function(newTitle) {
-		console.log('Renaming track');
-
-		this.JSONtrail.name = newTitle;
-		// this.title?? TODO
-		console.log('New trackname: ' + newTitle);
-
-	}
-
-	this.upload = function(onSuccess, onFail) {
-		// based on http://jsfiddle.net/tednaleid/7eWgb/
-		logActivity('Uploading track "' + this.title + '" to AWS');
-
-		var filename = formatTimestamp(new Date(), 'filename') + '-' + device.uuid + '.json';
-
-		var bucket = config.AWS_S3.bucket;
-		var uploadPath = 'http://' + bucket + '.s3.amazonaws.com/' + filename;
-
-		console.log(uploadPath);
-		var payload = JSON.stringify(makegeoJSON(this.JSONtrail));
-		console.log(payload);
-
-		var req = $.ajax({
-			type: "PUT",
-			url: uploadPath,
-			/*	dataType: 'json',*/ // FIXME: failing because it doesn't vallidate as JSON, probably start lokoing at makegeoJSON
-			async: true,
-			data: payload,
-		});
-
-		req.done( function (msg) {
-			logActivity('Upload to ' + uploadPath + ' succeeded: ' + msg);
-			onSuccess && onSuccess.call();
-		});
-
-		req.fail( function (xhr, failText) {
-			console.log('Error ' + xhr.status + ': ' + failText);
-			onFail && onFail.call();
-		});
-	};
-	
-}
-
 function adaptiveStart() {
 	console.log('Big button Start journey pressed');
-	journey.start( function() {
-		logActivity('Journey ' + journey.title + ' STARTED');
-		});
 	j2.start( function() {
 		logActivity('J2 ' + j2.title + ' STARTED');
 		logActivity(JSON.stringify(j2.track.cache));
@@ -517,26 +386,26 @@ function adaptiveStart() {
 function adaptiveFinish() {
 	console.log('Big button Finish journey pressed');
 
-	var title = journey.promptTitle();
-	if ( title !== null) {
-		journey.changeTitle(title);
+	var title = j2.track.promptName();
+	if (title !== null) {
+		j2.track.rename(title);
 
-		journey.finish( function() {
-			logActivity('Journey ENDED');
+		j2.finish( function() {
+			logActivity('Journey2 ENDED');
 			sensor.disconnect();
+			query.lastTrack();
 			},
 			function() {
-				logActivity('Journey not ended', 'warning');
+				logActivity('Journey2 not ended', 'warning');
 				//TODO: a flash notification here I think
 				sensor.disconnect(); // FIXME: hmm, this is less confusing but may lead the user to wonder why their track never uploaded
 			});
 	}
 }
 
-
 function adaptiveReview() {
-	console.log('Review journey pressed');
-	journey.review();
+	console.log('Review journey2 pressed');
+	j2.review();
 	switchTab($('#nav-map'));
 }
 
@@ -651,61 +520,13 @@ function markPosition(map, latlon, options) {
 }
 
 function recordWaypoint(field, val, latlon) {
-	if ((journey && journey.active()) || (j2 && j2.isActive())) {
-		if (journey && journey.active()) {
-			console.log('Recording position (' + latlon.latitude + ',' + latlon.longitude + ')');
-			journey.addData(field, val, [latlon.longitude, latlon.latitude]);
-		}
-		if (j2 && j2.isActive()) {
-			console.log('Recording position (' + latlon.latitude + ',' + latlon.longitude + ')');
-			j2.track.addData(field, [latlon.longitude, latlon.latitude], val);
-		}
+	if (j2 && j2.isActive()) {
+		console.log('Recording position (' + latlon.latitude + ',' + latlon.longitude + ')');
+		j2.track.addData(field, [latlon.longitude, latlon.latitude], val);
 	}
 	else {
 		console.log('No journey to record (' + latlon.latitude + ',' + latlon.longitude + ') to!');
 	}
-}
-
-function makegeoJSON(track) {
-	var geoJSON = { // skeleton
-		"type": 'FeatureCollection',
-		features: []
-    }
-    var lineString = [];
-    for (i=0; i < track.trail.length; i++) {
-		if ( track.trail[i].reading != 'position' ) { //FIXME - this is a filter hack - points to bigger issues!
-			geoJSON.features.push ( {
-				type: 'Feature',
-					geometry: {
-						'type': 'Point',
-						coordinates: track.trail[i].position
-					},
-					properties: {
-						time: track.trail[i].stamp,
-						measure: track.trail[i].reading,
-						value: track.trail[i].value
-					}
-				}
-			);
-		}
-		lineString.push(track.trail[i].position);
-	}
-	// Leaflet's GeoJSON doesn't support showing a sequence of points as aline, so we need to add it redundantly as a LineString
-	geoJSON.features.push ( {
-		type: 'Feature',
-			geometry: {
-				"type": 'LineString',
-				coordinates: lineString,
-			}
-		}
-	);
-	geoJSON['properties'] = {
-		name: track.name,
-		version: track.version,
-		rider: track.rider,
-	};
-
-	return geoJSON;
 }
 
 function appStatus(initialState) {

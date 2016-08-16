@@ -66,10 +66,6 @@ function onCurrenLocationSuccess(position) {
 
 		// console.log('updated markers');
 
-		if ( journey && journey.active() ) {
-			journey.addPoint([position.coords.longitude, position.coords.latitude]);
-		}
-
 		if ( j2 && j2.isActive() ) {
 			j2.track.addBreadcrumb([position.coords.longitude, position.coords.latitude]);
 		}
@@ -117,7 +113,7 @@ function drawMap(renderingId, initialView) { //replaces startMap() of old
 	// override any missing initialView options with any start options from the config
 	initialView = Object.assign(
 		{},
-		renderingData.hasOwnProperty('start') ? renderingData.start : {},
+		( renderingData.hasOwnProperty('start') ? renderingData.start : {} ),
 		initialView || {}
 		);
 
