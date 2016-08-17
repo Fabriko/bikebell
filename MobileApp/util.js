@@ -134,6 +134,17 @@ var outcome = {
 		},
 	};
 
+// based off http://stackoverflow.com/a/2117523
+function UUishID(short) {
+	short = ( typeof short === undefined || short );
+	var mask = ( short ? 'xxxxxxxxxxxx' : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx' );
+	return mask.replace(/[xy]/g, function(c) {
+		var r = Math.random()*16|0,
+		    v = ( c == 'x' ? r : (r&0x3|0x8) );
+		return v.toString(16);
+		});
+}
+
 var query = {
 	onSuccess: function(transaction, resultSet) {
 		// console.log('Query completed: ' + JSON.stringify(resultSet.rows)); //  + transaction.toString()

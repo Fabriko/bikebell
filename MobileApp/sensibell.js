@@ -37,22 +37,13 @@ query.dump('tracks');
 // settings.setItem('file.prefix', 'dev-'); // console.log(settings.getItem('file.prefix'));
 // settings.removeItem('file.prefix');
 
-document.addEventListener(
-	'deviceready',
-	function() {
-		evothings.scriptsLoaded(setSensor);
-		// evothings.scriptsLoaded(connectSensor);
-	},
-	false
-);
+document.addEventListener('deviceready', function() {
+	evothings.scriptsLoaded(setSensor);
+	}, false);
 
-document.addEventListener(
-	'resume',
-	function() {
+document.addEventListener('resume',	function() {
 		// evothings.scriptsLoaded(connectSensor);
-	},
-	false
-);
+	}, false);
 
 // TODO: add stopScan for pause
 
@@ -276,13 +267,15 @@ function Track(parentJourney) {
 		};
 	
 	this.addData = function(measure, position, data) {
-		isBreadcrumb = (measure == 'position');
+		var isBreadcrumb = ( measure == 'position' );
 		var logThis = config.POSITION_LOGGING || !isBreadcrumb;
-		logThis && logActivity('Adding ' + (isBreadcrumb ? '' : measure + ' of ' + data.toString() + ' ') + 'to trail "' + parentJourney.title + '" @(' + position[0] + ',' + position[1] + ')');
+		var pointFeature = null;
+		logThis && logActivity('Adding ' + ( isBreadcrumb ? '' : measure + ' of ' + data.toString() + ' ') + 'to trail "' + parentJourney.title + '" @(' + position[0] + ',' + position[1] + ')' );
 		
 		this.cache.features[0].geometry.coordinates.push(position); // FIXME - not keen on relying on first position in this.cache.features array to identify the linestring (trail)
+
 		if (!isBreadcrumb) {
-			this.cache.features.push({
+			pointFeature = {
 				type: 'Feature',
 					geometry: {
 						'type':        'Point',
@@ -293,7 +286,8 @@ function Track(parentJourney) {
 						'measure': measure,
 						'value':   data,
 					}
-				});
+				};
+			this.cache.features.push(pointFeature);
 		}
 		
 		this.sync();
@@ -301,6 +295,8 @@ function Track(parentJourney) {
 		logThis && ( function() { // that is one pretentious if statement ;)
 			console.log('Track2: ' + JSON.stringify(__this.cache));
 			})();
+			
+		return pointFeature; // this will be null for breadcrumbs
 		};
 		
 	this.close = function() {
@@ -499,20 +495,69 @@ function buttonBad() {
 
 function processButton(val) {
 	logPosition(val, function(loc) {
-		options = {
-			color: (val=='01' ? 'green' : 'red'), // FIXME: use classes if possible
+		/*
+		var options = {
+			color:     (val == '01' ? 'green' : 'red'), // FIXME: use classes if possible
+			className: (val == '01' ? 'good' : 'bad'),
 		};
-		markPosition(map, loc.coords, options);
+		*/
 
-		recordWaypoint('button', val, loc.coords);
+		var waypoint = recordWaypoint('button', val, loc.coords);
+		// console.log('WAYPOINT ' + JSON.stringify(waypoint));
+		// markPosition(map, loc.coords, options);
+		markWaypoint(map, waypoint);
 	});
 }
 
-function markPosition(map, latlon, options) {
-	console.log('Marking position (' + latlon.latitude + ',' + latlon.longitude + ')');
+function markWaypoint(map, waypoint) {
+	console.log('Marking waypoint (' + waypoint.geometry.coordinates[1] + ',' + waypoint.geometry.coordinates[0] + ') on map');
+	var isGood = ( waypoint.properties.value == '01' );
+	
+	var options = {
+		'color':     ( isGood ? 'green' : 'red' ), // FIXME: use classes if possible
+	};
+
 	if (map) {
-		L.circleMarker(
-			L.latLng(latlon.latitude, latlon.longitude), options).addTo(map);
+		var uid = UUishID(true); // FIXME: if I end up using a precise enough timestamp in geoJSON, that can serve as an identifier suffix
+		var headline = '<h3>' + ( isGood ? 'Sweet!' : 'Stink' ) + '</h3>';
+		// var formattedDate = $.formatDateTime('yy hh:ii', new Date(feature.properties.time.replace('Z','+13:00')));
+		var modalLink = '<a id="annotate-' + uid + '" data-rel="popup" href="#popup-' + uid + '" data-position-to="window" data-transition="slideup">Add notes</a>';
+		
+		// TODO: insert a Streetview(TM) image (if online) or other aide memoire here ??
+
+		var modalContent = ' \
+			<div data-role="popup" id="popup-' + uid + '" class="ui-content waypoint" data-title="TESTMODAL-FIXME" data-dismissible="true"> \
+				<h4>WAYPOINT FIXME</h4> \
+				<form> \
+					<label for="note-"' + uid + '">Lat FIXME:</label> \
+					<input type="text" data-setting="TESTMODALFIELD" name="note-"' + uid + '" id="note-"' + uid + '" value="' + waypoint.geometry.coordinates[1] + '-FIXME" /> \
+					<input type="reset" value="Cancel" id="' + uid + '-action-cancel" /> \
+					<input type="submit" value="Save" id="' + uid + '-action-save" /> \
+				</form> \
+			</div> \
+			';
+
+		// $('#annotate-' + uid).button(); // FIXME: doesn't work :(
+		var $popupContent = $('<div>' + headline + modalLink + modalContent + '</div>');
+		var $modal = $popupContent.find('#popup-' + uid);
+		$modal.submit( function(event) {
+				event.preventDefault();
+				console.log(JSON.stringify(waypoint));
+				alert('foo');
+				// TODO: close popup
+				// then TODO: bellUI.popup()
+			});
+		$modal.popup();
+		
+/*
+$popupContent.on('click', '#annotate-TESTMODAL', function() {
+	window.alert('foo');
+});
+*/
+		L.circleMarker(L.latLng(waypoint.geometry.coordinates[1], waypoint.geometry.coordinates[0]), options)
+			.bindPopup($popupContent[0])
+			.addTo(map)
+			;
 	}
 	else {
 		console.log('No map to mark!');
@@ -520,13 +565,15 @@ function markPosition(map, latlon, options) {
 }
 
 function recordWaypoint(field, val, latlon) {
+	var waypoint = null;
 	if (journey && journey.isActive()) {
 		console.log('Recording position (' + latlon.latitude + ',' + latlon.longitude + ')');
-		journey.track.addData(field, [latlon.longitude, latlon.latitude], val);
+		waypoint = journey.track.addData(field, [latlon.longitude, latlon.latitude], val);
 	}
 	else {
 		console.log('No journey to record (' + latlon.latitude + ',' + latlon.longitude + ') to!');
 	}
+	return waypoint; // null on error
 }
 
 function appStatus(initialState) {
