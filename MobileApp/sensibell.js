@@ -518,19 +518,22 @@ function markWaypoint(map, waypoint) {
 	};
 
 	if (map) {
-		var uid = UUishID(true); // FIXME: if I end up using a precise enough timestamp in geoJSON, that can serve as an identifier suffix
+		var uid = UUishID(true); // FIXME: if I end up using a precise enough UTC timestamp in geoJSON, that can serve as an identifier suffix
 		var headline = '<h3>' + ( isGood ? 'Sweet!' : 'Stink' ) + '</h3>';
 		// var formattedDate = $.formatDateTime('yy hh:ii', new Date(feature.properties.time.replace('Z','+13:00')));
 		var modalLink = '<a id="annotate-' + uid + '" data-rel="popup" href="#popup-' + uid + '" data-position-to="window" data-transition="slideup">Add notes</a>';
 		
 		// TODO: insert a Streetview(TM) image (if online) or other aide memoire here ??
 
+		var notePlaceHolder = 'What was so ' + ( isGood ? 'good' : 'bad') + ' here?';
+		var commentValue = ( waypoint.properties.hasOwnProperty('comment') ? waypoint.properties.comment : '' );
+		//  FIXME: add @data-title to div element, doesn't seem to work
 		var modalContent = ' \
-			<div data-role="popup" id="popup-' + uid + '" class="ui-content waypoint" data-title="TESTMODAL-FIXME" data-dismissible="true"> \
-				<h4>WAYPOINT FIXME</h4> \
+			<div data-role="popup" id="popup-' + uid + '" class="ui-content waypoint" data-dismissible="true"> \
+				<h4>Adding notes</h4> \
 				<form> \
-					<label for="note-"' + uid + '">Lat FIXME:</label> \
-					<input type="text" data-setting="TESTMODALFIELD" name="note-"' + uid + '" id="note-"' + uid + '" value="' + waypoint.geometry.coordinates[1] + '-FIXME" /> \
+					<label for="note-"' + uid + '">Comment:</label> \
+					<textarea data-setting="comment" placeholder="' + notePlaceHolder + '" name="note-"' + uid + '" id="note-"' + uid + '">' + commentValue + '</textarea> \
 					<input type="reset" value="Cancel" id="' + uid + '-action-cancel" /> \
 					<input type="submit" value="Save" id="' + uid + '-action-save" /> \
 				</form> \
@@ -542,18 +545,26 @@ function markWaypoint(map, waypoint) {
 		var $modal = $popupContent.find('#popup-' + uid);
 		$modal.submit( function(event) {
 				event.preventDefault();
-				console.log(JSON.stringify(waypoint));
-				alert('foo');
-				// TODO: close popup
-				// then TODO: bellUI.popup()
+				// console.log('Before: ' + JSON.stringify(waypoint));
+				$(this).find('[data-setting]:input').each( function() { // FIXME: ideally flag and only save the fields that were changed
+					waypoint.properties[$(this).data('setting')] = $(this).val();
+					// alert($(this).data('setting'));
+				});
+				// FIXME: sync limited to active journey and can only be done before upload, but works as limited app is now
+				if (journey && journey.isActive()) {
+					journey.track.sync();
+				}
+				$(this).popup('close');
+				bellUI.popup('Notes saved'); // TODO: make popup success themed (green?)
+				// console.log('After: ' + JSON.stringify(waypoint));
+			});
+		$modal.find(':reset').click( function(event) {
+			event.preventDefault();
+			$modal.popup('close');
+			bellUI.popup('Notes cancelled'); // TODO: make popup fail themed (red?)
 			});
 		$modal.popup();
 		
-/*
-$popupContent.on('click', '#annotate-TESTMODAL', function() {
-	window.alert('foo');
-});
-*/
 		L.circleMarker(L.latLng(waypoint.geometry.coordinates[1], waypoint.geometry.coordinates[0]), options)
 			.bindPopup($popupContent[0])
 			.addTo(map)
@@ -563,6 +574,25 @@ $popupContent.on('click', '#annotate-TESTMODAL', function() {
 		console.log('No map to mark!');
 	}
 }
+
+/*
+var displayValue = feature.properties.value == '01' ? 'Sweet!' : 'Stink'; // TODO: captions from config
+	var formattedDate = $.formatDateTime('D MM d, yy hh:ii', new Date(feature.properties.time.replace('Z','+13:00'))); // see also http://momentjs.com
+	var popupContent = '<h2>' + displayValue + '</h2>\n<p>' + formattedDate + '</p>\n';
+
+	__this.filename = __this.url.split('/').pop(); // *** whoa, I am just stumped why this filename property is lost at some point, but this restores it :/
+	
+	var commentValue = (feature.properties.hasOwnProperty('comment') ? feature.properties.comment : '');
+	var placeHolder = 'What was so ' + (feature.properties.value == '01' ? 'good' : 'bad') + ' here?';
+	var commentForm = '<form name="annotate"> \
+		<input type="hidden" name="index" value="' + featureIndex + '" /> \
+		<input type="hidden" name="resource" value="' + __this.filename + '" /> \
+		<label>Comment:</label> \
+		<textarea name="comment" placeholder="' + placeHolder + '">' + commentValue + '</textarea> \
+		<input type="button" value="Send"  onclick="sendAnnotation(this.form);" /> \
+		</form>';
+	popupContent += commentForm;
+*/
 
 function recordWaypoint(field, val, latlon) {
 	var waypoint = null;
