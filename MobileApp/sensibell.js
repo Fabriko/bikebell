@@ -17,25 +17,11 @@ var dblClickBuffer = {
 	stamp: 0,
 };
 
-var dbConnection = window.openDatabase(config.databaseParams.name, config.databaseParams.version, config.databaseParams.title, config.databaseParams.size, function() {
-    logActivity('Database ' + config.databaseParams.name + ' successfully opened or created.');
-});
-// query.drop('tracks');
-dbConnection.transaction(function (tx) {
-	// FIXME: stamp can has something like DEFAULT CURRENT_TIMESTAMP, however, sucky sucky SQLite docs
-	var SQL = 'CREATE TABLE IF NOT EXISTS tracks ( \
-		name TEXT PRIMARY KEY, \
-		geoJSON TEXT, \
-		stamp INTEGER, \
-		uploaded INTEGER NULL \
-		);'
-    tx.executeSql(SQL, [], query.onSuccess, query.onFail);
-});
-
-// query.testInsert();
-query.dump('tracks');
 // settings.setItem('file.prefix', 'dev-'); // console.log(settings.getItem('file.prefix'));
 // settings.removeItem('file.prefix');
+
+var dbConnection;
+localDatabaseStuff();
 
 document.addEventListener('deviceready', function() {
 	evothings.scriptsLoaded(setSensor);
@@ -140,7 +126,9 @@ function Journey(title) {
 			this.track.upload( function() {
 				// upload flag in DB to true
 				dbConnection.transaction(function (tx) {
-					// query.dump('tracks');
+					// query.dump('tracks');// settings.setItem('file.prefix', 'dev-'); // console.log(settings.getItem('file.prefix'));
+// settings.removeItem('file.prefix');
+
 					var qry = 'UPDATE tracks SET uploaded=1 WHERE name=?';
 					tx.executeSql(qry, [__this.title], query.onSuccess, query.onFail);
 					// console.log(qry + ' **** ' + __this.title);
@@ -575,25 +563,6 @@ function markWaypoint(map, waypoint) {
 	}
 }
 
-/*
-var displayValue = feature.properties.value == '01' ? 'Sweet!' : 'Stink'; // TODO: captions from config
-	var formattedDate = $.formatDateTime('D MM d, yy hh:ii', new Date(feature.properties.time.replace('Z','+13:00'))); // see also http://momentjs.com
-	var popupContent = '<h2>' + displayValue + '</h2>\n<p>' + formattedDate + '</p>\n';
-
-	__this.filename = __this.url.split('/').pop(); // *** whoa, I am just stumped why this filename property is lost at some point, but this restores it :/
-	
-	var commentValue = (feature.properties.hasOwnProperty('comment') ? feature.properties.comment : '');
-	var placeHolder = 'What was so ' + (feature.properties.value == '01' ? 'good' : 'bad') + ' here?';
-	var commentForm = '<form name="annotate"> \
-		<input type="hidden" name="index" value="' + featureIndex + '" /> \
-		<input type="hidden" name="resource" value="' + __this.filename + '" /> \
-		<label>Comment:</label> \
-		<textarea name="comment" placeholder="' + placeHolder + '">' + commentValue + '</textarea> \
-		<input type="button" value="Send"  onclick="sendAnnotation(this.form);" /> \
-		</form>';
-	popupContent += commentForm;
-*/
-
 function recordWaypoint(field, val, latlon) {
 	var waypoint = null;
 	if (journey && journey.isActive()) {
@@ -720,3 +689,56 @@ h	/		x		/				warning	Disconnected	Stop
 buttons - wait, connect, start, stop, -->review
 status: pending=grey, warning=red, ready=green, tracking=blue            , finished
 */
+
+function localDatabaseStuff() {
+	dbConnection = window.openDatabase(config.databaseParams.name, config.databaseParams.version, config.databaseParams.title, config.databaseParams.size, function() {
+		logActivity('Database ' + config.databaseParams.name + ' successfully opened or created.');
+	});
+	
+	// query.drop('tracks');
+	dbConnection.transaction(function (tx) {
+		// FIXME: stamp can has something like DEFAULT CURRENT_TIMESTAMP, however, sucky sucky SQLite docs
+		var SQL = 'CREATE TABLE IF NOT EXISTS tracks ( \
+			name TEXT PRIMARY KEY, \
+			geoJSON TEXT, \
+			stamp INTEGER, \
+			uploaded INTEGER DEFAULT NULL \
+			);'
+		tx.executeSql(SQL, [], query.onSuccess, query.onFail);
+	});
+	
+	// query.drop('categories');
+	dbConnection.transaction(function (tx) {
+		var SQL = 'CREATE TABLE IF NOT EXISTS categories ( \
+			name TEXT PRIMARY KEY, \
+			parent TEXT DEFAULT NULL, \
+			synced INTEGER \
+			);'
+		tx.executeSql(SQL, [], query.onSuccess, query.onFail);
+	});
+	query.dump('tracks');
+
+	// query.testInsert();
+
+	// populateCategories();
+
+	function populateCategories() { // TODO: this should sync with an online store if online
+		var timestamp = Date.now();
+		var categories = [
+			'Environment',
+			'Traffic',
+			'Infrastructure',
+			'Bike Mechanics',
+			'Wayfinding',
+			'Social',
+			];
+		dbConnection.transaction(function (tx) {
+			var SQL = 'INSERT INTO categories (name, synced) VALUES (?,?)';
+			$.each(categories, function(index, value) {
+				tx.executeSql(SQL, [value, timestamp], query.onSuccess, query.onFail);
+				});
+		});
+	}
+	// query.dump('categories');
+
+}
