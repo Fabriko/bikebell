@@ -229,7 +229,7 @@
 	border-top: 1px #3E4555 solid;
 	border-bottom: 1px #191D27 solid;
 	color: #DBE0E8;
-	font-size: 14px;
+	font-size: 14px;5
 	font-family: Arial, Helvetica, sans-serif;
 	text-decoration: none;
 	/* width: 230px; */
@@ -384,3 +384,22 @@ header nav>ul a {
 }
 */
 
+.leaflet-popup {
+	opacity: 0.8 !important;
+}
+
+.leaflet-popup-content {
+	text-shadow: none;
+}
+
+.notes {
+	/* border: thick solid gold; */
+}
+
+.notes.good .leaflet-popup-content-wrapper {
+	background-color: green;
+}
+
+.notes.bad .leaflet-popup-content-wrapper {
+	background-color: red;
+}

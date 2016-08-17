@@ -509,27 +509,38 @@ function markWaypoint(map, waypoint) {
 		var uid = UUishID(true); // FIXME: if I end up using a precise enough UTC timestamp in geoJSON, that can serve as an identifier suffix
 		var headline = '<h3>' + ( isGood ? 'Sweet!' : 'Stink' ) + '</h3>';
 		// var formattedDate = $.formatDateTime('yy hh:ii', new Date(feature.properties.time.replace('Z','+13:00')));
-		var modalLink = '<a id="annotate-' + uid + '" data-rel="popup" href="#popup-' + uid + '" data-position-to="window" data-transition="slideup">Add notes</a>';
+		
+		var commentValue = ( waypoint.properties.hasOwnProperty('comment') ? waypoint.properties.comment : '' );
+		var metadata = ' \
+			<p><strong>Position:</strong> ' + waypoint.geometry.coordinates[1] + ',' + waypoint.geometry.coordinates[0] + '</p> \
+			<p><strong>Time:</strong> ' + waypoint.properties.time + '</p> \
+			';
+		if (commentValue.length > 0) {
+			metadata += '<p><strong>Comment:</strong> ' + commentValue + '</p>';
+		}
+		
+		var modalLink = '<p><a id="annotate-' + uid + '" data-rel="popup" href="#popup-' + uid + '" data-position-to="window" data-transition="slideup">Add notes</a></p>';
 		
 		// TODO: insert a Streetview(TM) image (if online) or other aide memoire here ??
 
 		var notePlaceHolder = 'What was so ' + ( isGood ? 'good' : 'bad') + ' here?';
-		var commentValue = ( waypoint.properties.hasOwnProperty('comment') ? waypoint.properties.comment : '' );
 		//  FIXME: add @data-title to div element, doesn't seem to work
 		var modalContent = ' \
-			<div data-role="popup" id="popup-' + uid + '" class="ui-content waypoint" data-dismissible="true"> \
+			<div data-role="popup" id="popup-' + uid + '" class="ui-content waypoint" data-dismissible="false" data-overlay-theme="a"> \
 				<h4>Adding notes</h4> \
 				<form> \
 					<label for="note-"' + uid + '">Comment:</label> \
 					<textarea data-setting="comment" placeholder="' + notePlaceHolder + '" name="note-"' + uid + '" id="note-"' + uid + '">' + commentValue + '</textarea> \
+					<div class="actions"> \
 					<input type="reset" value="Cancel" id="' + uid + '-action-cancel" /> \
 					<input type="submit" value="Save" id="' + uid + '-action-save" /> \
+					</div> \
 				</form> \
 			</div> \
 			';
 
 		// $('#annotate-' + uid).button(); // FIXME: doesn't work :(
-		var $popupContent = $('<div>' + headline + modalLink + modalContent + '</div>');
+		var $popupContent = $('<div>' + headline + metadata + modalLink + modalContent + '</div>');
 		var $modal = $popupContent.find('#popup-' + uid);
 		$modal.submit( function(event) {
 				event.preventDefault();
@@ -554,7 +565,7 @@ function markWaypoint(map, waypoint) {
 		$modal.popup();
 		
 		L.circleMarker(L.latLng(waypoint.geometry.coordinates[1], waypoint.geometry.coordinates[0]), options)
-			.bindPopup($popupContent[0])
+			.bindPopup(L.popup({'className':'notes ' + ( isGood ? 'good' : 'bad')}).setContent($popupContent[0]))
 			.addTo(map)
 			;
 	}
