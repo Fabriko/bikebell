@@ -216,6 +216,7 @@ function Track(parentJourney) {
 			'properties': {
 				'name': parentJourney.title,
 				'version': _VERSION,
+				'device': settings.getItem('pairedDevice'),
 				'started': created,
 				},
 		};
