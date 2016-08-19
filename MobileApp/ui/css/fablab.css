@@ -403,3 +403,7 @@ header nav>ul a {
 .notes.bad .leaflet-popup-content-wrapper {
 	background-color: red;
 }
+
+form .field {
+	margin: 0.2em auto;
+}

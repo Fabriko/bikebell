@@ -21,6 +21,7 @@ var dblClickBuffer = {
 // settings.removeItem('file.prefix');
 
 var dbConnection;
+var categories = [];
 localDatabaseStuff();
 
 document.addEventListener('deviceready', function() {
@@ -48,7 +49,7 @@ function logPosition(val, success, options) {
 				logActivity(msg += ' @(' + position.coords.latitude + ',' + position.coords.longitude + ')');
 				success.call(this, position);
 			},
-			function(error)	{
+			function(error) {
 				logActivity(msg += "but couldn't locate, error #" + error.code + ': "' + error.message + '"');
 				bellUI.popup("Couldn't locate :(", 'short'); // FIXME: do something more useful with this
 			},
@@ -524,13 +525,27 @@ function markWaypoint(map, waypoint) {
 		// TODO: insert a Streetview(TM) image (if online) or other aide memoire here ??
 
 		var notePlaceHolder = 'What was so ' + ( isGood ? 'good' : 'bad') + ' here?';
+		var categoriesValue = ( waypoint.properties.hasOwnProperty('categories') ? waypoint.properties.categories : '' );
+		var categoriesOptions = '';
+		$.each(categories, function(index, value) {
+			categoriesOptions += '<option value="' + value + '"' + ( categoriesValue == value ? ' selected="selected"' : '' ) + '>' + value + '</option>';
+			});
 		//  FIXME: add @data-title to div element, doesn't seem to work
 		var modalContent = ' \
 			<div data-role="popup" id="popup-' + uid + '" class="ui-content waypoint" data-dismissible="false" data-overlay-theme="a"> \
 				<h4>Adding notes</h4> \
 				<form> \
+					<div class="field"> \
 					<label for="note-"' + uid + '">Comment:</label> \
 					<textarea data-setting="comment" placeholder="' + notePlaceHolder + '" name="note-"' + uid + '" id="note-"' + uid + '">' + commentValue + '</textarea> \
+					</div> \
+					<div class="field"> \
+					<label for="category-"' + uid + '">Category:</label> \
+					<select data-setting="category" name="category-"' + uid + '" id="category-' + uid + '"> \
+					<option data-placeholder="true"></option> \
+					' + categoriesOptions + ' \
+					</select> \
+					</div> \
 					<div class="actions"> \
 					<input type="reset" value="Cancel" id="' + uid + '-action-cancel" /> \
 					<input type="submit" value="Save" id="' + uid + '-action-save" /> \
@@ -562,6 +577,7 @@ function markWaypoint(map, waypoint) {
 			$modal.popup('close');
 			bellUI.popup('Notes cancelled'); // TODO: make popup fail themed (red?)
 			});
+		$modal.find('select').selectmenu();
 		$modal.popup();
 		
 		L.circleMarker(L.latLng(waypoint.geometry.coordinates[1], waypoint.geometry.coordinates[0]), options)
@@ -731,7 +747,7 @@ function localDatabaseStuff() {
 
 	// query.testInsert();
 
-	// populateCategories();
+	populateCategories();
 
 	function populateCategories() { // TODO: this should sync with an online store if online
 		var timestamp = Date.now();
@@ -743,13 +759,36 @@ function localDatabaseStuff() {
 			'Wayfinding',
 			'Social',
 			];
-		dbConnection.transaction(function (tx) {
-			var SQL = 'INSERT INTO categories (name, synced) VALUES (?,?)';
-			$.each(categories, function(index, value) {
-				tx.executeSql(SQL, [value, timestamp], query.onSuccess, query.onFail);
-				});
-		});
+		dbConnection.readTransaction(function (tx) {
+			tx.executeSql('SELECT * FROM categories', [], function(transaction, resultSet) {
+				console.log(resultSet.rows.length);
+				if (resultSet.rows.length > 0) {
+					loadCategories();
+				}
+				else {
+					dbConnection.transaction(function (tx) {
+						var SQL = 'INSERT INTO categories (name, synced) VALUES (?,?)';
+						$.each(categories, function(index, value) {
+							tx.executeSql(SQL, [value, timestamp], query.onSuccess, query.onFail);
+							});
+						loadCategories();
+					});
+				}
+				}, query.onFail);
+			});
 	}
 	// query.dump('categories');
+	
+	function loadCategories() {
+		dbConnection.readTransaction( function (tx) {
+			tx.executeSql('SELECT name FROM categories', [], function(transaction, resultSet) {
+				for(var i = 0; i < resultSet.rows.length; i++) {
+					console.log('Result ' + i + ': ' + JSON.stringify(resultSet.rows.item(i)));
+					categories.push(resultSet.rows.item(i)['name']);
+				}
+				console.log('Categories loaded: ' + categories.toString());
+				}, query.onFail);
+			});
+	}
 
 }
