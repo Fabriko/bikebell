@@ -30,7 +30,7 @@
 
 	<script>
 	console.log('===========');
-	var _VERSION = '0.4.6';
+	var _VERSION = '0.4.8-20160924';
 	var settings = window.localStorage;
 
 	document.addEventListener(
@@ -186,8 +186,22 @@ hopes
 			<form>
 				<label for="pairedDevice">Device name:</label>
 				<input type="text" data-setting="pairedDevice" name="pairedDevice" id="pairedDevice" />
+
+				<label for="fakeConnect">BLE</label>
+				<!-- select element required, checkbox/boolean values won't play nicely with localStorage .. -->
+				<select data-theme="b" data-role="flipswitch" data-mini="true" id="fakeConnect" data-setting="connectAuthenticity" name="fakeConnect" data-disables-selector="#pairedDevice" data-disables-value="fake">
+					<!--  onchange="document.getElementById('pairedDevice').disabled=(this.value == 'fake')" -->
+					<option value="fake">Fake</option>
+					<option value="real">Real</option>
+				</select>
+
 				<label for="riderName">Rider:</label>
 				<input type="text" data-setting="riderName" name="riderName" id="riderName" />
+				<fieldset>
+					<legend>Temporary / Development</legend>
+					<label for="bucketName">Bucket name:</label>
+					<input type="text" data-setting="bucketName" name="bucketName" id="bucketName" />
+				</fieldset>
 				<input type="reset" value="Cancel" id="action-cancel" />
 				<input type="submit" value="Save" id="action-save" />
 			</form>

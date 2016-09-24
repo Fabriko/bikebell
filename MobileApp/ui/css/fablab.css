@@ -407,3 +407,11 @@ header nav>ul a {
 form .field {
 	margin: 0.2em auto;
 }
+
+/* Fails */
+/*
+select[disabled] {
+	color: green;
+	border: thick solid green;
+}
+*/

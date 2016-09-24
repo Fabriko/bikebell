@@ -27,7 +27,7 @@ function Sensor() {
 			this.set();
 		}
 
-		if(config.useFauxConnection) {
+		if(isFakingConnection()) {
 			logActivity('(Fake) Connecting, certainly not to ' + this.target, 'notice');
 			fauxConnected();
 			/* // current thinking: this is neither a success or fail
@@ -154,7 +154,7 @@ function Sensor() {
 	}
 
 	this.disconnect = this.disconn = function() {
-		if (config.useFauxConnection) {
+		if (isFakingConnection()) {
 			document.removeEventListener('volumeupbutton', buttonGood);
 			document.removeEventListener('volumedownbutton', buttonBad);
 			logActivity('Closing fake connection');

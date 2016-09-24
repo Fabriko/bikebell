@@ -37,7 +37,7 @@ var config = {
 	},
 
 	enableButtonsWithoutGPS: false,
-	useFauxConnection: false,
+	useFauxConnection: false, // DEPRECATE FOR settings.connectAuthenticity = 'fake' || 'real'
 
 	layer: { // browse some free styles: http://leaflet-extras.github.io/leaflet-providers/preview/index.html
 
@@ -90,9 +90,19 @@ var config = {
 			},
 			underlay: 'nz-dark-matter-460x310', // or a div? // TODO: implement its use
 		},
+		'viz-canvas': {
+			layers: ['CartoDB_DarkMatter'],
+			lineStyle: {
+				'weight': 3,
+				'opacity': 1,
+				'color': '#00b2bd'
+			},
+		},
 	},
 	
-}
+};
+
+// config.rendering['viz-canvas'] = Object.assign({}, config.rendering['dash-canvas'], {'options':{}});
 
 // merge geoPositionOptionOverrides into geoOptions to get geoPositionOptions
 config.geoPositionOptions = Object.assign({}, config.geoOptions, config.geoPositionOptionOverrides);

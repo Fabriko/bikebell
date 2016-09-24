@@ -199,3 +199,26 @@ query.lastTrack = function() {
 		tx.executeSql('SELECT * FROM tracks ORDER BY stamp DESC LIMIT 1;', [], query.onSuccess, query.onFail);
 	});
 }
+
+Storage.prototype.hasItem = function(itemName, rejectEmpty) {
+	var setting = this.getItem(itemName);
+	return ( (setting !== null) && (rejectEmpty ? setting.length > 0 : true) );
+}
+/*
+testStorageHasItem = function() {
+	window.localStorage.setItem('test.foo', 'foo');
+	console.log(window.localStorage.hasItem('test.foo')); // true
+	console.log(window.localStorage.hasItem('test.foo', false)); // true
+	console.log(window.localStorage.hasItem('test.foo', true)); // true
+
+	window.localStorage.setItem('test.empty','');
+	console.log(window.localStorage.hasItem('test.empty')); // true
+	console.log(window.localStorage.hasItem('test.empty', false)); // true
+	console.log(window.localStorage.hasItem('test.empty', true)); // false
+
+	window.localStorage.removeItem('test.bar');
+	console.log(window.localStorage.hasItem('test.bar' )); // false
+	console.log(window.localStorage.hasItem('test.bar', false)); // false
+	console.log(window.localStorage.hasItem('test.bar', true)); // false
+}();
+*/

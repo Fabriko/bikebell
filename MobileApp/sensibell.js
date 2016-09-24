@@ -17,12 +17,10 @@ var dblClickBuffer = {
 	stamp: 0,
 };
 
-// settings.setItem('file.prefix', 'dev-'); // console.log(settings.getItem('file.prefix'));
-// settings.removeItem('file.prefix');
-
 var dbConnection;
 var categories = [];
 localDatabaseStuff();
+configManagementHacks();
 
 document.addEventListener('deviceready', function() {
 	evothings.scriptsLoaded(setSensor);
@@ -299,7 +297,7 @@ function Track(parentJourney) {
 
 		var filename = ( settings.getItem('file.prefix') ? settings.getItem('file.prefix') : '' ) + formatTimestamp(new Date(), 'filename') + '-' + device.uuid + '.json';
 
-		var bucket = config.AWS_S3.bucket;
+		var bucket = settings.bucketName;
 		var uploadPath = 'http://' + bucket + '.s3.amazonaws.com/' + filename;
 
 		console.log(uploadPath);
@@ -450,6 +448,10 @@ function connectSensor() {
 				console.log('Connect error: ' + errorCode + '.');
 			});
 		}); // , {'B:01':buttonGood,'B:02':buttonBad} );
+}
+
+function isFakingConnection() {
+	return settings.getItem('connectAuthenticity') == 'fake';
 }
 
 function fauxConnected() {
@@ -744,7 +746,7 @@ function localDatabaseStuff() {
 			);'
 		tx.executeSql(SQL, [], query.onSuccess, query.onFail);
 	});
-	query.dump('tracks');
+	query.lastTrack();
 
 	// query.testInsert();
 
@@ -752,13 +754,15 @@ function localDatabaseStuff() {
 
 	function populateCategories() { // TODO: this should sync with an online store if online
 		var timestamp = Date.now();
-		var categories = [
-			'Environment',
-			'Traffic',
+		var categories = [	
 			'Infrastructure',
-			'Bike Mechanics',
+			'Environmental',
 			'Wayfinding',
 			'Social',
+			'Safety',
+			'Near miss',
+			'Traffic',
+			'Bike mechanics',
 			];
 		dbConnection.readTransaction(function (tx) {
 			tx.executeSql('SELECT * FROM categories', [], function(transaction, resultSet) {
@@ -792,4 +796,24 @@ function localDatabaseStuff() {
 			});
 	}
 
+}
+
+// ** Any temporary changes we might need when we break the application API in a new version, or any development parameters
+function configManagementHacks() {
+	// settings.setItem('file.prefix', 'dev-'); // console.log(settings.getItem('file.prefix'));
+	// settings.removeItem('file.prefix');
+	
+	initialiseUsingDefault('connectAuthenticity', 'real');
+	initialiseUsingDefault('bucketName', config.AWS_S3.bucket);
+}
+
+function initialiseUsingDefault(settingName, defaultValue) {
+	if ( !settings.hasItem(settingName, true) ) {
+		settings.setItem(settingName, defaultValue);
+		console.log('settings:' + settingName + ' was set to ' + defaultValue);
+		return defaultValue;
+	}
+	else {
+		return settings.getItem(settingName);
+	}
 }

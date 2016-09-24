@@ -52,13 +52,21 @@ $(document).on('pageinit', function() {
 		});
 	});
 	
-	//$('#settings [data-setting]').val( function() {
-		//return settings.getItem($(this).data('setting'));
-	//});
+	$('[data-disables-selector][data-disables-value]').change( function(evt) {
+		var $target = $(evt.target);
+		var targetSelector = $target.data('disables-selector');
+		var $collatoral = $(targetSelector);
+		console.log($target.val());
+		$collatoral.prop('disabled', $target.val() == $target.data('disables-value') );
+	});
+
 	$('#settings').on('popupafteropen', function() {
 		$(this).find('[data-setting]').val( function() {
+			// console.log( $(this).data('setting') + ' = ' + settings.getItem($(this).data('setting') ) );
 			return settings.getItem($(this).data('setting'));
 		});
+		$('[data-disables-selector][data-disables-value]').change();
+		$(this).find('[data-setting][data-role="flipswitch"]').flipswitch('refresh'); // hack because for some reason ..
 	});
 
 	$('#settings :reset').click( function(event) {
@@ -69,9 +77,9 @@ $(document).on('pageinit', function() {
 
 	$('#settings').submit( function(event) {
 		event.preventDefault();
-		// console.log('Pressed!**');
 		$(this).find('[data-setting]:input').each( function() { // FIXME: ideally flag and only save the fields that were changed
 			settings.setItem($(this).data('setting'), $(this).val());
+			// console.log( $(this).data('setting') + ' = ' + $(this).val());
 		});
 		$(this).popup('close');
 		bellUI.popup('Settings saved'); // TODO: make popup success themed (green?)
