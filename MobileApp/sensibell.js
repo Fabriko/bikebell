@@ -26,11 +26,14 @@ document.addEventListener('deviceready', function() {
 	evothings.scriptsLoaded(setSensor);
 	}, false);
 
-document.addEventListener('resume',	function() {
-		// evothings.scriptsLoaded(connectSensor);
+document.addEventListener('pause', function() {
+    logActivity('*** app PAUSED ***');
 	}, false);
 
-// TODO: add stopScan for pause
+document.addEventListener('resume',	function() {
+	// TODO: add stopScan for pause
+	logActivity('*** app RESUMED ***');
+	}, false);
 
 function logPosition(val, success, options) {
 	if ( options === undefined ) {
