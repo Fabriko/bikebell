@@ -212,7 +212,12 @@ function Track(parentJourney) {
 				'geometry': {
 					'type': 'LineString',
 					'coordinates': [],
-					}
+					},
+				'properties': {
+					'coordinateProperties': { // refer https://github.com/mapbox/geojson-coordinate-properties
+						'times': [],
+						},
+					},
 				}],
 			'properties': {
 				'name': parentJourney.title,
@@ -261,19 +266,23 @@ function Track(parentJourney) {
 		var isBreadcrumb = ( measure == 'position' );
 		var logThis = config.POSITION_LOGGING || !isBreadcrumb;
 		var pointFeature = null;
+		var timeStamp = new Date();
+
 		logThis && logActivity('Adding ' + ( isBreadcrumb ? '' : measure + ' of ' + data.toString() + ' ') + 'to trail "' + parentJourney.title + '" @(' + position[0] + ',' + position[1] + ')' );
 		
-		this.cache.features[0].geometry.coordinates.push(position); // FIXME - not keen on relying on first position in this.cache.features array to identify the linestring (trail)
+		var features = this.cache.features[0]; // FIXME - not keen on relying on first position in this.cache.features array to identify the linestring (trail)
+		features.geometry.coordinates.push(position);
+		features.properties.coordinateProperties.times.push(timeStamp.valueOf());
 
 		if (!isBreadcrumb) {
 			pointFeature = {
-				type: 'Feature',
-					geometry: {
+				'type': 'Feature',
+					'geometry': {
 						'type':        'Point',
 						'coordinates': position,
 					},
-					properties: {
-						'time':    formatTimestamp(new Date(), 'W3CDTF'), // FIXME ??
+					'properties': {
+						'time':    formatTimestamp(timeStamp, 'W3CDTF'), // FIXME ??
 						'measure': measure,
 						'value':   data,
 					}
