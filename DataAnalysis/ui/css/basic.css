@@ -1,0 +1,209 @@
+html,
+body,
+.track-explorer,
+.map {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	font-family: 'Raleway', sans-serif;
+}
+
+body {
+	padding-left: 2%; padding-right:2%;
+}
+
+h1 {
+	font-weight: normal;
+}
+
+body.ui-overlay-a,
+.ui-page-theme-a,
+.track-explorer #journeys li {
+	background-color: #ccc;
+	color: #333;
+}
+
+.track-explorer .selector,
+.track-explorer .map,
+.track-explorer .tools {
+	 padding-left: 1%; padding-right:1%;
+}
+
+.track-explorer .selector {
+	float: left;
+	width: 25%;
+	max-height: 40em;
+	overflow-y: scroll; 
+	border-radius: 20px 0 0 20px;
+}
+
+.track-explorer .tools {
+	clear: both;
+	/* width: 20%; */
+	/* set max height? */
+	max-height: 40em;
+}
+
+.track-explorer .map {
+	float:left;
+	width: 70%;
+}
+
+#track-explorer {
+	float: left;
+	width: 100%;
+	height: 40em;
+	padding-bottom: 2em;
+}
+
+#viz-canvas {
+	border-radius: 0 20px 20px 0;
+}
+
+.output {
+	background-color: #000;
+	color: #6c8;
+	border-radius: 5px;
+	border: thick solid #9ca;
+	padding-left: 0.5em; padding-right: 0.5em;
+}
+
+#log {
+	display: none;
+	/*
+	margin-top: 1.5em;
+	font-size: smaller;
+	font-family: monospace;
+	*/
+}
+
+#meta {
+	clear: both;
+	margin-top: 2em;
+	padding: 1em;
+	font-family: sans-serif;
+}
+
+#meta .description {
+	font-size: larger;
+	font-weight: bolder;
+}
+
+#meta .label {
+	font-weight: bolder;
+}
+
+.meta {
+	font-size: smaller;
+	margin-top: 0;
+	padding-right: 1em;
+}
+
+.meta.version {
+	float: right;
+}
+
+.success {
+	color: green;
+}
+
+form p.success {
+	margin-top: 0;
+}
+
+label.filename {
+	display: none;
+}
+
+label.date {
+	font-size: smaller;
+	font-style: italic;
+}
+
+h1, li h3 {
+	/* color: #66b; */
+}
+
+li h3 {
+	margin: 0.2em auto 0 !important;
+}
+
+li h3 label {
+	font-weight: bolder !important;  /* lame that we have to override overly specific styles */
+	max-height: 1.1em;
+}
+
+.ui-mobile h3 label {
+	margin-bottom: 0.1em;
+}
+
+.ui-listview > .ui-li-static {
+	padding-top: 0; padding-bottom: 0;
+}
+
+.ui-listview > li p {
+	margin: 0 auto;
+}
+
+input.color {
+	max-width: 1.5em;
+	max-height: 1.4em;
+	padding: 0;
+	border: none;
+}
+
+#journeys .showing input.color {
+	background-color: #800080;
+	border-radius: 0.2em;	
+}
+
+h1 .logo {
+	vertical-align: middle;
+}
+
+.avatar {
+	width: 32px;
+	height: 32px;
+	float: left;
+	vertical-align: middle;
+	display: inline-block;
+	padding-right: 0;
+}
+
+#journeys .showing .avatar {
+	border-right: thick solid #800080;
+	border-radius: 0 1em 0;
+}
+
+.stats {
+	float: right;
+	padding-left: 0;
+}
+
+.stats li.length {
+	list-style-image: url('../images/stat-length.png');
+}
+
+.stats li.sentiment {
+	list-style-image: url('../images/stat-sentiment.png');
+}
+
+.stats li.rating {
+	list-style-image: url('../images/stat-rating.png');
+}
+
+.map-controls {
+	float: left;
+	width: 10%;
+	white-space: normal;
+	padding-top: 0.2em;
+}
+
+.hoozit {
+	float: right;
+	width: 85%;
+}
+
+input.journey {
+	visibility: hidden;
+}

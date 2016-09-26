@@ -1,0 +1,12 @@
+/* JQM overrides */
+
+.ui-mobile [data-role='page'],
+.ui-page {
+	position: relative;
+	top: auto;
+	left: auto;
+}
+
+.ui-mobile .ui-page-active {
+	overflow-x: visible;
+}

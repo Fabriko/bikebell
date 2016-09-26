@@ -1,0 +1,10 @@
+<?xml version="1.0" standalone="no"?>
+<svg width="4cm" height="4cm" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" version="1.1">
+  <desc>Red map marker for bad points</desc>
+
+	<circle cx="200" cy="200" r="150" fill="#fb6300" /> <!-- f60e4a --> <!-- FIXME: should be fa6200 -->
+	<circle cx="200" cy="200" r="180" fill="none" stroke="#fff" stroke-width="40"  />
+
+	<path d="M 120,200 280,200 z" stroke="#fff" stroke-width="20" />
+
+</svg>
