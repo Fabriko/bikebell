@@ -3,18 +3,18 @@
 <head>
 	<title>Sensibel ~ Journey browser</title>
 
-	<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.css" />
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.0/dist/leaflet.css" />
 	<script src="http://code.jquery.com/jquery-2.2.0.min.js"></script>
 
 	<link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
 	<script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script> <!-- FIXME: only need listview from JQM, can't assemble a custom package -->
 
 	<script src="https://cdn.rawgit.com/agschwender/jquery.formatDateTime/master/dist/jquery.formatDateTime.min.js"></script> <!-- canonical source: https://github.com/agschwender/jquery.formatDateTime/raw/master/dist/jquery.formatDateTime.min.js -->
-	<script src="http://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.js"></script>
+	<script src="https://unpkg.com/leaflet@1.0.0/dist/leaflet.js"></script>
 	<!-- <script src="lib/spectrum.js"></script> -->
-	
+
 	<script src="config.js"></script>
-	
+
 	<!-- <link rel="stylesheet" type="text/css" href="ui/css/spectrum.css" /> -->
 	<link href="https://fonts.googleapis.com/css?family=Raleway:400,uni,b,bi" rel="stylesheet" />
 	<link rel="stylesheet" type="text/css" href="ui/css/basic.css" />
@@ -22,11 +22,11 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.2.14';
-		
+		var _VERSION = '0.2.15';
+
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
-		
+
 		var categories = [	// FIXME: obviously not a continuing goer
 			'Infrastructure',
 			'Environmental',
@@ -40,7 +40,7 @@
 
 		$(document).ready(function() {
 			$('h1').after('<p class="meta version">v' + _VERSION + '</span>');
-		
+
 			if ( map === undefined ) {
 				map = L.map('viz-canvas').setView([-36.85, 174.76], 13);
 
@@ -53,7 +53,7 @@
 				L.control.layers(baseMaps).addTo(map);
 			}
 			// console.log(map);
-			
+
 			journeys = new journeyRecords(config.AWS_S3);
 			loadedRecords = {}; // NB. choice is to keep records since they are being loaded below anyway, though that is not optimal or necessarily going to stay the case ..
 				// The other option would be to load the track file as required only
@@ -70,7 +70,7 @@
 						if (record.metadata) {
 							var itemId = itemName.replace('-','.');
 							/* console.log( (Math.floor(Math.random() * (34 - 170 + 1)) + 170).toString(16) ); */ // experiment with random track colours
-							
+
 							var rider = record.metadata.hasOwnProperty('rider') ? record.metadata.rider : UNKNOWN_CYCLIST;
 							var $heading = $('<h3/>')
 								.append($('<label/>')
@@ -91,7 +91,7 @@
 									}
 									return $span;
 									});
-									
+
 							$content.append($('<div/>')
 								.attr('class', 'glance-panel')
 								.append($('<img/>')
@@ -137,7 +137,7 @@
 										// console.dir(loadedRecords[itemName]);
 										if (this.checked) {
 											//FIXME: neither the override idea or the enable/disable idea below work, but they don't break it :/
-											
+
 											var styleOverride = {};
 											if (document.getElementById('color.' + itemId).value) {
 												styleOverride = {'color': document.getElementById('color.' + itemId).value,}
@@ -193,7 +193,7 @@
 																});
 															}
 										})
-										*/			
+										*/
 									);
 
 							$item = $('<li/>')
@@ -207,7 +207,7 @@
 							//	.data('record', record);
 							// console.log($item.data('record'));
 							// $('#' + itemId).checkboxradio('refresh');
-							
+
 							// TODO: add a button/link to zoom to the track's bounds
 							$('#journeys').prepend($item);
 							$('#journeys').listview('refresh');
@@ -215,20 +215,20 @@
 						loadedRecords[itemName] = record;
 						});
 					});
-				
+
 				});
 			});
-			
+
 	</script>
 	<script src="geo-leaflet.js" type="text/javascript"></script>
 	<script src="ui.js" type="text/javascript"></script>
-	
+
 </head>
 
 <body>
-	
+
 	<h1><img class="logo" src="ui/images/sensibel-logo-green.png" alt="Sensibel" /> Journey browser</h1>
-	
+
 	<div class="track-explorer" id="track-explorer">
 		<div class="selector">
 			<ul id="journeys">
@@ -246,14 +246,14 @@
 	<!-- <div id="meta" class="output"></div> -->
 
 	<script type="text/javascript">
-		
+
 		// currently uses Amazon AWS which is pretty horrible interface-, metadata- and auth-wise and I would like to change
 		function journeyRecords(dataSource) {
-			
+
 			this.list = function(onSuccess, onFail) { // TODO: onFail not implemented
 
 				items = $.get('http://'  + dataSource.bucket + '.s3.amazonaws.com/?list-type=2&prefix=' + config.VIEWER_FILE_PREFIX );
-	
+
 				items.done ( function(responseBody) {
 					$xml = $(responseBody);
 					resources = $xml.find('ListBucketResult Contents').toArray();
@@ -261,19 +261,19 @@
 					});
 			}
 		}
-		
+
 		function journeyRecord(dataSource) {
 			var __this = this;
 			this['metadata'] = {};
 			this['points'] = [];
 			this['source'], this['GJ'], this['url'], this['filename'] = null;
 			this['layerGroup'], this['lineStringLayer'] = null;
-			
+
 			this.load = function(name, onSuccess, onFail) {
 				this.filename = name;
 				this.url = 'http://' + dataSource.bucket + '.s3.amazonaws.com/' + this.filename;
-				var journey = $.get(this.url);		
-				
+				var journey = $.get(this.url);
+
 				journey.done( function(responseBody) {
 					this.source = responseBody;
 					this.GJ = $.parseJSON(responseBody);
@@ -283,13 +283,13 @@
 					onSuccess && onSuccess(this);
 					});
 			}
-			
+
 			_getTrail = function(GJ) {
 				if ( (GJ) && ( LineStrings = GJ.features.filter(_isLineString) ) ) {
 					return LineStrings[0].geometry.coordinates; // we'll just take the first, shouldn't be more than one
 				}
 			}
-			
+
 			_isLineString = function(feature) {
 				return (feature.geometry.type == 'LineString');
 			}
@@ -298,9 +298,9 @@
 				var displayValue = ( properties.value == '01' ? 'Sweet!' : ( properties.value == '02' ? 'Stink' : properties.value ) ); // TODO: captions from config
 				var formattedDate = $.formatDateTime('D MM d, yy hh:ii', new Date(properties.time.replace('Z','+12:00'))); // see also http://momentjs.com
 				var markup = '<h2>' + displayValue + '</h2>\n<p>' + formattedDate + '</p>\n';
-				
+
 				return markup;
-			} 
+			}
 
 			this.showOn = function(targetMap, lineStyle) {
 				var lineStringLayer;
@@ -308,7 +308,7 @@
 				this.layerGroup = L.geoJson(this.GJ, {
 					onEachFeature: function(feature, layer) {
 						if (feature.properties && feature.properties.measure && feature.properties.measure == 'button') {
-							
+
 							var hasCategory = feature.properties.hasOwnProperty('category');
 							var hasComment = feature.properties.hasOwnProperty('comment');
 							var hasAnnotations = hasCategory || hasComment;
@@ -322,9 +322,9 @@
 								});
 
 							var popupContent = getPopupContent(feature.properties);
-							
+
 							__this.filename = __this.url.split('/').pop(); // *** whoa, I am just stumped why this filename property is lost at some point, but this restores it :/
-							
+
 							// FIXME: categories not done properly here, read-only too
 							var categoryOptions;
 							categoryOptions += '<option></option>';
@@ -338,7 +338,7 @@
 								categoryOptions += '</option>\n';
 							}
 							// console.log('categoryOptions: ' + categoryOptions);
-							
+
 							popupContent += ' \
 								<form name="annotate"> \
 									<input type="hidden" name="index" value="' + featureIndex + '" /> \
@@ -348,7 +348,7 @@
 								' + categoryOptions + ' \
 								</select> \
 								';
-							
+
 							var commentValue = ( hasComment ? feature.properties.comment : '');
 							var placeHolder = 'What was so ' + (feature.properties.value == '01' ? 'good' : 'bad') + ' here?';
 							var commentForm = '<label for="comment.' +  + featureIndex + '">Comment:</label> \
@@ -358,22 +358,22 @@
 								';
 
 							popupContent += commentForm;
-							
+
 							layer.setIcon(displayMarker);
 							layer.bindPopup(popupContent);
 						}
 						if (feature.geometry && feature.geometry.type && feature.geometry.type == 'LineString') {
-							
+
 							/* randomColor = sprintf("%02x%02x%02x", mt_rand(0x22, 0xaa), mt_rand(0x22, 0xaa), mt_rand(0x22, 0xaa)); */ // alt algorithm for random colour if needed, but needs translation from PHP
-							
+
 							lineStyle && layer.setStyle(Object.assign({}, config.rendering['viz-canvas'].lineStyle, lineStyle));
-							
+
 							lineStringLayer = layer; // FIXME; should really be an array as we could have more than one in the real world - see http://stackoverflow.com/a/19118143
 						}
 						featureIndex++;
 					},
 					}).addTo(targetMap);
-					
+
 				this.lineStringLayer = lineStringLayer;
 				/*
 				L.setOptions(this.lineStringLayer, {
@@ -381,7 +381,7 @@
 					'opacity': 1,
 					});
 				*/
-				
+
 				// console.log('lineStringLayer: '); console.log(lineStringLayer);
 				this.lineStringLayer.bindPopup('<h2>Journey details</h2>\n' + formatAttributes(this.GJ));
 
@@ -423,10 +423,10 @@
 					targetMap.removeLayer(layer);
 					} );
 			}
-			
+
 			this.update = function() {
 				// TODO: some tests here to make sure there is something loaded
-				
+
 				var uploadTarget = this.url;
 
 				var req = $.ajax({
@@ -444,7 +444,7 @@
 				req.fail( function(xhr, failText) {
 					console.log('Error ' + xhr.status + ': ' + failText);
 					});
-			
+
 				};
 
 		}
@@ -462,14 +462,14 @@
 			feature.properties['comment'] = fields.comment;
 
 			loadedRecords[fields.resource].update();
-			
+
 			// refresh map
 			loadedRecords[fields.resource].showOn(map);
-			
+
 			// some feedback
 			$(frm).append('<p class="success">Updated</p>');
 		}
-		
+
 		// TODO: stub that returns geneic avatars until we have a system!
 		var getAvatar = function(userName) {
 			if(userName) {
@@ -478,7 +478,7 @@
 			}
 			return 'ui/images/user.placeholder.png';
 		}
-		
+
 	</script>
 
 </body>
