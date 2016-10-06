@@ -22,7 +22,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.2.15';
+		var _VERSION = '0.2.15.1';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -305,9 +305,12 @@
 			this.showOn = function(targetMap, lineStyle) {
 				var lineStringLayer;
 				var featureIndex = 0;
-				this.layerGroup = L.geoJson(this.GJ, {
-					onEachFeature: function(feature, layer) {
-						if (feature.properties && feature.properties.measure && feature.properties.measure == 'button') {
+				var pointsLayerGroup = L.geoJson(this.GJ, {
+					'filter': function(feature, layer) {
+						return ( feature.properties && feature.properties.measure && feature.properties.measure == 'button' );
+						},
+					'onEachFeature': function(feature, layer) {
+						// if (feature.properties && feature.properties.measure && feature.properties.measure == 'button') {
 
 							var hasCategory = feature.properties.hasOwnProperty('category');
 							var hasComment = feature.properties.hasOwnProperty('comment');
@@ -361,20 +364,35 @@
 
 							layer.setIcon(displayMarker);
 							layer.bindPopup(popupContent);
+						/*
 						}
 						if (feature.geometry && feature.geometry.type && feature.geometry.type == 'LineString') {
-
-							/* randomColor = sprintf("%02x%02x%02x", mt_rand(0x22, 0xaa), mt_rand(0x22, 0xaa), mt_rand(0x22, 0xaa)); */ // alt algorithm for random colour if needed, but needs translation from PHP
 
 							lineStyle && layer.setStyle(Object.assign({}, config.rendering['viz-canvas'].lineStyle, lineStyle));
 
 							lineStringLayer = layer; // FIXME; should really be an array as we could have more than one in the real world - see http://stackoverflow.com/a/19118143
 						}
+						*/
 						featureIndex++;
-					},
-					}).addTo(targetMap);
+						},
+					});
 
-				this.lineStringLayer = lineStringLayer;
+				var lineStringsLayerGroup = L.geoJson(this.GJ, {
+					'filter': function(feature, layer) {
+						return ( feature.geometry && feature.geometry.type && feature.geometry.type == 'LineString' );
+						},
+					'onEachFeature': function(feature, layer) {
+						lineStyle && layer.setStyle(Object.assign({}, config.rendering['viz-canvas'].lineStyle, lineStyle));
+
+						__this.lineStringLayer = layer; // FIXME; should really be an array or layerGroup as we could have more than one in the real world - see http://stackoverflow.com/a/19118143
+
+						featureIndex++;
+						}
+					});
+
+				this.layerGroup = pointsLayerGroup.addLayer(lineStringsLayerGroup);
+				this.layerGroup.addTo(targetMap);
+
 				/*
 				L.setOptions(this.lineStringLayer, {
 					'weight': 3,
