@@ -11,6 +11,7 @@
 
 	<script src="https://cdn.rawgit.com/agschwender/jquery.formatDateTime/master/dist/jquery.formatDateTime.min.js"></script> <!-- canonical source: https://github.com/agschwender/jquery.formatDateTime/raw/master/dist/jquery.formatDateTime.min.js -->
 	<script src="https://unpkg.com/leaflet@1.0.0/dist/leaflet.js"></script>
+	<script src="https://npmcdn.com/@turf/turf@3.5.1/turf.min.js"></script>
 	<!-- <script src="lib/spectrum.js"></script> -->
 
 	<script src="config.js"></script>
@@ -22,7 +23,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.2.16';
+		var _VERSION = '0.2.16.1';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -376,21 +377,54 @@
 					'onEachFeature': function(feature, layer) {
 						lineStyle && layer.setStyle(Object.assign({}, config.rendering['viz-canvas'].lineStyle, lineStyle));
 
+						// plan was to show points on hover only ..
+						// this approach has failed and won't be pursued because the points don't align ..
+						// possible https://github.com/Leaflet/Leaflet.Editable/issues/64
+						var trackpoints = layer.getLatLngs();
+						for (i=0 ; i < trackpoints.length ; i++) {
+							var pointMarker = L.marker(trackpoints[i], {
+								'icon': L.icon({
+									'iconUrl': 'ui/images/dot-pos.png', //FIXME
+									// 'opacity': 0,
+									})
+								});
+							pointMarker.addTo(targetMap);
+						}
+
 						__this.lineStringLayer = layer; // FIXME; should really be an array or layerGroup as we could have more than one in the real world - see http://stackoverflow.com/a/19118143
 
+						// circleMarker works better than L.marker above ..
+						// but it's jittery/flickery ..
+						// will attempt to better this following newly discovered example in https://github.com/makinacorpus/Leaflet.AlmostOver
+						var pointMarker;
+						layer.on('mouseover', function(evt) {
+							console.log(evt.latlng);
+
+							var line = feature;
+							var pt = turf.point([evt.latlng.lng, evt.latlng.lat]);
+							var snapped = turf.pointOnLine(line, pt);
+							console.log(snapped);
+							var snappedLatLng = L.latLng(snapped.geometry.coordinates[1],snapped.geometry.coordinates[0]);
+
+							pointMarker = L.circleMarker( snappedLatLng, {
+								'color': '#fff',
+								'weight': 5,
+								'radius': 15,
+								});
+							pointMarker.addTo(targetMap);
+
+							});
+						layer.on('mouseout', function(evt) {
+							pointMarker.removeFrom(targetMap);
+							});
+
 						featureIndex++;
-						}.
+						}
 					});
 
+				console.log(lineStringsLayerGroup);
 				this.layerGroup = pointsLayerGroup.addLayer(lineStringsLayerGroup);
 				this.layerGroup.addTo(targetMap);
-
-				/*
-				L.setOptions(this.lineStringLayer, {
-					'weight': 3,
-					'opacity': 1,
-					});
-				*/
 
 				// console.log('lineStringLayer: '); console.log(lineStringLayer);
 				this.lineStringLayer.bindPopup('<h2>Journey details</h2>\n' + formatAttributes(this.GJ));
