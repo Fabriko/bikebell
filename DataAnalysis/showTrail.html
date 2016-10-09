@@ -26,10 +26,13 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.2.17';
+		var _VERSION = '0.2.18';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
+
+		var BUTTON_VALUE_GOOD = '01';
+		var BUTTON_VALUE_BAD = '02';
 
 		var categories = [	// FIXME: obviously not a continuing goer
 			'Infrastructure',
@@ -72,7 +75,8 @@
 					itemRecord.load(itemName, function(record) {
 						record = $.extend(new journeyRecord(), record); // essentially casting record as a journeyRecord because console says it doesn't have the methods - don't really understand why this is necessary
 						if (record.metadata) {
-							var itemId = itemName.replace('-','.');
+							var itemId = itemName.replace('-','.'); // wish I'd explained myself here
+							var itemReference = itemName.replace(/\.json$/, '');
 							/* console.log( (Math.floor(Math.random() * (34 - 170 + 1)) + 170).toString(16) ); */ // experiment with random track colours
 
 							var rider = record.metadata.hasOwnProperty('rider') ? record.metadata.rider : UNKNOWN_CYCLIST;
@@ -109,12 +113,13 @@
 								.append($('<ul/>')
 									.attr('class','stats')
 									.append($('<li/>')
+										// .attr('id', 'metric-length-' + itemReference)
 										.attr('class', 'length')
-										.text('length TODO')
+										.text(turf.lineDistance(record.lineString).toPrecision(2) + 'km') // TODO: make this the title text and add infographic line
 										)
 									.append($('<li/>')
 										.attr('class', 'sentiment')
-										.text('sentiment TODO')
+										.text('+' + record.goodPoints.length + ' / -' + record.badPoints.length)  // TODO: make this (or similar) the title text and add infographic line
 										)
 									.append($('<li/>')
 										.attr('class', 'rating')
@@ -283,23 +288,50 @@
 					this.GJ = $.parseJSON(responseBody);
 					this.metadata = this.GJ.properties;
 					this['trail'] = _getTrail(this.GJ);
-					// console.log(this.trail);
+
+					// TODO: from here on in, we could call a _stats() method eventually
+					this['lineString'] = _getLineString(this.GJ);
+					this['goodPoints'] = _getPoints(this.GJ, BUTTON_VALUE_GOOD);
+					this['badPoints'] = _getPoints(this.GJ, BUTTON_VALUE_BAD);
+
 					onSuccess && onSuccess(this);
 					});
 			}
 
-			_getTrail = function(GJ) {
-				if ( (GJ) && ( LineStrings = GJ.features.filter(_isLineString) ) ) {
-					return LineStrings[0].geometry.coordinates; // we'll just take the first, shouldn't be more than one
+			var _isPoint = function(feature, valueFilter) {
+				return (feature.geometry.type == 'Point'
+					&& feature.properties
+					&& feature.properties.measure
+					&& feature.properties.measure == 'button'
+					&&  ( valueFilter ? (feature.properties.value && (feature.properties.value == valueFilter)) : true )
+					);
+			}
+
+			var _getPoints = function(GJ, valueFilter) {
+				return GJ.features.filter( function(feature) {
+					return _isPoint(feature, valueFilter);
+					});
+			}
+
+			var _getTrail = function(GJ) {
+				var lineString = _getLineString(GJ);
+				if ( lineString ) {
+					return lineString.geometry.coordinates;
 				}
 			}
 
-			_isLineString = function(feature) {
+			var _getLineString = function(GJ) {
+				if ( (GJ) && ( LineStrings = GJ.features.filter(_isLineString) ) ) {
+					return LineStrings[0]; // we'll just take the first, shouldn't be more than one
+				}
+			}
+
+			var _isLineString = function(feature) {
 				return (feature.geometry.type == 'LineString');
 			}
 
-			var getPopupContent = function(properties) {
-				var displayValue = ( properties.value == '01' ? 'Sweet!' : ( properties.value == '02' ? 'Stink' : properties.value ) ); // TODO: captions from config
+			var _getPopupContent = function(properties) {
+				var displayValue = ( properties.value == BUTTON_VALUE_GOOD ? 'Sweet!' : ( properties.value == BUTTON_VALUE_BAD ? 'Stink' : properties.value ) ); // TODO: captions from config
 				var formattedDate = $.formatDateTime('D MM d, yy hh:ii', new Date(properties.time.replace('Z','+12:00'))); // see also http://momentjs.com
 				var markup = '<h2>' + displayValue + '</h2>\n<p>' + formattedDate + '</p>\n';
 
@@ -321,7 +353,7 @@
 						var hasCategory = feature.properties.hasOwnProperty('category');
 						var hasComment = feature.properties.hasOwnProperty('comment');
 						var hasAnnotations = hasCategory || hasComment;
-						var iconUrl = ( feature.properties.value == '01' ? 'ui/images/dot-pos.png' : 'ui/images/dot-neg.png' );
+						var iconUrl = ( feature.properties.value == BUTTON_VALUE_GOOD ? 'ui/images/dot-pos.png' : 'ui/images/dot-neg.png' );
 						if (hasAnnotations) {
 							iconUrl = iconUrl.replace('.png', '-annotated.png');
 						}
@@ -330,7 +362,7 @@
 							'riseOnHover': true,
 							});
 
-						var popupContent = getPopupContent(feature.properties);
+						var popupContent = _getPopupContent(feature.properties);
 
 						__this.filename = __this.url.split('/').pop(); // *** whoa, I am just stumped why this filename property is lost at some point, but this restores it :/
 
@@ -359,7 +391,7 @@
 							';
 
 						var commentValue = ( hasComment ? feature.properties.comment : '');
-						var placeHolder = 'What was so ' + (feature.properties.value == '01' ? 'good' : 'bad') + ' here?';
+						var placeHolder = 'What was so ' + (feature.properties.value == BUTTON_VALUE_GOOD ? 'good' : 'bad') + ' here?';
 						var commentForm = '<label for="comment.' +  + featureIndex + '">Comment:</label> \
 							<textarea id="comment.' +  + featureIndex + '" name="comment" placeholder="' + placeHolder + '">' + commentValue + '</textarea> \
 							<input type="button" value="Send"  onclick="sendAnnotation(this.form);" /> \
@@ -483,8 +515,8 @@
 					finishedProperties['time'] = __this.metadata.ended;
 				}
 
-				var startedPopup = getPopupContent(startedProperties);
-				var finishedPopup = getPopupContent(finishedProperties);
+				var startedPopup = _getPopupContent(startedProperties);
+				var finishedPopup = _getPopupContent(finishedProperties);
 
 				this.layerGroup.addLayer(L.marker(started, { 'icon': startMarker, }).bindPopup(startedPopup)).addTo(targetMap);
 				this.layerGroup.addLayer(L.marker(finished, { 'icon': finishMarker, }).bindPopup(finishedPopup)).addTo(targetMap);
