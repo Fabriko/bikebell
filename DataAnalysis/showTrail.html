@@ -43,7 +43,7 @@
 			];
 
 		$(document).ready(function() {
-			$('h1').after('<p class="meta version">v' + _VERSION + '</span> (<a href="showTrail.html">latest</a>)');
+			$('h1').after('<span class="meta version">v' + _VERSION + ' (<a href="showTrail.html">latest</a>)</span>');
 
 			if ( map === undefined ) {
 				map = L.map('viz-canvas').setView([-36.85, 174.76], 13);
