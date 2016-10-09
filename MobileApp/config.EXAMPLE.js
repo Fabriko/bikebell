@@ -4,21 +4,23 @@ var config = {
 	POSITION_LOGGING: false,
 	DB_LOGGING: false,
 	UPLOAD_ON_FINISH: true,
-	
+
 	VIEWER_FILE_PREFIX: '2016', // to filter developer file uploads or recently dated files
-	
+
+	SHOW_TRACKPOINTS: 'properties', // none|markers|properties
+
 	databaseParams: {
 		'name':    'Tracks',
 		'version': '',
 		'title':   'Sensibel tracks',
 		'size':    5 * 1024 * 1024, // 5MB
 	},
-	
+
 	AWS_S3: {
 		credentials: {},
 		bucket: 'yer.bucket.name'
 	},
-	
+
 	IDPairingsHack: {
 		'<device1-id>': '<sensor1-name>',
 		'<device2-id>': '<sensor2-name>'
@@ -29,7 +31,7 @@ var config = {
 		// maximumAge: 60000,
 		enableHighAccuracy: true,
 	},
-	
+
 	geoPositionOptionOverrides: {
 		// NB: use geoPositionOptions defined below, generally not this property directly
 		// this setting will override geoOptions for positioning calls like getCurrentPosition()
@@ -62,9 +64,9 @@ var config = {
 					attribution: '© <a href="http://www.opencyclemap.org">OpenCycleMap</a>, © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 				}),
 		},
-		
+
 	},
-	
+
 	provider: {
 		mapbox: {
 			token: 'MY MAPBOX EXAMPLE KEY',
@@ -99,7 +101,7 @@ var config = {
 			},
 		},
 	},
-	
+
 };
 
 // config.rendering['viz-canvas'] = Object.assign({}, config.rendering['dash-canvas'], {'options':{}});

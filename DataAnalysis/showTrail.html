@@ -11,6 +11,9 @@
 
 	<script src="https://cdn.rawgit.com/agschwender/jquery.formatDateTime/master/dist/jquery.formatDateTime.min.js"></script> <!-- canonical source: https://github.com/agschwender/jquery.formatDateTime/raw/master/dist/jquery.formatDateTime.min.js -->
 	<script src="https://unpkg.com/leaflet@1.0.0/dist/leaflet.js"></script>
+	<script src="https://cdn.rawgit.com/makinacorpus/Leaflet.GeometryUtil/master/src/leaflet.geometryutil.js"></script>
+	<script src="https://cdn.rawgit.com/makinacorpus/Leaflet.AlmostOver/gh-pages/src/leaflet.almostover.js"></script>
+	<!-- <script src="https://cdn.rawgit.com/makinacorpus/Leaflet.AlmostOver/master/src/leaflet.almostover.js"></script> -->
 	<script src="https://npmcdn.com/@turf/turf@3.5.1/turf.min.js"></script>
 	<!-- <script src="lib/spectrum.js"></script> -->
 
@@ -306,6 +309,8 @@
 			this.showOn = function(targetMap, lineStyle) {
 				var lineStringLayer;
 				var featureIndex = 0;
+				var initialLineStyle = Object.assign({}, config.rendering['viz-canvas'].lineStyle, lineStyle ? lineStyle : {});
+
 				var pointsLayerGroup = L.geoJson(this.GJ, {
 					'filter': function(feature, layer) {
 						return ( feature.properties && feature.properties.measure && feature.properties.measure == 'button' );
@@ -375,56 +380,80 @@
 						return ( feature.geometry && feature.geometry.type && feature.geometry.type == 'LineString' );
 						},
 					'onEachFeature': function(feature, layer) {
-						lineStyle && layer.setStyle(Object.assign({}, config.rendering['viz-canvas'].lineStyle, lineStyle));
-
-						// plan was to show points on hover only ..
-						// this approach has failed and won't be pursued because the points don't align ..
-						// possible https://github.com/Leaflet/Leaflet.Editable/issues/64
-						var trackpoints = layer.getLatLngs();
-						for (i=0 ; i < trackpoints.length ; i++) {
-							var pointMarker = L.marker(trackpoints[i], {
-								'icon': L.icon({
-									'iconUrl': 'ui/images/dot-pos.png', //FIXME
-									// 'opacity': 0,
-									})
-								});
-							pointMarker.addTo(targetMap);
-						}
+						layer.setStyle(initialLineStyle);
 
 						__this.lineStringLayer = layer; // FIXME; should really be an array or layerGroup as we could have more than one in the real world - see http://stackoverflow.com/a/19118143
-
-						// circleMarker works better than L.marker above ..
-						// but it's jittery/flickery ..
-						// will attempt to better this following newly discovered example in https://github.com/makinacorpus/Leaflet.AlmostOver
-						var pointMarker;
-						layer.on('mouseover', function(evt) {
-							console.log(evt.latlng);
-
-							var line = feature;
-							var pt = turf.point([evt.latlng.lng, evt.latlng.lat]);
-							var snapped = turf.pointOnLine(line, pt);
-							console.log(snapped);
-							var snappedLatLng = L.latLng(snapped.geometry.coordinates[1],snapped.geometry.coordinates[0]);
-
-							pointMarker = L.circleMarker( snappedLatLng, {
-								'color': '#fff',
-								'weight': 5,
-								'radius': 15,
-								});
-							pointMarker.addTo(targetMap);
-
-							});
-						layer.on('mouseout', function(evt) {
-							pointMarker.removeFrom(targetMap);
-							});
 
 						featureIndex++;
 						}
 					});
 
-				console.log(lineStringsLayerGroup);
+				// console.log(lineStringsLayerGroup);
 				this.layerGroup = pointsLayerGroup.addLayer(lineStringsLayerGroup);
 				this.layerGroup.addTo(targetMap);
+
+				if ( config.SHOW_TRACKPOINTS != 'none' ) {
+					targetMap.almostOver.addLayer(lineStringsLayerGroup);
+
+					var pointMarker = L.circleMarker( [-90,180], {
+						'color': 'white',
+						'weight': 5,
+						'radius': 8,
+						'fillOpacity': 0.2,
+						'fillColor': 'white',
+						})
+
+					if ( config.SHOW_TRACKPOINTS == 'properties' ) {
+						pointMarker.bindTooltip('trackpoint', {
+							'opacity':0.7,
+							'offset':[0,-4],
+							});
+					}
+
+					targetMap.on('almost:over', function (evt) {
+						targetMap.addLayer(pointMarker);
+						evt.layer.setStyle({ // TODO: style from config
+							'color': 'red',
+							});
+						});
+
+					targetMap.on('almost:move', function (evt) {
+						// TODO: simplify snap by using http://makinacorpus.github.io/Leaflet.GeometryUtil/global.html#closest
+						var line = evt.layer.feature;
+						var pt = turf.point([evt.latlng.lng, evt.latlng.lat]);
+						var snapped = turf.pointOnLine(line, pt);
+						// console.log(snapped);
+						var snappedLatLng = L.latLng(snapped.geometry.coordinates[1],snapped.geometry.coordinates[0]);
+
+						if ( config.SHOW_TRACKPOINTS == 'properties' ) {
+							var tooltipText;
+							if(line.properties && line.properties.coordinateProperties) {
+								tooltipText = 'times';
+								var coordinatedProperties = coordinatedPropertiesAt(snapped.geometry.coordinates, line);
+								tooltipText = formatCoordinatedProperties(coordinatedProperties, ['lat', 'lon']);
+							}
+							else {
+								tooltipText = 'trackpoint';
+							}
+							pointMarker.setTooltipContent(tooltipText);
+						}
+
+						pointMarker.setLatLng(snappedLatLng);
+
+						});
+
+					targetMap.on('almost:out', function (evt) {
+						targetMap.removeLayer(pointMarker);
+						evt.layer.setStyle(initialLineStyle);
+						});
+
+					targetMap.on('almost:click', function (evt) {
+						evt.layer.setStyle({ // TODO: style from config
+							'weight': 10,
+							});
+						evt.layer.openPopup();
+						});
+				}
 
 				// console.log('lineStringLayer: '); console.log(lineStringLayer);
 				this.lineStringLayer.bindPopup('<h2>Journey details</h2>\n' + formatAttributes(this.GJ));
@@ -512,7 +541,81 @@
 
 			// some feedback
 			$(frm).append('<p class="success">Updated</p>');
-		}
+			};
+
+		var coordinatedPropertiesAt = function(coordinates, timedLineString) {
+			var result = [];
+			if (timedLineString.properties && timedLineString.properties.coordinateProperties) {
+				var aligned = consolidateTimestampedLineString(timedLineString);
+				var matched = aligned.filter( function(item, index) {
+					return ( item.lat == coordinates[1] && item.lon == coordinates[0] );
+					});
+				result = result.concat(matched);
+			}
+			return result;
+			};
+
+		var pivotCoordinatedProperties = function(coordinatedProperties) {
+			var result = {};
+
+			// console.log(coordinatedProperties[0]);
+			// if (coordinatedProperties.length > 0) {
+				Object.keys(coordinatedProperties[0]).forEach( function(propertyName) {
+
+					result[propertyName] = [];
+					for(i=0 ; i < coordinatedProperties.length ; i++) {
+						// TODO - null values
+						result[propertyName].push(coordinatedProperties[i][propertyName]);
+					}
+				});
+			// }
+			return result;
+			};
+
+		var formatCoordinatedProperties = function(coordinatedProperties, exclusions, labels) {
+			exclusions = exclusions || [];
+			var listDelimiter = ',';
+			var lineDelimiter = '\n';
+			var resultLines = [];
+			var coordinateProperties = pivotCoordinatedProperties(coordinatedProperties);
+
+			// TODO - just handling nice labels for 'times' coordinate property at present
+
+			$.each(coordinateProperties, function(key, values) {
+				if (!exclusions.includes(key)) {
+					var label = key;
+					values = values.filter( function(value) { // eliminate null and undefined members
+						return value;
+						});
+					if (key == 'times' ) {
+						label = 'Times';
+						values = values.map( function(timestamp) {
+							return $.formatDateTime("'<strong>'hh:ii'</strong>':ss", new Date(timestamp));
+							});
+					}
+					resultLines.push( ( labels ? label + ': ' : '' ) + values.join(listDelimiter));
+				}
+				});
+
+			return resultLines.join(lineDelimiter);
+			};
+
+		var consolidateTimestampedLineString = function(timedLineString) {
+			var result  = [];
+			if (timedLineString.properties && timedLineString.properties.coordinateProperties) { // life is like a box of chocolates ..
+				for(i=0 ; i < timedLineString.geometry.coordinates.length ; i++) {
+					var member = {
+						'lat': timedLineString.geometry.coordinates[i][1],
+						'lon': timedLineString.geometry.coordinates[i][0],
+						};
+					Object.keys(timedLineString.properties.coordinateProperties).forEach( function(propertyName) {
+						member[propertyName] = timedLineString.properties.coordinateProperties[propertyName][i];
+						});
+					result.push(member);
+				}
+			}
+			return result;
+			};
 
 		// TODO: stub that returns geneic avatars until we have a system!
 		var getAvatar = function(userName) {
@@ -521,7 +624,7 @@
 				return 'http://lorempixel.com/g/32/32/cats/'; // + userName;
 			}
 			return 'ui/images/user.placeholder.png';
-		}
+			};
 
 	</script>
 
