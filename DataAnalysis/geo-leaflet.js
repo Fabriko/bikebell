@@ -70,3 +70,31 @@ if (!Array.prototype.includes) {
     return false;
   };
 }
+
+millisecondsToComponents = function(ms) {
+	// some magic numbers here - just taken from http://stackoverflow.com/a/8211778
+	var totalSeconds = Math.round(ms / 1000);
+	var hours = Math.floor(((totalSeconds % 31536000) % 86400) / 3600);
+	var minutes = Math.floor((((totalSeconds % 31536000) % 86400) % 3600) / 60);
+	var seconds = (((totalSeconds % 31536000) % 86400) % 3600) % 60;
+	return {
+		'hours': hours,
+		'mins' : minutes.leadZeros(1),
+		'secs' : seconds.leadZeros(1),
+		};
+}
+
+// FIXME: now we're really repeating stuff from the app
+Number.prototype.leadZeros = function(zeros) {
+	// returns a string with _zeros_ leading zeros
+	if ( this < Math.pow(10, zeros) ) {
+		var prefix = '';
+		for ( i = 1 ; i <= zeros ; i++ ) {
+			prefix += '0';
+		}
+		return prefix + this.toString();
+	}
+	else {
+		return this.toString();
+	}
+}

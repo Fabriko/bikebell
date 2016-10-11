@@ -178,10 +178,11 @@ h1 .logo {
 .stats {
 	float: right;
 	padding-left: 0;
+	min-width: 25%;
 }
 
-.stats li.length {
-	list-style-image: url('../images/stat-length.png');
+.stats li.distance {
+	list-style-image: url('../images/stat-distance.png');
 }
 
 .stats li.sentiment {
@@ -190,6 +191,10 @@ h1 .logo {
 
 .stats li.rating {
 	list-style-image: url('../images/stat-rating.png');
+}
+
+.stats li.duration {
+	list-style-image: url('../images/stat-duration.png');
 }
 
 .map-controls {
