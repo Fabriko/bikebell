@@ -25,7 +25,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.2.19';
+		var _VERSION = '0.2.20';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -89,6 +89,7 @@
 								: '[not recorded]'
 								);
 							var $heading = $('<h3/>')
+								// .attr('title', itemReference) // this is invaluable at times if debugging based on file names
 								.append($('<label/>')
 									.attr('for', itemId)
 									.text(rider)
@@ -351,6 +352,21 @@
 				var featureIndex = 0;
 				var initialLineStyle = Object.assign({}, config.rendering['viz-canvas'].lineStyle, lineStyle ? lineStyle : {});
 
+				// NB order of this and subsequent L.geoJSON call is important - probably suboptimal architecture, should be refactored - be careful in the meantime!
+				var lineStringsLayerGroup = L.geoJson(this.GJ, {
+					'filter': function(feature, layer) {
+						return ( feature.geometry && feature.geometry.type && feature.geometry.type == 'LineString' );
+						},
+					'onEachFeature': function(feature, layer) {
+						layer.setStyle(initialLineStyle);
+
+						__this.lineStringLayer = layer; // FIXME; should really be an array or layerGroup as we could have more than one in the real world - see http://stackoverflow.com/a/19118143
+
+						featureIndex++;
+						}
+					});
+
+				// NB order of this and previous L.geoJSON call is important - probably suboptimal architecture, should be refactored - be careful in the meantime!
 				var pointsLayerGroup = L.geoJson(this.GJ, {
 					'filter': function(feature, layer) {
 						return ( feature.properties && feature.properties.measure && feature.properties.measure == 'button' );
@@ -413,19 +429,6 @@
 
 						featureIndex++;
 						},
-					});
-
-				var lineStringsLayerGroup = L.geoJson(this.GJ, {
-					'filter': function(feature, layer) {
-						return ( feature.geometry && feature.geometry.type && feature.geometry.type == 'LineString' );
-						},
-					'onEachFeature': function(feature, layer) {
-						layer.setStyle(initialLineStyle);
-
-						__this.lineStringLayer = layer; // FIXME; should really be an array or layerGroup as we could have more than one in the real world - see http://stackoverflow.com/a/19118143
-
-						featureIndex++;
-						}
 					});
 
 				// console.log(lineStringsLayerGroup);
