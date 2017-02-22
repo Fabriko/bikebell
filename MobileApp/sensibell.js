@@ -23,7 +23,11 @@ localDatabaseStuff();
 configManagementHacks();
 
 document.addEventListener('deviceready', function() {
-	evothings.scriptsLoaded(setSensor);
+	evothings.scriptsLoaded( function() {
+		setSensor();
+		console.log('Set to ' + sensor.target);
+		});
+	$('#adaptive-connect').click();
 	}, false);
 
 document.addEventListener('pause', function() {
@@ -113,7 +117,7 @@ function Journey(title) {
 	this.finish = function(onSuccess, onFail) {
 
 		this.track.close();
-		
+
 		this.status = 'saved';
 		sensibelStatus.remove('tracking');
 		clearWatch();
@@ -122,7 +126,7 @@ function Journey(title) {
 
 		if (this.track.hasTracks()) {
 			L.geoJson(this.track.cache).addTo(map);
-			
+
 			// TODO: add annotation actions (here I think)
 
 			this.track.upload( function() {
@@ -136,7 +140,7 @@ function Journey(title) {
 					// console.log(qry + ' **** ' + __this.title);
 					// evothings.printObject(tx);
 					});
-					
+
 				__this.status = 'uploaded';
 				onSuccess && onSuccess.call();
 			});
@@ -147,7 +151,7 @@ function Journey(title) {
 		}
 
 		};
-		
+
 	this.abort = function() {
 		// TODO
 		this.status = 'saved';
@@ -161,7 +165,7 @@ function Journey(title) {
 		console.log(JSON.stringify(gJ));
 
 		// TODO: here I need to pull all the points I added from the map display
-		
+
 		// TODO: make the points click-and-annotatable
 
 		var trackLayer = L.geoJson(gJ, {
@@ -187,7 +191,7 @@ function Journey(title) {
 		map.fitBounds(trackLayer.getBounds());
 		trackLayer.addTo(map);
 		// location.href = '#track'; // TODO: uncomment when map canvas is more reliable
-		
+
 		// TODO:add the track title as a heading here
 	}
 
@@ -233,7 +237,7 @@ function Track(parentJourney) {
 				__this.cache = skeleton;
 				if (riderName = settings.getItem('riderName') ) {
 					console.log('Adding rider name metadata: ' + riderName);
-					__this.updateMetadata({'rider': riderName});	
+					__this.updateMetadata({'rider': riderName});
 				}
 				query.onSuccess(transaction, result);
 				}, query.onFail);
@@ -246,7 +250,7 @@ function Track(parentJourney) {
 			tx.executeSql(qry, [JSON.stringify(__this.cache), parentJourney.title], query.onSuccess, query.onFail);
 			});
 		};
-		
+
 	this.updateMetadata = function(properties) {
 		$.each(properties, function(key, val) {
 			__this.cache.properties[key] = val;
@@ -257,11 +261,11 @@ function Track(parentJourney) {
 	this.addBreadcrumb = function(lonlat) {
 		this.addData('position', lonlat);
 	}
-	
+
 	this.hasTracks = function() {
 		return (this.cache.features[0].geometry.coordinates.length && (this.cache.features[0].geometry.coordinates.length > 0)); // FIXME - not keen on relying on first position in this.cache.features array to identify the linestring (trail)
 		};
-	
+
 	this.addData = function(measure, position, data) {
 		var isBreadcrumb = ( measure == 'position' );
 		var logThis = config.POSITION_LOGGING || !isBreadcrumb;
@@ -269,7 +273,7 @@ function Track(parentJourney) {
 		var timeStamp = new Date();
 
 		logThis && logActivity('Adding ' + ( isBreadcrumb ? '' : measure + ' of ' + data.toString() + ' ') + 'to trail "' + parentJourney.title + '" @(' + position[0] + ',' + position[1] + ')' );
-		
+
 		var features = this.cache.features[0]; // FIXME - not keen on relying on first position in this.cache.features array to identify the linestring (trail)
 		features.geometry.coordinates.push(position);
 		features.properties.coordinateProperties.times.push(timeStamp.valueOf());
@@ -289,16 +293,16 @@ function Track(parentJourney) {
 				};
 			this.cache.features.push(pointFeature);
 		}
-		
+
 		this.sync();
-		
+
 		logThis && ( function() { // that is one pretentious if statement ;)
 			console.log('Track2: ' + JSON.stringify(__this.cache));
 			})();
-			
+
 		return pointFeature; // this will be null for breadcrumbs
 		};
-		
+
 	this.close = function() {
 		this.updateMetadata({'ended': new Date().toUTCString()}); // CHECKME: might be better off storing in UTC (also track.started)
 	}
@@ -334,7 +338,8 @@ function Track(parentJourney) {
 			});
 
 			req.fail( function (xhr, failText) {
-				console.log('Error ' + xhr.status + ': ' + failText);
+				logActivity('Upload to ' + uploadPath + ' failed ..');
+				logActivity('Error ' + xhr.status + ': ' + failText);
 				onFail && onFail.call();
 			});
 		}
@@ -343,7 +348,7 @@ function Track(parentJourney) {
 			onFail && onFail.call(); // ??? FIXME - good idea?
 		}
 	};
-	
+
 	// NB. this does not change the (parent) journey *title* which is used as a database id (in the 'name' column :/)
 	this.rename = function(newTitle) {
 		console.log('Renaming track');
@@ -368,9 +373,9 @@ function Track(parentJourney) {
 	Methods: /create?, upload, /sync, /addMetadata, /addData, /hasTracks, /rename, /promptName, /__defaultName, close, addMedia, __save, load
 	Properties: source, __stats
 	*/
-	
+
 	};
-	
+
 function adaptiveStart() {
 	console.log('Big button Start journey pressed');
 	journey.start( function() {
@@ -470,8 +475,8 @@ function fauxConnected() {
 	document.addEventListener('volumeupbutton', buttonGood, false);
 	document.addEventListener('volumedownbutton', buttonBad, false);
 
-	displayStatus('Faux connected', 'success');
-	adaptiveButton('start');
+	sensibelStatus.add('BLE');
+	// adaptiveButton('start');
 	// TODO - any other unintended consequences of going sensorless while pretending ??
 }
 
@@ -516,7 +521,7 @@ function processButton(val) {
 function markWaypoint(map, waypoint) {
 	console.log('Marking waypoint (' + waypoint.geometry.coordinates[1] + ',' + waypoint.geometry.coordinates[0] + ') on map');
 	var isGood = ( waypoint.properties.value == '01' );
-	
+
 	var options = {
 		'color':     ( isGood ? 'green' : 'red' ), // FIXME: use classes if possible
 	};
@@ -525,7 +530,7 @@ function markWaypoint(map, waypoint) {
 		var uid = UUishID(true); // FIXME: if I end up using a precise enough UTC timestamp in geoJSON, that can serve as an identifier suffix
 		var headline = '<h3>' + ( isGood ? 'Sweet!' : 'Stink' ) + '</h3>';
 		// var formattedDate = $.formatDateTime('yy hh:ii', new Date(feature.properties.time.replace('Z','+13:00')));
-		
+
 		var commentValue = ( waypoint.properties.hasOwnProperty('comment') ? waypoint.properties.comment : '' );
 		var metadata = ' \
 			<p><strong>Position:</strong> ' + waypoint.geometry.coordinates[1] + ',' + waypoint.geometry.coordinates[0] + '</p> \
@@ -534,9 +539,9 @@ function markWaypoint(map, waypoint) {
 		if (commentValue.length > 0) {
 			metadata += '<p><strong>Comment:</strong> ' + commentValue + '</p>';
 		}
-		
+
 		var modalLink = '<p><a id="annotate-' + uid + '" data-rel="popup" href="#popup-' + uid + '" data-position-to="window" data-transition="slideup">Add notes</a></p>';
-		
+
 		// TODO: insert a Streetview(TM) image (if online) or other aide memoire here ??
 
 		var notePlaceHolder = 'What was so ' + ( isGood ? 'good' : 'bad') + ' here?';
@@ -594,7 +599,7 @@ function markWaypoint(map, waypoint) {
 			});
 		$modal.find('select').selectmenu();
 		$modal.popup();
-		
+
 		L.circleMarker(L.latLng(waypoint.geometry.coordinates[1], waypoint.geometry.coordinates[0]), options)
 			.bindPopup(L.popup({'className':'notes ' + ( isGood ? 'good' : 'bad')}).setContent($popupContent[0]))
 			.addTo(map)
@@ -623,33 +628,41 @@ function appStatus(initialState) {
 	this.__reset = function(statuses) { // FIXME: something something scope something -should be private methods
 		console.log(JSON.stringify(statuses));
 		var defaultStatuses = {
-			'net': false,
-			'GPS': false,
-			'BLE': false,
-			'tracking': false,
+			'net': null,
+			'GPS': null,
+			'BLE': null,
+			'tracking': null,
 			};
 		this.state = Object.assign({}, defaultStatuses, ( statuses ? statuses : {} ));
 		console.log(JSON.stringify(this.state));
 		this.__reflect();
-
 	};
+
+	var backup = function(state) {
+		return JSON.parse(JSON.stringify(state)); // clones it fastly, according to http://stackoverflow.com/a/5344074
+	}
 
 	this.add = function(property) {
 		if(this.state.hasOwnProperty(property)) {
+			var prior = backup(this.state);
 			this.state[property] = true;
-			this.__reflect();
+			this.__reflect(prior);
 		}
 	};
 
 	this.remove = function(property) {
 		if(this.state.hasOwnProperty(property)) {
+			var prior = backup(this.state);
 			this.state[property] = false;
-			this.__reflect();
+			this.__reflect(prior);
 		}
 	};
 
-	this.__reflect = function() {
+	this.__reflect = function(previousState) {
 		console.log('Reflecting state ' + JSON.stringify(this.state));
+		if (previousState) {
+			console.log('.. coming from state ' + JSON.stringify(previousState));
+		}
 
 		if(this.state.tracking) {
 			adaptiveButton('stop');
@@ -661,7 +674,12 @@ function appStatus(initialState) {
 					displayStatus('Tracking', 'tracking'); // ******* F
 				}
 				else {
-					displayStatus('Connected', 'ready'); // ******* E
+					if (isFakingConnection()) {
+						displayStatus('Faux connected', 'success');
+					}
+					else {
+						displayStatus('Connected', 'ready'); // ******* E
+					}
 					adaptiveButton('start');
 				}
 			}
@@ -669,20 +687,30 @@ function appStatus(initialState) {
 				if(this.state.tracking) {
 					displayStatus('Disconnected', 'warning'); // ******** H
 				}
-				else {
+				else { // TODO - adapt message depending on previous state as per GPS below
 					displayStatus('Not connected', 'warning'); // ********* D
 					adaptiveButton('connect');
 				}
 			}
 
 		}
-		else {
+		else { // !GPS
 			if(this.state.BLE) {
 				if(this.state.tracking) {
 					displayStatus('Lost GPS', 'warning'); // ******* C
 				}
-				else {
-					displayStatus('Lost GPS', 'pending'); // ******* B
+				else { // ******* B
+					if (this.state.GPS === null) {
+						displayStatus('Finding GPS', 'pending');
+					}
+					else if (previousState) {
+						if (previousState.GPS === null) {
+							displayStatus('GPS timed out', 'warning');
+						}
+						else {
+							displayStatus('Lost GPS', 'warning');
+						}
+					}
 					adaptiveButton('wait');
 				}
 			}
@@ -720,7 +748,7 @@ console.log('State is - ' + JSON.stringify(sensibelStatus));
 /*
 	GPS		BLE		Journey	Review	Status	Message		Button		Callback	Log
 a	x		x		x				Pending	Waiting GPS	(spinner)
-b	x		/		x				Pending	Lost GPS	(spinner)
+b	x		/		x				Pending	Waiting GPS	(spinner)
 c	x		/		/				warning	Lost GPS	Stop
 d	/		x		x				warning	Not connected Connect
 e	/		/		x		.		Ready 	Connected	Start
@@ -736,7 +764,7 @@ function localDatabaseStuff() {
 	dbConnection = window.openDatabase(config.databaseParams.name, config.databaseParams.version, config.databaseParams.title, config.databaseParams.size, function() {
 		logActivity('Database ' + config.databaseParams.name + ' successfully opened or created.');
 	});
-	
+
 	// query.drop('tracks');
 	dbConnection.transaction(function (tx) {
 		// FIXME: stamp can has something like DEFAULT CURRENT_TIMESTAMP, however, sucky sucky SQLite docs
@@ -748,7 +776,7 @@ function localDatabaseStuff() {
 			);'
 		tx.executeSql(SQL, [], query.onSuccess, query.onFail);
 	});
-	
+
 	// query.drop('categories');
 	dbConnection.transaction(function (tx) {
 		var SQL = 'CREATE TABLE IF NOT EXISTS categories ( \
@@ -766,7 +794,7 @@ function localDatabaseStuff() {
 
 	function populateCategories() { // TODO: this should sync with an online store if online
 		var timestamp = Date.now();
-		var categories = [	
+		var categories = [
 			'Infrastructure',
 			'Environmental',
 			'Wayfinding',
@@ -795,7 +823,7 @@ function localDatabaseStuff() {
 			});
 	}
 	// query.dump('categories');
-	
+
 	function loadCategories() {
 		dbConnection.readTransaction( function (tx) {
 			tx.executeSql('SELECT name FROM categories', [], function(transaction, resultSet) {
@@ -814,8 +842,8 @@ function localDatabaseStuff() {
 function configManagementHacks() {
 	// settings.setItem('file.prefix', 'dev-'); // console.log(settings.getItem('file.prefix'));
 	// settings.removeItem('file.prefix');
-	
-	initialiseUsingDefault('connectAuthenticity', 'real');
+
+	initialiseUsingDefault('connectAuthenticity', (config.useFauxConnection ? 'fake' : 'real') );
 	initialiseUsingDefault('bucketName', config.AWS_S3.bucket);
 }
 
