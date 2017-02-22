@@ -19,7 +19,7 @@ function Sensor() {
 		}
 		while (!this.target);
 
-		logActivity('This is handset device ' + device.uuid + ' wanting to pair with ' + ( this.target ? this.target : '[unpaired]' )); // shouldn't need that last ternary while above do/while is in place
+		logActivity('This is handset device ' + device.uuid + ' wanting to pair with ' + ( this.target ? this.target : '[unpaired]' ) + ( isFakingConnection() ? ' [FAKED]' : '' ) ); // shouldn't need that last ternary while above do/while is in place
 	}
 
 	this.connectFromScratch = function(success) { // TODO: success param not implemented 
