@@ -21,6 +21,10 @@ var config = {
 		bucket: 'yer.bucket.name'
 	},
 
+	DATASTORE: {
+		endpoint: 'https://user:pass@example.org/my_journey_database',
+	},
+
 	IDPairingsHack: {
 		'<device1-id>': '<sensor1-name>',
 		'<device2-id>': '<sensor2-name>'
