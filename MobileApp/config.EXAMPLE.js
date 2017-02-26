@@ -9,18 +9,6 @@ var config = {
 
 	SHOW_TRACKPOINTS: 'properties', // none|markers|properties
 
-	databaseParams: {
-		'name':    'Tracks',
-		'version': '',
-		'title':   'Sensibel tracks',
-		'size':    5 * 1024 * 1024, // 5MB
-	},
-
-	AWS_S3: {
-		credentials: {},
-		bucket: 'yer.bucket.name'
-	},
-
 	dataStore: {
 		/* TODO:
 		user:     'user',
@@ -29,6 +17,7 @@ var config = {
 		*/
 		database: 'my_journey_database',
 		endpoint: 'https://user:pass@example.org', // no leading slash is going to work best for now ..
+		prefix:   '', // TODO - make this optional ideally (rather than having to set it blank)
 	},
 
 	IDPairingsHack: {
