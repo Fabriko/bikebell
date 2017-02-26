@@ -1,3 +1,9 @@
+var localStore = new PouchDB(config.dataStore.database);
+
+var remoteStore = config.dataStore.endpoint + '/' + config.dataStore.database;
+
+// ****
+
 var query = {
 	onSuccess: function(transaction, resultSet) {
 		// console.log('Query completed: ' + JSON.stringify(resultSet.rows)); //  + transaction.toString()
@@ -55,10 +61,7 @@ query.lastTrack = function() {
 
 // ***************************************************
 
-var tdb = new PouchDB('my_test_database');
-
-var remoteCouch = config.DATASTORE.endpoint;
-console.log(remoteCouch);
+console.log(remoteStore);
 
 var my_test_data = {
 	'_id':    new Date().toISOString(),
@@ -66,14 +69,15 @@ var my_test_data = {
 	'field2': 'my value 2'
 };
 
-tdb.put(my_test_data).then(
+/*
+localStore.put(my_test_data).then(
 	function(result) {
 		console.log('yay');
 		console.log(result);
 	}).then(
 	function(result) {
 		console.log('yay again');
-		tdb.sync( remoteCouch, {live: false}).on('change', 
+		localStore.sync( remoteStore, {live: false}).on('change', 
 			function (info) {
 				console.log('info: ' + JSON.stringify(info));
 			});
@@ -82,11 +86,10 @@ tdb.put(my_test_data).then(
 		console.log('boo');
 		console.log('err: ' + err.name + JSON.stringify(err));
 	});
-
-tdb.spit = function() {
+localStore.spit = function() {
 }
 
-tdb.allDocs( {includeDocs: true} ).then(
+localStore.allDocs( {includeDocs: true} ).then(
 	function(result) {
 		console.log(result.rows);
 	}).catch(
@@ -94,3 +97,4 @@ tdb.allDocs( {includeDocs: true} ).then(
 		console.log('noooo');
 		console.log(err);
 	});
+*/

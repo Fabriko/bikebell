@@ -21,8 +21,14 @@ var config = {
 		bucket: 'yer.bucket.name'
 	},
 
-	DATASTORE: {
-		endpoint: 'https://user:pass@example.org/my_journey_database',
+	dataStore: {
+		/* TODO:
+		user:     'user',
+		password: 'pass',
+		// etc
+		*/
+		database: 'my_journey_database',
+		endpoint: 'https://user:pass@example.org', // no leading slash is going to work best for now ..
 	},
 
 	IDPairingsHack: {
