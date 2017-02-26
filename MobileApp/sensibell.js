@@ -28,6 +28,42 @@ document.addEventListener('deviceready', function() {
 	$('#adaptive-connect').click();
 	}, false);
 
+document.addEventListener('deviceready', function() {
+	if (navigator.connection.type && navigator.connection.type != Connection.UNKNOWN && navigator.connection.type != Connection.NONE) {
+		bellUI.popup('Online via connection type ' + navigator.connection.type, 'long');
+		logActivity('Attempting to sync to remote datastore ..');
+		localStore.sync(remoteStore).on('complete', // FIXME: sometimes this triggers twice .. ???
+			function (info) {
+				logActivity(" .. succeeded!");
+				}).on('error',
+			function (err) {
+				logActivity(" .. failed, we'll try again later.");
+			});
+	}
+	else {
+		bellUI.popup('Not online', 'long', { fallback: window.alert });
+	}
+
+	document.addEventListener('online',	function() {
+		logActivity('*** app now ONLINE ***');
+		logActivity('Now online, so syncing to remote datastore ..');
+		localStore.sync(remoteStore).on('complete',
+			function (info) {
+				logActivity(" .. succeeded!");
+				}).on('error',
+			function (err) {
+				logActivity(" .. failed, we'll try again later.");
+			});
+		}, false);
+
+	}, false);
+
+// Note: There is only one point to this. I'm just curious if this (and more importantly 'online') is triggered outside a documentready as the docs seem to indicate won't work
+// https://www.npmjs.com/package/cordova-plugin-network-information
+document.addEventListener('offline', function() {
+    logActivity('*** app gone OFFLINE ***');
+	}, false);
+
 document.addEventListener('pause', function() {
     logActivity('*** app PAUSED ***');
 	}, false);
@@ -35,6 +71,17 @@ document.addEventListener('pause', function() {
 document.addEventListener('resume',	function() {
 	// TODO: add stopScan for pause
 	logActivity('*** app RESUMED ***');
+
+	if (navigator.connection.type && navigator.connection.type != Connection.UNKNOWN && navigator.connection.type != Connection.NONE) {
+		logActivity('Resumed, so attempting to sync to remote datastore ..');
+		localStore.sync(remoteStore).on('complete',
+			function (info) {
+				logActivity(" .. succeeded!");
+				}).on('error',
+			function (err) {
+				logActivity(" .. failed, we'll try again later.");
+			});
+	}
 	}, false);
 
 function logPosition(val, success, options) {

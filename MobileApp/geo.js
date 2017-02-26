@@ -10,13 +10,8 @@ document.addEventListener(
 			console.log('App supports ' + navigator.geolocation + ', using options: ' + JSON.stringify(config.geoOptions));
 			logActivity('Getting GPS fix ..', 'task');
 
-			// refer https://www.npmjs.com/package/cordova-plugin-network-information to handle status changes using 'offline' and 'online' events <<-- TODO
-			if (navigator.connection.type) {
-				bellUI.popup('Online via connection type ' + navigator.connection.type, 'long');
+			if (navigator.connection.type && navigator.connection.type != Connection.UNKNOWN && navigator.connection.type != Connection.NONE) {
 				dashMap = drawMap('dash-canvas');
-			}
-			else {
-				bellUI.popup('Not online', 'long', { fallback: window.alert });
 			}
 
 			// kill image?
