@@ -15,6 +15,8 @@
 	<script src="https://cdn.rawgit.com/makinacorpus/Leaflet.AlmostOver/gh-pages/src/leaflet.almostover.js"></script>
 	<script src="https://npmcdn.com/@turf/turf@3.5.1/turf.min.js"></script>
 	<!-- <script src="lib/spectrum.js"></script> -->
+	
+	<script src="//cdn.jsdelivr.net/pouchdb/6.1.2/pouchdb.min.js"></script>
 
 	<script src="config.js"></script>
 
@@ -25,7 +27,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.2.20';
+		var _VERSION = '0.3.01';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -44,7 +46,11 @@
 			'Bike mechanics',
 			];
 
+		var localStore = new PouchDB(config.dataStore.database);
+		var remoteStore = config.dataStore.endpoint + '/' + config.dataStore.database;
+
 		$(document).ready(function() {
+
 			$('h1').after('<span class="meta version">v' + _VERSION + ' (<a href="showTrail.html">latest</a>)</span>');
 
 			if ( map === undefined ) {
@@ -59,6 +65,19 @@
 				L.control.layers(baseMaps).addTo(map);
 			}
 			// console.log(map);
+
+			console.log('Syncing with remote datastore ..');
+			localStore.sync(remoteStore, {
+				live: true,
+				retry: true,
+				}); /* .on('complete',
+					function (info) {
+						console.log(" .. succeeded!");
+					}).on('error',
+					function (err) {
+						console.log(" .. failed, we'll try again later.");
+					}
+				); */
 
 			journeys = new journeyRecords(config.AWS_S3);
 			loadedRecords = {}; // NB. choice is to keep records since they are being loaded below anyway, though that is not optimal or necessarily going to stay the case ..
@@ -271,6 +290,21 @@
 			this.list = function(onSuccess, onFail) { // TODO: onFail not implemented
 
 				items = $.get('http://'  + dataSource.bucket + '.s3.amazonaws.com/?list-type=2&prefix=' + config.VIEWER_FILE_PREFIX );
+
+				var nooItems = localStore.allDocs( {
+					include_docs: true,
+					// startkey:  'dev-', // endkey: 'dev-',
+					descending:   true,
+					}).then(
+						function(result) {
+							console.log(result);
+						}
+					).catch(
+						function(err) {
+							console.log('fail getting allDocs');
+							console.log(err);
+						}
+					);
 
 				items.done ( function(responseBody) {
 					$xml = $(responseBody);
