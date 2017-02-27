@@ -27,7 +27,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.3.06';
+		var _VERSION = '0.3.07';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -434,7 +434,7 @@ function JourneyRecord(record) {
 							} */
 					}
 					else {
-// FIXME				loadedRecords[itemName].hideOn(map);
+						journeys[record.id].hideOn(map);
 						// document.getElementById('color.' + itemId).setAttribute('disabled', 'disabled');
 					}
 					$(this).parents('#journeys li').toggleClass('showing');
@@ -682,6 +682,12 @@ function JourneyRecord(record) {
 		this.layerGroup.addLayer(L.marker(started, { 'icon': startMarker, }).bindPopup(startedPopup)).addTo(targetMap);
 		this.layerGroup.addLayer(L.marker(finished, { 'icon': finishMarker, }).bindPopup(finishedPopup)).addTo(targetMap);
 
+	}
+
+	this.hideOn = function(targetMap) {
+		this.layerGroup.eachLayer( function(layer) {
+			targetMap.removeLayer(layer);
+			} );
 	}
 
 	var getPopupContent = function(properties) {
