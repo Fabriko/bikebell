@@ -27,7 +27,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.3.03';
+		var _VERSION = '0.3.04';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -106,7 +106,7 @@ localStore.allDocs( {
 			$('#journeys').listview();
 			result.rows.forEach( function(doc) {
 				console.log(doc.id);
-				journeys[doc.id] = new journeyRecord(doc);
+				journeys[doc.id] = new JourneyRecord(doc);
 				journeys[doc.id].render();
 				});
 			console.log(journeys);
@@ -316,7 +316,7 @@ localStore.allDocs( {
 			}
 		}
 
-function journeyRecord(record) {
+function JourneyRecord(record) {
 	var __this = this;
 
 	// console.log(record.doc.type);
