@@ -27,7 +27,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.3.01';
+		var _VERSION = '0.3.02';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -45,6 +45,8 @@
 			'Traffic',
 			'Bike mechanics',
 			];
+
+		var journeys = {};
 
 		var localStore = new PouchDB(config.dataStore.database);
 		var remoteStore = config.dataStore.endpoint + '/' + config.dataStore.database;
@@ -67,22 +69,59 @@
 			// console.log(map);
 
 			console.log('Syncing with remote datastore ..');
-			localStore.sync(remoteStore, {
-				live: true,
-				retry: true,
-				}); /* .on('complete',
-					function (info) {
-						console.log(" .. succeeded!");
-					}).on('error',
-					function (err) {
-						console.log(" .. failed, we'll try again later.");
-					}
-				); */
 
+			var startLiveSync = function() {
+				localStore.sync(remoteStore, {
+					live: true,
+					retry: true,
+					});
+				};
+
+			localStore.sync(remoteStore).then( // one-shot wrapper because we want to report status more easily and also ..???
+					function (info) {
+						console.log(' .. succeeded! Setting up a live sync now');
+						startLiveSync();
+					}).catch(
+					function (err) {
+						console.log(" .. failed, we'll keep trying.");
+						startLiveSync();
+					}
+				);
+
+/*
+localStore.changes({
+  since: 'now',
+  live: true
+}).on('change', function(){});
+*/
+
+
+localStore.allDocs( {
+	include_docs: true,
+	// startkey:  'dev-', // endkey: 'dev-',
+	descending:   true,
+	}).then(
+		function(result) {
+			console.log(result);
+			$('#journeys').listview();
+			result.rows.forEach( function(doc) {
+				console.log(doc.id);
+				journeys[doc.id] = new journeyRecord(doc);
+				});
+			console.log(journeys);
+		}
+	).catch(
+		function(err) {
+			console.log('fail getting allDocs');
+			console.log(err);
+		}
+	);
+
+/*
 			journeys = new journeyRecords(config.AWS_S3);
 			loadedRecords = {}; // NB. choice is to keep records since they are being loaded below anyway, though that is not optimal or necessarily going to stay the case ..
 				// The other option would be to load the track file as required only
-			$('#journeys').listview();
+//			$('#journeys').listview();
 			// $('#journeys').append($('<h2>Heading TODO</h2>')); // FIXME: this gets prepended to, so something more like .after() is required, or the sequence to be looked at
 			journeys.list( function(contents) {
 				itemNames = [];
@@ -95,7 +134,7 @@
 						if (record.metadata) {
 							var itemId = itemName.replace('-','.'); // wish I'd explained myself here
 							var itemReference = itemName.replace(/\.json$/, '');
-							/* console.log( (Math.floor(Math.random() * (34 - 170 + 1)) + 170).toString(16) ); */ // experiment with random track colours
+							// console.log( (Math.floor(Math.random() * (34 - 170 + 1)) + 170).toString(16) ); // experiment with random track colours
 
 							var rider = record.metadata.hasOwnProperty('rider') ? record.metadata.rider : UNKNOWN_CYCLIST;
 							var duration = ( record.metadata.hasOwnProperty('started') && record.metadata.hasOwnProperty('ended')
@@ -154,12 +193,6 @@
 										.text('+' + record.goodPoints.length + ' / -' + record.badPoints.length)  // TODO: make this (or similar) the title text and add infographic line
 										)
 									)
-								// TODO - sexy stats here
-								/* THIS WORKS ..
-								.append($('<img/>')
-									.attr('src','ui/images/stat-length.png')
-									)
-								*/
 								);
 
 							var $controls = $('<div/>')
@@ -182,9 +215,7 @@
 											// console.log($.extend({}, config.rendering['viz-canvas'].lineStyle, styleOverride));
 											loadedRecords[itemName].showOn(map, styleOverride);
 											// document.getElementById('color.' + itemId).removeAttribute('disabled');
-												/* {
-													'color': $('#color.' + itemId).val(),
-												} */
+												// {'color': $('#color.' + itemId).val(),}
 										}
 										else {
 											loadedRecords[itemName].hideOn(map);
@@ -202,11 +233,10 @@
 										})
 									// .attr('disabled', 'disabled')
 									.val(config.rendering['viz-canvas'].lineStyle.color)
-									/* // if I ever get a better colour popup (than the disappointing Spectrum)
-									.click( function(evt) {
-										evt.preventDefault();
-										})
-									*/
+									// if I ever get a better colour popup (than the disappointing Spectrum)
+									// .click( function(evt) {
+									//	evt.preventDefault();
+									//	})
 									.change( function(evt) {
 										console.log(this.value);
 										if (loadedRecords[itemName].lineStringLayer) {
@@ -215,22 +245,6 @@
 											});
 										}
 										})
-									/*
-									.spectrum({
-										   showPalette: true,
-										   showSelectionPalette: true,
-										   maxSelectionSize: 8,
-										   hideAfterPaletteSelect: true,
-										   showInitial: true,
-										   // showInput: true,
-										   change: function(colour) {
-															console.log(colour);
-															loadedRecords[itemName].lineStringLayer.setStyle({ // CHECKME: ensure (unclear from Leaflet docs) that this doesn't override any style options already set
-																'color': colour.toHexString(),
-																});
-															}
-										})
-										*/
 									);
 
 							$item = $('<li/>')
@@ -254,6 +268,8 @@
 					});
 
 				});
+*/
+				
 			});
 
 	</script>
@@ -291,21 +307,6 @@
 
 				items = $.get('http://'  + dataSource.bucket + '.s3.amazonaws.com/?list-type=2&prefix=' + config.VIEWER_FILE_PREFIX );
 
-				var nooItems = localStore.allDocs( {
-					include_docs: true,
-					// startkey:  'dev-', // endkey: 'dev-',
-					descending:   true,
-					}).then(
-						function(result) {
-							console.log(result);
-						}
-					).catch(
-						function(err) {
-							console.log('fail getting allDocs');
-							console.log(err);
-						}
-					);
-
 				items.done ( function(responseBody) {
 					$xml = $(responseBody);
 					resources = $xml.find('ListBucketResult Contents').toArray();
@@ -314,7 +315,181 @@
 			}
 		}
 
-		function journeyRecord(dataSource) {
+function journeyRecord(record) {
+	var __this = this;
+
+	// console.log(record.doc.type);
+	this['geoJSON']    = record.doc;
+	this['metadata']   = this.geoJSON.properties;
+
+	var fragmentId = record.id.replace('-','.'); // still wish I'd explained myself here!
+
+	// handle some missing values ..
+	var rider = this.metadata.hasOwnProperty('rider') ? this.metadata.rider : UNKNOWN_CYCLIST;
+	
+	var duration = ( this.metadata.hasOwnProperty('started') && this.metadata.hasOwnProperty('ended')
+		? function(start, finish){
+			var bits = millisecondsToComponents(new Date(finish) - new Date(start));
+			// FIXME: something about $().after() I don't get - jQ won't return the seconds unbolded here
+			// return $('<strong/>').text(bits.hours + ':'  + bits.mins).after(':' + bits.secs);
+			return bits.hours + ':'  + bits.mins + ':' + bits.secs;
+			}(this.metadata.started, this.metadata.ended)
+		: '[not recorded]'
+		);
+
+	console.log(rider + ' : ' + duration);
+
+	var lineString = function() {
+		console.log(__this.geoJSON.features);
+		if ( (__this.geoJSON) && ( LineStrings = __this.geoJSON.features.filter(GJUtils.isLineString) ) ) {
+			return LineStrings[0]; // we'll just take the first, shouldn't be more than one
+		}
+		}();
+		
+	console.log(lineString);
+
+	var $heading = $('<h3/>')
+		// .attr('title', itemReference) // this is invaluable at times if debugging based on file names
+		.append($('<label/>')
+			.attr('for', fragmentId)
+			.text(rider)
+			);
+
+	var $content = $('<p/>')
+		.attr('class','journey-summary')
+		.append( function() {
+			var $span = $('<span/>')
+				.attr('class', 'meta date')
+				.text( __this.metadata.hasOwnProperty('started') ? $.formatDateTime('MM dS, hh:ii', new Date(__this.metadata.started)) : UNKNOWN_TIME )
+				;
+			if(__this.metadata.hasOwnProperty('started')) {
+				$span.attr('title', 'Journey started: ' + $.formatDateTime("DD, dS MM yy 'at' g:iia", new Date(__this.metadata.started)));
+			}
+			return $span;
+			});
+
+	$content.append($('<div/>')
+		.attr('class', 'glance-panel')
+		.append($('<img/>')
+			.attr('class', 'meta avatar')
+			.attr('src', function () {
+				return getAvatar( __this.metadata.hasOwnProperty('rider') ? __this.metadata.rider : undefined );
+				})
+			.attr('alt', rider)
+			// TODO: add a popup on hover with info about user
+			)
+		.append($('<ul/>')
+			.attr('class','stats')
+			.append($('<li/>')
+				// .attr('id', 'metric-distance-' + itemReference)
+				.attr('class', 'distance')
+				.text(/* FIXME turf.lineDistance(lineString).toPrecision(2) */ 'FIXME' + 'km') // TODO: make this the title text and add infographic line
+				)
+			.append($('<li/>')
+				.attr('class', 'duration')
+				.append(duration)
+				)
+			.append($('<li/>')
+				.attr('class', 'sentiment')
+// FIXME				.text('+' + geoJSON.goodPoints.length + ' / -' + geoJSON.badPoints.length)  // TODO: make this (or similar) the title text and add infographic line
+				)
+			)
+		// TODO - sexy stats here
+		/* THIS WORKS ..
+		.append($('<img/>')
+			.attr('src','ui/images/stat-length.png')
+			)
+		*/
+		);
+
+	var $controls = $('<div/>')
+		.attr('class', 'map-controls')
+		.append($('<input/>')
+			.attr({
+				'type':  'checkbox',
+				'id':    fragmentId,
+				'class': 'journey',
+				})
+			.change( function() {
+				if (this.checked) {
+					//FIXME: neither the override idea or the enable/disable idea below work, but they don't break it :/
+
+					var styleOverride = {};
+					if (document.getElementById('color.' + fragmentId).value) {
+						styleOverride = {'color': document.getElementById('color.' + fragmentId).value,}
+					}
+					// console.log($.extend({}, config.rendering['viz-canvas'].lineStyle, styleOverride));
+// FIXME					loadedRecords[itemName].showOn(map, styleOverride);
+					// document.getElementById('color.' + itemId).removeAttribute('disabled');
+						/* {
+							'color': $('#color.' + itemId).val(),
+						} */
+				}
+				else {
+// FIXME					loadedRecords[itemName].hideOn(map);
+					// document.getElementById('color.' + itemId).setAttribute('disabled', 'disabled');
+				}
+				$(this).parents('#journeys li').toggleClass('showing');
+				})
+			)
+		.append($('<input/>')
+			.attr({
+				'type': 'color',
+				'id': 'color.' + fragmentId,
+				'class': 'color',
+				'title': 'Set Journey line colour',
+				})
+			// .attr('disabled', 'disabled')
+			.val(config.rendering['viz-canvas'].lineStyle.color)
+			/* // if I ever get a better colour popup (than the disappointing Spectrum)
+			.click( function(evt) {
+				evt.preventDefault();
+				})
+			*/
+			.change( function(evt) {
+				console.log(this.value);
+// FIXME
+/*				if (loadedRecords[itemName].lineStringLayer) {
+					loadedRecords[itemName].lineStringLayer.setStyle({ // CHECKME: unclear from Leaflet docs, but this doesn't override any style options already set
+					'color': this.value,
+					});
+				}
+*/
+				})
+			/*
+			.spectrum({
+				   showPalette: true,
+				   showSelectionPalette: true,
+				   maxSelectionSize: 8,
+				   hideAfterPaletteSelect: true,
+				   showInitial: true,
+				   // showInput: true,
+				   change: function(colour) {
+									console.log(colour);
+									loadedRecords[itemName].lineStringLayer.setStyle({ // CHECKME: ensure (unclear from Leaflet docs) that this doesn't override any style options already set
+										'color': colour.toHexString(),
+										});
+									}
+				})
+				*/
+			);
+
+	$item = $('<li/>')
+		.attr('id', 'li.' + fragmentId)
+			.append($controls)
+			.append($('<div/>')
+				.attr('class', 'hoozit')
+				.append($heading)
+				.append($content)
+				);
+
+	// TODO: add a button/link to zoom to the track's bounds
+	$('#journeys').append($item);
+	$('#journeys').listview('refresh');
+
+}
+
+		function journeyRecord0(dataSource) {
 			var __this = this;
 			this['metadata'] = {};
 			this['points'] = [];

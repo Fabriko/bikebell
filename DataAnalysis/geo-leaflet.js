@@ -98,3 +98,9 @@ Number.prototype.leadZeros = function(zeros) {
 		return this.toString();
 	}
 }
+
+GJUtils = {
+	'isLineString': function(feature) {
+		return (feature.geometry.type == 'LineString');
+		},
+};
