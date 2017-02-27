@@ -20,22 +20,25 @@ There are _at least_ two paths ..
 * [Evothings](http://evothings.com) Studio and client
 * [PhoneGap Toast Plugin](https://github.com/EddyVerbruggen/Toast-PhoneGap-Plugin)
 * [Openstreetmap](http://openstreetmap.org)
-* [Amazon S3](https://aws.amazon.com/s3/)
+* [IBM Cloudant](http://cloudant.com) server running [CouchDB](https://couchdb.apache.org) (or at least supporting its API)
+* [PouchDB](https://pouchdb.com) syncing Javascript client for CouchDB API
 * [jsbeautifier.org](http://jsbeautifier.org)
 * [git](http://git-scm.com) and [Github](http://github.com)
 
 ## FAQs
 ### What are the app requirements?
-Android, BLE, GPS, online
+Android, BLE, GPS
 
 ### Will there be an iOS version, or other platforms?
 Can you run it on my _[stylish\_machine]_? We've done this using Cordova mostly because we want to produce it for the greatest number of device platforms. So iThings, maybe Windows and others. Having said that, we are yet to try building for another platform.
 
 ### Where is the data stored?
-Currently [Amazon S3](https://aws.amazon.com/s3/) in the cloud. There were problems with our experience, so possibly another provider or our own server (an ownCloud instance on a cloud VM, but we'd need an SSL certificate in production).
+Currently we have a DBaaS instance at [IBM Cloudant](http://cloudant.com) in the cloud. I tried building my own virtual server running [Couchbase]() but failed because I thought it required similar resources to MySQL/Postgres :~/
+
+It's also synced and stored on devices running the app (and the [journey viewer](../DataAnalysis/)) because of the wonderfully simple [PouchDB](https://pouchdb.com) client library and [API](https://pouchdb.com/api.html).
 
 ### Will the app work with offline maps?
-I think we can do this using solutions <<-- yep, TODO
+As of around 0744df, subject to lots of testing (this is hard).
 
 ## Evolving list of inpsiring resources
 * [offline map tiles for Cordova](https://github.com/gregallensworth/L.TileLayer.Cordova)
