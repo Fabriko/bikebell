@@ -27,7 +27,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.3.04';
+		var _VERSION = '0.3.05';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -357,6 +357,9 @@ function JourneyRecord(record) {
 				.text(rider)
 				);
 
+		var goodPoints = GJUtils.getPoints(__this.geoJSON, BUTTON_VALUE_GOOD);
+		var badPoints = GJUtils.getPoints(__this.geoJSON, BUTTON_VALUE_BAD);
+
 		var $content = $('<p/>')
 			.attr('class','journey-summary')
 			.append( function() {
@@ -393,7 +396,7 @@ function JourneyRecord(record) {
 					)
 				.append($('<li/>')
 					.attr('class', 'sentiment')
-// FIXME			.text('+' + geoJSON.goodPoints.length + ' / -' + geoJSON.badPoints.length) 
+					.text('+' + goodPoints.length + ' / -' + badPoints.length) 
 					// TODO: make this (or similar) the title text and add infographic line
 					)
 				)

@@ -103,4 +103,21 @@ GJUtils = {
 	'isLineString': function(feature) {
 		return (feature.geometry.type == 'LineString');
 		},
+		
+	'isPoint': function(feature, valueFilter) {
+		return (feature.geometry.type == 'Point'
+			&& feature.properties
+			&& feature.properties.measure
+			&& feature.properties.measure == 'button'
+			&&  ( valueFilter ? (feature.properties.value && (feature.properties.value == valueFilter)) : true )
+			);
+		},
+
+	'getPoints': function(GJ, valueFilter) {
+		var __this = this;
+		return GJ.features.filter( function(feature) {
+			return __this.isPoint(feature, valueFilter);
+			});
+		},
+
 };
