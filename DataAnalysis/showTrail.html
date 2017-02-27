@@ -27,7 +27,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.3.10';
+		var _VERSION = '0.3.11';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -88,13 +88,6 @@
 					}
 				);
 
-			/* TODO
-			localStore.changes({
-			  since: 'now',
-			  live: true
-			}).on('change', function(){});
-			*/
-
 			localStore.allDocs( {
 				include_docs: true,
 				// startkey:  'dev-', // endkey: 'dev-',
@@ -109,6 +102,26 @@
 							journeys[doc.id].render();
 							});
 						// console.log(journeys);
+					}
+				).then(
+					function() {
+						localStore.changes({
+							since: 'now',
+							live: true,
+							include_docs: true,
+							}
+							).on('change',
+								function(change){
+									console.log('hey!');
+									if (change.deleted) {
+										console.log('deleted');
+										journeys[change.id].remove(map);
+									}
+									else {
+										console.log('modified/added');
+										// journeys[change.id].refresh() // TODO - write the method to add or modify a rendering
+									}
+									});
 					}
 				).catch(
 					function(err) {
@@ -321,8 +334,14 @@
 				$('#journeys').listview('refresh');
 			}
 
+			this.remove = function(targetMap) {
+				console.log('removing');
+				this.hideOn(targetMap);
+				$("#li\\." + record.id).remove();
+				$('#journeys').listview('refresh');
+				};
+
 			this.showOn = function(targetMap, lineStyle) {
-		//		var lineStringLayer;
 				var featureIndex = 0;
 				var initialLineStyle = Object.assign({}, config.rendering['viz-canvas'].lineStyle, lineStyle ? lineStyle : {});
 
@@ -508,7 +527,7 @@
 			}
 
 			this.hideOn = function(targetMap) {
-				this.layerGroup.eachLayer( function(layer) {
+				this.layerGroup && this.layerGroup.eachLayer( function(layer) {
 					targetMap.removeLayer(layer);
 					} );
 			}
