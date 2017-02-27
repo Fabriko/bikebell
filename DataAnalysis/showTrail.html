@@ -27,7 +27,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.3.02';
+		var _VERSION = '0.3.03';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -107,6 +107,7 @@ localStore.allDocs( {
 			result.rows.forEach( function(doc) {
 				console.log(doc.id);
 				journeys[doc.id] = new journeyRecord(doc);
+				journeys[doc.id].render();
 				});
 			console.log(journeys);
 		}
@@ -322,171 +323,173 @@ function journeyRecord(record) {
 	this['geoJSON']    = record.doc;
 	this['metadata']   = this.geoJSON.properties;
 
-	var fragmentId = record.id.replace('-','.'); // still wish I'd explained myself here!
+	this.render = function() {
+		var fragmentId = record.id.replace('-','.'); // still wish I'd explained myself here!
 
-	// handle some missing values ..
-	var rider = this.metadata.hasOwnProperty('rider') ? this.metadata.rider : UNKNOWN_CYCLIST;
-	
-	var duration = ( this.metadata.hasOwnProperty('started') && this.metadata.hasOwnProperty('ended')
-		? function(start, finish){
-			var bits = millisecondsToComponents(new Date(finish) - new Date(start));
-			// FIXME: something about $().after() I don't get - jQ won't return the seconds unbolded here
-			// return $('<strong/>').text(bits.hours + ':'  + bits.mins).after(':' + bits.secs);
-			return bits.hours + ':'  + bits.mins + ':' + bits.secs;
-			}(this.metadata.started, this.metadata.ended)
-		: '[not recorded]'
-		);
-
-	console.log(rider + ' : ' + duration);
-
-	var lineString = function() {
-		console.log(__this.geoJSON.features);
-		if ( (__this.geoJSON) && ( LineStrings = __this.geoJSON.features.filter(GJUtils.isLineString) ) ) {
-			return LineStrings[0]; // we'll just take the first, shouldn't be more than one
-		}
-		}();
+		// handle some missing values ..
+		var rider = this.metadata.hasOwnProperty('rider') ? this.metadata.rider : UNKNOWN_CYCLIST;
 		
-	console.log(lineString);
-
-	var $heading = $('<h3/>')
-		// .attr('title', itemReference) // this is invaluable at times if debugging based on file names
-		.append($('<label/>')
-			.attr('for', fragmentId)
-			.text(rider)
+		var duration = ( this.metadata.hasOwnProperty('started') && this.metadata.hasOwnProperty('ended')
+			? function(start, finish){
+				var bits = millisecondsToComponents(new Date(finish) - new Date(start));
+				// FIXME: something about $().after() I don't get - jQ won't return the seconds unbolded here
+				// return $('<strong/>').text(bits.hours + ':'  + bits.mins).after(':' + bits.secs);
+				return bits.hours + ':'  + bits.mins + ':' + bits.secs;
+				}(this.metadata.started, this.metadata.ended)
+			: '[not recorded]'
 			);
 
-	var $content = $('<p/>')
-		.attr('class','journey-summary')
-		.append( function() {
-			var $span = $('<span/>')
-				.attr('class', 'meta date')
-				.text( __this.metadata.hasOwnProperty('started') ? $.formatDateTime('MM dS, hh:ii', new Date(__this.metadata.started)) : UNKNOWN_TIME )
-				;
-			if(__this.metadata.hasOwnProperty('started')) {
-				$span.attr('title', 'Journey started: ' + $.formatDateTime("DD, dS MM yy 'at' g:iia", new Date(__this.metadata.started)));
+		var lineString = function() {
+			console.log(__this.geoJSON.features);
+			if ( (__this.geoJSON) && ( LineStrings = __this.geoJSON.features.filter(GJUtils.isLineString) ) ) {
+				return LineStrings[0]; // we'll just take the first, shouldn't be more than one
 			}
-			return $span;
-			});
+			}();
 
-	$content.append($('<div/>')
-		.attr('class', 'glance-panel')
-		.append($('<img/>')
-			.attr('class', 'meta avatar')
-			.attr('src', function () {
-				return getAvatar( __this.metadata.hasOwnProperty('rider') ? __this.metadata.rider : undefined );
-				})
-			.attr('alt', rider)
-			// TODO: add a popup on hover with info about user
-			)
-		.append($('<ul/>')
-			.attr('class','stats')
-			.append($('<li/>')
-				// .attr('id', 'metric-distance-' + itemReference)
-				.attr('class', 'distance')
-				.text(/* FIXME turf.lineDistance(lineString).toPrecision(2) */ 'FIXME' + 'km') // TODO: make this the title text and add infographic line
-				)
-			.append($('<li/>')
-				.attr('class', 'duration')
-				.append(duration)
-				)
-			.append($('<li/>')
-				.attr('class', 'sentiment')
-// FIXME				.text('+' + geoJSON.goodPoints.length + ' / -' + geoJSON.badPoints.length)  // TODO: make this (or similar) the title text and add infographic line
-				)
-			)
-		// TODO - sexy stats here
-		/* THIS WORKS ..
-		.append($('<img/>')
-			.attr('src','ui/images/stat-length.png')
-			)
-		*/
-		);
+		var distance = lineString.geometry.coordinates.length ? turf.lineDistance(lineString) : 0; // this is to work around an error turfjs throws when geometry.coordinates is empty, but we also should not be uploading these tracks!
 
-	var $controls = $('<div/>')
-		.attr('class', 'map-controls')
-		.append($('<input/>')
-			.attr({
-				'type':  'checkbox',
-				'id':    fragmentId,
-				'class': 'journey',
-				})
-			.change( function() {
-				if (this.checked) {
-					//FIXME: neither the override idea or the enable/disable idea below work, but they don't break it :/
+		// console.log(rider + ' : ' + duration);
 
-					var styleOverride = {};
-					if (document.getElementById('color.' + fragmentId).value) {
-						styleOverride = {'color': document.getElementById('color.' + fragmentId).value,}
-					}
-					// console.log($.extend({}, config.rendering['viz-canvas'].lineStyle, styleOverride));
-// FIXME					loadedRecords[itemName].showOn(map, styleOverride);
-					// document.getElementById('color.' + itemId).removeAttribute('disabled');
-						/* {
-							'color': $('#color.' + itemId).val(),
-						} */
-				}
-				else {
-// FIXME					loadedRecords[itemName].hideOn(map);
-					// document.getElementById('color.' + itemId).setAttribute('disabled', 'disabled');
-				}
-				$(this).parents('#journeys li').toggleClass('showing');
-				})
-			)
-		.append($('<input/>')
-			.attr({
-				'type': 'color',
-				'id': 'color.' + fragmentId,
-				'class': 'color',
-				'title': 'Set Journey line colour',
-				})
-			// .attr('disabled', 'disabled')
-			.val(config.rendering['viz-canvas'].lineStyle.color)
-			/* // if I ever get a better colour popup (than the disappointing Spectrum)
-			.click( function(evt) {
-				evt.preventDefault();
-				})
-			*/
-			.change( function(evt) {
-				console.log(this.value);
-// FIXME
-/*				if (loadedRecords[itemName].lineStringLayer) {
-					loadedRecords[itemName].lineStringLayer.setStyle({ // CHECKME: unclear from Leaflet docs, but this doesn't override any style options already set
-					'color': this.value,
-					});
-				}
-*/
-				})
-			/*
-			.spectrum({
-				   showPalette: true,
-				   showSelectionPalette: true,
-				   maxSelectionSize: 8,
-				   hideAfterPaletteSelect: true,
-				   showInitial: true,
-				   // showInput: true,
-				   change: function(colour) {
-									console.log(colour);
-									loadedRecords[itemName].lineStringLayer.setStyle({ // CHECKME: ensure (unclear from Leaflet docs) that this doesn't override any style options already set
-										'color': colour.toHexString(),
-										});
-									}
-				})
-				*/
-			);
-
-	$item = $('<li/>')
-		.attr('id', 'li.' + fragmentId)
-			.append($controls)
-			.append($('<div/>')
-				.attr('class', 'hoozit')
-				.append($heading)
-				.append($content)
+		var $heading = $('<h3/>')
+			// .attr('title', itemReference) // this is invaluable at times if debugging based on file names
+			.append($('<label/>')
+				.attr('for', fragmentId)
+				.text(rider)
 				);
 
-	// TODO: add a button/link to zoom to the track's bounds
-	$('#journeys').append($item);
-	$('#journeys').listview('refresh');
+		var $content = $('<p/>')
+			.attr('class','journey-summary')
+			.append( function() {
+				var $span = $('<span/>')
+					.attr('class', 'meta date')
+					.text( __this.metadata.hasOwnProperty('started') ? $.formatDateTime('MM dS, hh:ii', new Date(__this.metadata.started)) : UNKNOWN_TIME )
+					;
+				if(__this.metadata.hasOwnProperty('started')) {
+					$span.attr('title', 'Journey started: ' + $.formatDateTime("DD, dS MM yy 'at' g:iia", new Date(__this.metadata.started)));
+				}
+				return $span;
+				});
 
+		$content.append($('<div/>')
+			.attr('class', 'glance-panel')
+			.append($('<img/>')
+				.attr('class', 'meta avatar')
+				.attr('src', function () {
+					return getAvatar( __this.metadata.hasOwnProperty('rider') ? __this.metadata.rider : undefined );
+					})
+				.attr('alt', rider)
+				// TODO: add a popup on hover with info about user
+				)
+			.append($('<ul/>')
+				.attr('class','stats')
+				.append($('<li/>')
+					// .attr('id', 'metric-distance-' + itemReference)
+					.attr('class', 'distance')
+					.text(distance.toPrecision(2) + 'km') // TODO: make this the title text and add infographic line
+					)
+				.append($('<li/>')
+					.attr('class', 'duration')
+					.append(duration)
+					)
+				.append($('<li/>')
+					.attr('class', 'sentiment')
+// FIXME			.text('+' + geoJSON.goodPoints.length + ' / -' + geoJSON.badPoints.length) 
+					// TODO: make this (or similar) the title text and add infographic line
+					)
+				)
+			// TODO - sexy stats here
+			/* THIS WORKS ..
+			.append($('<img/>')
+				.attr('src','ui/images/stat-length.png')
+				)
+			*/
+			);
+
+		var $controls = $('<div/>')
+			.attr('class', 'map-controls')
+			.append($('<input/>')
+				.attr({
+					'type':  'checkbox',
+					'id':    fragmentId,
+					'class': 'journey',
+					})
+				.change( function() {
+					if (this.checked) {
+						//FIXME: neither the override idea or the enable/disable idea below work, but they don't break it :/
+
+						var styleOverride = {};
+						if (document.getElementById('color.' + fragmentId).value) {
+							styleOverride = {'color': document.getElementById('color.' + fragmentId).value,}
+						}
+						// console.log($.extend({}, config.rendering['viz-canvas'].lineStyle, styleOverride));
+// FIXME				loadedRecords[itemName].showOn(map, styleOverride);
+						// document.getElementById('color.' + itemId).removeAttribute('disabled');
+							/* {
+								'color': $('#color.' + itemId).val(),
+							} */
+					}
+					else {
+// FIXME				loadedRecords[itemName].hideOn(map);
+						// document.getElementById('color.' + itemId).setAttribute('disabled', 'disabled');
+					}
+					$(this).parents('#journeys li').toggleClass('showing');
+					})
+				)
+			.append($('<input/>')
+				.attr({
+					'type': 'color',
+					'id': 'color.' + fragmentId,
+					'class': 'color',
+					'title': 'Set Journey line colour',
+					})
+				// .attr('disabled', 'disabled')
+				.val(config.rendering['viz-canvas'].lineStyle.color)
+				/* // if I ever get a better colour popup (than the disappointing Spectrum)
+				.click( function(evt) {
+					evt.preventDefault();
+					})
+				*/
+				.change( function(evt) {
+					console.log(this.value);
+// FIXME
+/*			if (loadedRecords[itemName].lineStringLayer) {
+				loadedRecords[itemName].lineStringLayer.setStyle({ // CHECKME: unclear from Leaflet docs, but this doesn't override any style options already set
+				'color': this.value,
+				});
+			}
+*/
+					})
+				/*
+				.spectrum({
+					   showPalette: true,
+					   showSelectionPalette: true,
+					   maxSelectionSize: 8,
+					   hideAfterPaletteSelect: true,
+					   showInitial: true,
+					   // showInput: true,
+					   change: function(colour) {
+										console.log(colour);
+										loadedRecords[itemName].lineStringLayer.setStyle({ // CHECKME: ensure (unclear from Leaflet docs) that this doesn't override any style options already set
+											'color': colour.toHexString(),
+											});
+										}
+					})
+					*/
+				);
+
+		$item = $('<li/>')
+			.attr('id', 'li.' + fragmentId)
+				.append($controls)
+				.append($('<div/>')
+					.attr('class', 'hoozit')
+					.append($heading)
+					.append($content)
+					);
+
+		// TODO: add a button/link to zoom to the track's bounds
+		$('#journeys').append($item);
+		$('#journeys').listview('refresh');
+	}
 }
 
 		function journeyRecord0(dataSource) {
