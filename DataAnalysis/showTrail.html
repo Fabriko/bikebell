@@ -27,7 +27,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.3.05';
+		var _VERSION = '0.3.06';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -324,7 +324,8 @@ function JourneyRecord(record) {
 	this['metadata']   = this.geoJSON.properties;
 
 	this.render = function() {
-		var fragmentId = record.id.replace('-','.'); // still wish I'd explained myself here!
+		// var fragmentId = record.id.replace('-','.'); // still wish I'd explained myself here!
+		var fragmentId = record.id; // still wish I'd explained myself here!
 
 		// handle some missing values ..
 		var rider = this.metadata.hasOwnProperty('rider') ? this.metadata.rider : UNKNOWN_CYCLIST;
@@ -425,7 +426,8 @@ function JourneyRecord(record) {
 							styleOverride = {'color': document.getElementById('color.' + fragmentId).value,}
 						}
 						// console.log($.extend({}, config.rendering['viz-canvas'].lineStyle, styleOverride));
-// FIXME				loadedRecords[itemName].showOn(map, styleOverride);
+						// console.log(journeys[record.id]); alert('foo');
+						journeys[record.id].showOn(map, styleOverride);
 						// document.getElementById('color.' + itemId).removeAttribute('disabled');
 							/* {
 								'color': $('#color.' + itemId).val(),
@@ -493,6 +495,205 @@ function JourneyRecord(record) {
 		$('#journeys').append($item);
 		$('#journeys').listview('refresh');
 	}
+
+	this.showOn = function(targetMap, lineStyle) {
+//		var lineStringLayer;
+		var featureIndex = 0;
+		var initialLineStyle = Object.assign({}, config.rendering['viz-canvas'].lineStyle, lineStyle ? lineStyle : {});
+
+		// NB order of this and subsequent L.geoJSON call is important - probably suboptimal architecture, should be refactored - be careful in the meantime!
+		var lineStringsLayerGroup = L.geoJson(this.geoJSON, {
+			'filter': function(feature, layer) {
+				return ( feature.geometry && feature.geometry.type && feature.geometry.type == 'LineString' );
+				// TODO: use GJUtils.isLineString(feature)
+				},
+			'onEachFeature': function(feature, layer) {
+				layer.setStyle(initialLineStyle);
+
+				__this.lineStringLayer = layer; // FIXME; should really be an array or layerGroup as we could have more than one in the real world - see http://stackoverflow.com/a/19118143
+
+				featureIndex++;
+				}
+			});
+
+		// NB order of this and previous L.geoJSON call is important - probably suboptimal architecture, should be refactored - be careful in the meantime!
+		var pointsLayerGroup = L.geoJson(this.geoJSON, {
+			'filter': function(feature, layer) {
+				return ( feature.properties && feature.properties.measure && feature.properties.measure == 'button' );
+				},
+			'onEachFeature': function(feature, layer) {
+				// if (feature.properties && feature.properties.measure && feature.properties.measure == 'button') {
+
+				var hasCategory = feature.properties.hasOwnProperty('category');
+				var hasComment = feature.properties.hasOwnProperty('comment');
+				var hasAnnotations = hasCategory || hasComment;
+				var iconUrl = ( feature.properties.value == BUTTON_VALUE_GOOD ? 'ui/images/dot-pos.png' : 'ui/images/dot-neg.png' );
+				if (hasAnnotations) {
+					iconUrl = iconUrl.replace('.png', '-annotated.png');
+				}
+				var displayMarker = L.icon( {
+					'iconUrl':     iconUrl, // TODO: icon URLs from config
+					'riseOnHover': true,
+					});
+
+				var popupContent = getPopupContent(feature.properties);
+
+				__this.filename = 'FIXME'; //
+
+				// FIXME: categories not done properly here, read-only too
+				var categoryOptions;
+				categoryOptions += '<option></option>';
+				for (var i=0; i < categories.length; i++) {
+					categoryOptions += '<option value="' + categories[i] + '"';
+					if ( hasCategory && (feature.properties.category == categories[i]) ) {
+						categoryOptions += ' selected="selected"';
+					}
+					categoryOptions += '>';
+					categoryOptions += categories[i];
+					categoryOptions += '</option>\n';
+				}
+				// console.log('categoryOptions: ' + categoryOptions);
+
+				popupContent += ' \
+					<form name="annotate"> \
+						<input type="hidden" name="index" value="' + featureIndex + '" /> \
+						<input type="hidden" name="resource" value="' + __this.filename + '" /> \
+					<label for="category.' +  + featureIndex + '">Category:</label> \
+					<select id="category.' +  + featureIndex + '" name="category"> \
+					' + categoryOptions + ' \
+					</select> \
+					';
+
+				var commentValue = ( hasComment ? feature.properties.comment : '');
+				var placeHolder = 'What was so ' + (feature.properties.value == BUTTON_VALUE_GOOD ? 'good' : 'bad') + ' here?';
+				var commentForm = '<label for="comment.' +  + featureIndex + '">Comment:</label> \
+					<textarea id="comment.' +  + featureIndex + '" name="comment" placeholder="' + placeHolder + '">' + commentValue + '</textarea> \
+					<input type="button" value="Send"  onclick="sendAnnotation(this.form);" /> \
+					</form> \
+					';
+
+				popupContent += commentForm;
+
+				layer.setIcon(displayMarker);
+				layer.bindPopup(popupContent);
+
+				featureIndex++;
+				},
+			});
+
+		// console.log(lineStringsLayerGroup);
+		this.layerGroup = pointsLayerGroup.addLayer(lineStringsLayerGroup);
+		this.layerGroup.addTo(targetMap);
+
+		if ( config.SHOW_TRACKPOINTS != 'none' ) {
+			targetMap.almostOver.addLayer(lineStringsLayerGroup);
+
+			var pointMarker = L.circleMarker( [-90,180], {
+				'color': 'white',
+				'weight': 5,
+				'radius': 8,
+				'fillOpacity': 0.2,
+				'fillColor': 'white',
+				})
+
+			if ( config.SHOW_TRACKPOINTS == 'properties' ) {
+				pointMarker.bindTooltip('trackpoint', {
+					'opacity':0.7,
+					'offset':[0,-4],
+					});
+			}
+
+			targetMap.on('almost:over', function (evt) {
+				targetMap.addLayer(pointMarker);
+				evt.layer.setStyle({ // TODO: style from config
+					'color': 'red',
+					});
+				});
+
+			targetMap.on('almost:move', function (evt) {
+				// TODO: simplify snap by using http://makinacorpus.github.io/Leaflet.GeometryUtil/global.html#closest
+				var line = evt.layer.feature;
+				var pt = turf.point([evt.latlng.lng, evt.latlng.lat]);
+				var snapped = turf.pointOnLine(line, pt);
+				// console.log(snapped);
+				var snappedLatLng = L.latLng(snapped.geometry.coordinates[1],snapped.geometry.coordinates[0]);
+
+				if ( config.SHOW_TRACKPOINTS == 'properties' ) {
+					var tooltipText;
+					if(line.properties && line.properties.coordinateProperties) {
+						tooltipText = 'times';
+						var coordinatedProperties = coordinatedPropertiesAt(snapped.geometry.coordinates, line);
+						tooltipText = formatCoordinatedProperties(coordinatedProperties, ['lat', 'lon']);
+					}
+					else {
+						tooltipText = 'trackpoint';
+					}
+					pointMarker.setTooltipContent(tooltipText);
+				}
+
+				pointMarker.setLatLng(snappedLatLng);
+
+				});
+
+			targetMap.on('almost:out', function (evt) {
+				targetMap.removeLayer(pointMarker);
+				evt.layer.setStyle(initialLineStyle);
+				});
+
+			targetMap.on('almost:click', function (evt) {
+				evt.layer.setStyle({ // TODO: style from config
+					'weight': 10,
+					});
+				evt.layer.openPopup();
+				});
+		}
+
+		// console.log('lineStringLayer: '); console.log(lineStringLayer);
+		this.lineStringLayer.bindPopup('<h2>Journey details</h2>\n' + formatAttributes(this.geoJSON));
+
+		// console.log('gJLayer: '); console.log(gJLayer);
+		targetMap.fitBounds(this.layerGroup.getBounds());
+
+		// FIXME: some redundancy below here!
+		var startMarker = L.icon( {
+			'iconUrl': 'ui/images/dot-start.png', // TODO: icon URLs from config
+			'title':   'Start',
+			});
+		var finishMarker = L.icon( {
+			'iconUrl': 'ui/images/dot-finish.png', // TODO: icon URLs from config
+			'title':   'Finish',
+			});
+		var started = this.lineStringLayer.getLatLngs()[0];
+		var finished = this.lineStringLayer.getLatLngs().last();
+		var startedProperties = {'value': 'Start',};
+		var finishedProperties = {'value': 'Finish',};
+		// console.log(__this.metadata.hasOwnProperty('started'));
+
+		if (__this.metadata.hasOwnProperty('started')) {
+			startedProperties['time'] = __this.metadata.started;
+		}
+		if (__this.metadata.hasOwnProperty('ended')) {
+			finishedProperties['time'] = __this.metadata.ended;
+		}
+
+		var startedPopup = getPopupContent(startedProperties);
+		var finishedPopup = getPopupContent(finishedProperties);
+
+		this.layerGroup.addLayer(L.marker(started, { 'icon': startMarker, }).bindPopup(startedPopup)).addTo(targetMap);
+		this.layerGroup.addLayer(L.marker(finished, { 'icon': finishMarker, }).bindPopup(finishedPopup)).addTo(targetMap);
+
+	}
+
+	var getPopupContent = function(properties) {
+		var displayValue = ( properties.value == BUTTON_VALUE_GOOD ? 'Sweet!' : ( properties.value == BUTTON_VALUE_BAD ? 'Stink' : properties.value ) ); // TODO: captions from config
+		var formattedDate = $.formatDateTime('D MM d, yy hh:ii', new Date(properties.time.replace('Z','+12:00'))); // see also http://momentjs.com
+		var markup = '<h2>' + displayValue + '</h2>\n<p>' + formattedDate + '</p>\n';
+
+		return markup;
+	}
+
+
+
 }
 
 		function journeyRecord0(dataSource) {
