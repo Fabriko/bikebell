@@ -241,3 +241,11 @@ input.journey {
 .leaflet-popup.good .ground-photo {
 	border-color: green;
 }
+
+.notice {
+	border-radius: 4px;
+	background-color: lightyellow;
+	padding: 0.2em 0.5em;
+	font-weight: bolder;
+	color: maroon;
+}

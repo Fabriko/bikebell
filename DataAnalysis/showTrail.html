@@ -445,18 +445,32 @@
 
 						popupContent += commentForm;
 
-						var previewImageURL = 'https://maps.googleapis.com/maps/api/streetview?size=200x200&location=' + pointLatitude + ',' + pointLongitude + '&key=' + config.google_streetview_API_key;
-						// &fov=90&heading=235&pitch=10
-						var identifierImage = '<img id="depiction.' + featureIndex + '"  class="ground-photo" src="' + previewImageURL + '" />';
-
-						popupContent += identifierImage;
-
 						layer.setIcon(displayMarker);
 						layer.bindPopup(popupContent, {
 							className: (feature.properties.value == BUTTON_VALUE_GOOD ? 'good' : 'bad'),
 							}).on('popupopen', function(evt) {
 							console.log('open');
 							// we don't actually need this any more (was for resizing the image)
+
+							var metadataRequest = $.getJSON('https://maps.googleapis.com/maps/api/streetview/metadata?location=' + pointLatitude + ',' + pointLongitude + '&key=' + config.google_streetview_API_key);
+
+							metadataRequest.done(function(json) {
+								if (json.status == 'OK') {
+									var previewImageURL = 'https://maps.googleapis.com/maps/api/streetview?size=200x200&location=' + pointLatitude + ',' + pointLongitude + '&key=' + config.google_streetview_API_key;
+									// &fov=90&heading=235&pitch=10
+									var identifierImage = '<img id="depiction.' + featureIndex + '"  class="ground-photo" src="' + previewImageURL + '" />';
+									// popupContent += identifierImage;
+									evt.popup.setContent(evt.popup.getContent() + identifierImage);
+								}
+								else {
+									evt.popup.setContent(evt.popup.getContent() + '<p class="notice">No imagery available here.</p>');
+								}
+								});
+
+							metadataRequest.fail(function() {
+								evt.popup.setContent(evt.popup.getContent() + '<p class="notice">No image metadata</p>');
+								});
+
 							});
 
 						featureIndex++;
