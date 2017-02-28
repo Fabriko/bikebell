@@ -212,3 +212,32 @@ h1 .logo {
 input.journey {
 	visibility: hidden;
 }
+
+/* ah jeez, thanks https://github.com/Leaflet/Leaflet/issues/724#issuecomment-35599099 */
+.leaflet-popup-content {
+	width:auto !important;
+}
+
+.bad .leaflet-popup-content-wrapper,
+.bad .leaflet-popup-tip {
+	background-color: #ecbebc;
+}
+
+.good .leaflet-popup-content-wrapper,
+.good .leaflet-popup-tip {
+	background-color: #c1f5b9;
+}
+
+.ground-photo {
+	border-radius: 10px;
+	border: thick double;
+	margin-top: 1em;
+}
+
+.leaflet-popup.bad .ground-photo {
+	border-color: red;
+}
+
+.leaflet-popup.good .ground-photo {
+	border-color: green;
+}
