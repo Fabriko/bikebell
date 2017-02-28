@@ -40,6 +40,8 @@ var config = {
 	enableButtonsWithoutGPS: false,
 	useFauxConnection: false, // DEPRECATE FOR settings.connectAuthenticity = 'fake' || 'real'
 
+	google_streetview_API_key: '<obtain-your-own-api-key>',
+
 	layer: { // browse some free styles: http://leaflet-extras.github.io/leaflet-providers/preview/index.html
 
 		osm: {

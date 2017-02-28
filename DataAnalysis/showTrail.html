@@ -27,7 +27,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.3.12';
+		var _VERSION = '0.3.13';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -395,6 +395,8 @@
 					'onEachFeature': function(feature, layer) {
 						// if (feature.properties && feature.properties.measure && feature.properties.measure == 'button') {
 
+						var pointLatitude = feature.geometry.coordinates[1];
+						var pointLongitude = feature.geometry.coordinates[0];
 						var hasCategory = feature.properties.hasOwnProperty('category');
 						var hasComment = feature.properties.hasOwnProperty('comment');
 						var hasAnnotations = hasCategory || hasComment;
@@ -436,12 +438,18 @@
 						var commentValue = ( hasComment ? feature.properties.comment : '');
 						var placeHolder = 'What was so ' + (feature.properties.value == BUTTON_VALUE_GOOD ? 'good' : 'bad') + ' here?';
 						var commentForm = '<label for="comment.' +  + featureIndex + '">Comment:</label> \
-							<textarea id="comment.' +  + featureIndex + '" name="comment" placeholder="' + placeHolder + '">' + commentValue + '</textarea> \
+							<textarea id="comment.' + featureIndex + '" name="comment" placeholder="' + placeHolder + '">' + commentValue + '</textarea> \
 							<input type="button" value="Send"  onclick="sendAnnotation(this.form);" /> \
 							</form> \
 							';
 
 						popupContent += commentForm;
+
+						var previewImageURL = 'https://maps.googleapis.com/maps/api/streetview?size=200x200&location=' + pointLatitude + ',' + pointLongitude + '&key=' + config.google_streetview_API_key;
+						// &fov=90&heading=235&pitch=10
+						var identifierImage = '<img id="depiction.' + featureIndex + '"  class="ground-photo" src="' + previewImageURL + '" />';
+
+						popupContent += identifierImage;
 
 						layer.setIcon(displayMarker);
 						layer.bindPopup(popupContent);
