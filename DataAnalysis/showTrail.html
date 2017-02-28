@@ -27,7 +27,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.3.11';
+		var _VERSION = '0.3.12';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -119,7 +119,19 @@
 									}
 									else {
 										console.log('modified/added');
-										// journeys[change.id].refresh() // TODO - write the method to add or modify a rendering
+										if (journeys.hasOwnProperty(change.id)) {
+											console.log('update!');
+											/* FIXME: a bit buggy, but close
+											journeys[change.id].render(true);
+											*/
+										}
+										else {
+											console.log('new!');
+											/* FIXME: a bit buggy, but close
+											journeys[change.id] = new JourneyRecord(change);
+											journeys[change.id].render();
+											*/
+										}
 									}
 									});
 					}
@@ -166,7 +178,9 @@
 			this['geoJSON']    = record.doc;
 			this['metadata']   = this.geoJSON.properties;
 
-			this.render = function() {
+			this.render = function(refresh) {
+				refresh = ( typeof refresh == 'undefined' ? false : refresh );
+				console.log('refresh = ' + refresh.toString());
 
 				// handle some missing values ..
 				var rider = this.metadata.hasOwnProperty('rider') ? this.metadata.rider : UNKNOWN_CYCLIST;
@@ -183,7 +197,7 @@
 
 				var lineString = function() { // TODO: use _getLineString?
 					// console.log(__this.geoJSON.features);
-					if ( (__this.geoJSON) && ( LineStrings = __this.geoJSON.features.filter(GJUtils.isLineString) ) ) {
+					if ( __this.geoJSON && ( LineStrings = __this.geoJSON.features.filter(GJUtils.isLineString) ) ) {
 						return LineStrings[0]; // we'll just take the first, shouldn't be more than one
 					}
 					}();
@@ -330,7 +344,20 @@
 							);
 
 				// TODO: add a button/link to zoom to the track's bounds
-				$('#journeys').append($item);
+				
+				if (refresh) {
+					$("#li\\." + record.id).replaceWith($item);
+					if(__this.layerGroup) {
+						console.log('redraw');
+						__this.layerGroup.eachLayer( function(layer) {
+							layer.redraw(); // FIXME: doesn't work??
+							});
+					}
+				}
+				else {
+					$('#journeys').append($item);
+				}
+				
 				$('#journeys').listview('refresh');
 			}
 
