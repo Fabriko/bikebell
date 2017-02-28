@@ -18,6 +18,8 @@
 	<link rel="stylesheet" href="libs/jquery-mobile/jquery.mobile-1.4.5.css" />
 	<link rel="stylesheet" type="text/css" href="ui/css/fablab.css" />
 
+	<script src="libs/pouchdb/pouchdb-6.1.2.min.js"></script>
+
 	<script>
 	// Redirect console.log to Evothings Workbench.
 	if (window.hyper && window.hyper.log) {
@@ -27,10 +29,11 @@
 
 	<script src="util.js"></script>
 	<script src="config.js"></script>
+	<script src="storage.js"></script>
 
 	<script>
 	console.log('===========');
-	var _VERSION = '0.4.12-20161112';
+	var _VERSION = '0.5.0-201702262049';
 	var settings = window.localStorage;
 
 	document.addEventListener(

@@ -15,6 +15,8 @@
 	<script src="https://cdn.rawgit.com/makinacorpus/Leaflet.AlmostOver/gh-pages/src/leaflet.almostover.js"></script>
 	<script src="https://npmcdn.com/@turf/turf@3.5.1/turf.min.js"></script>
 	<!-- <script src="lib/spectrum.js"></script> -->
+	
+	<script src="//cdn.jsdelivr.net/pouchdb/6.1.2/pouchdb.min.js"></script>
 
 	<script src="config.js"></script>
 
@@ -25,7 +27,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.2.20';
+		var _VERSION = '0.3.12';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -44,7 +46,13 @@
 			'Bike mechanics',
 			];
 
+		var journeys = {};
+
+		var localStore = new PouchDB(config.dataStore.database);
+		var remoteStore = config.dataStore.endpoint + '/' + config.dataStore.database;
+
 		$(document).ready(function() {
+
 			$('h1').after('<span class="meta version">v' + _VERSION + ' (<a href="showTrail.html">latest</a>)</span>');
 
 			if ( map === undefined ) {
@@ -60,181 +68,79 @@
 			}
 			// console.log(map);
 
-			journeys = new journeyRecords(config.AWS_S3);
-			loadedRecords = {}; // NB. choice is to keep records since they are being loaded below anyway, though that is not optimal or necessarily going to stay the case ..
-				// The other option would be to load the track file as required only
-			$('#journeys').listview();
-			// $('#journeys').append($('<h2>Heading TODO</h2>')); // FIXME: this gets prepended to, so something more like .after() is required, or the sequence to be looked at
-			journeys.list( function(contents) {
-				itemNames = [];
-				$.each(contents, function(index, item) {
-					var itemName = $(item).find('Key').text();
-					itemNames.push(itemName);
-					itemRecord = new journeyRecord(config.AWS_S3);
-					itemRecord.load(itemName, function(record) {
-						record = $.extend(new journeyRecord(), record); // essentially casting record as a journeyRecord because console says it doesn't have the methods - don't really understand why this is necessary
-						if (record.metadata) {
-							var itemId = itemName.replace('-','.'); // wish I'd explained myself here
-							var itemReference = itemName.replace(/\.json$/, '');
-							/* console.log( (Math.floor(Math.random() * (34 - 170 + 1)) + 170).toString(16) ); */ // experiment with random track colours
+			console.log('Syncing with remote datastore ..');
 
-							var rider = record.metadata.hasOwnProperty('rider') ? record.metadata.rider : UNKNOWN_CYCLIST;
-							var duration = ( record.metadata.hasOwnProperty('started') && record.metadata.hasOwnProperty('ended')
-								? function(start, finish){
-									var bits = millisecondsToComponents(new Date(finish) - new Date(start));
-									// FIXME: something about $().after() I don't get - jQ won't return the seconds unbolded here
-									// return $('<strong/>').text(bits.hours + ':'  + bits.mins).after(':' + bits.secs);
-									return bits.hours + ':'  + bits.mins + ':' + bits.secs;
-									}(record.metadata.started, record.metadata.ended)
-								: '[not recorded]'
-								);
-							var $heading = $('<h3/>')
-								// .attr('title', itemReference) // this is invaluable at times if debugging based on file names
-								.append($('<label/>')
-									.attr('for', itemId)
-									.text(rider)
-									// .click(function() { console.log($('#' + itemId)); $('#' + itemId).prop("checked", !$('#' + itemId).prop("checked")); }) record.metadata.name
-									);
+			var startLiveSync = function() {
+				localStore.sync(remoteStore, {
+					live: true,
+					retry: true,
+					});
+				};
 
-							var $content = $('<p/>')
-								.attr('class','journey-summary')
-								.append( function() {
-									var $span = $('<span/>')
-										.attr('class', 'meta date')
-										.text( record.metadata.hasOwnProperty('started') ? $.formatDateTime('MM dS, hh:ii', new Date(record.metadata.started)) : UNKNOWN_TIME ) // record.GJ....  TODO
-										;
-									if(record.metadata.hasOwnProperty('started')) {
-										$span.attr('title', 'Journey started: ' + $.formatDateTime("DD, dS MM yy 'at' g:iia", new Date(record.metadata.started)));
+			localStore.sync(remoteStore).then( // one-shot wrapper because we want to report status more easily and also ..???
+					function (info) {
+						console.log(' .. succeeded! Setting up a live sync now');
+						startLiveSync();
+					}).catch(
+					function (err) {
+						console.log(" .. failed, we'll keep trying.");
+						startLiveSync();
+					}
+				);
+
+			localStore.allDocs( {
+				include_docs: true,
+				// startkey:  'dev-', // endkey: 'dev-',
+				descending:   true,
+				}).then(
+					function(result) {
+						console.log(result);
+						$('#journeys').listview();
+						result.rows.forEach( function(doc) {
+							// console.log(doc.id);
+							journeys[doc.id] = new JourneyRecord(doc);
+							journeys[doc.id].render();
+							});
+						// console.log(journeys);
+					}
+				).then(
+					function() {
+						localStore.changes({
+							since: 'now',
+							live: true,
+							include_docs: true,
+							}
+							).on('change',
+								function(change){
+									console.log('hey!');
+									if (change.deleted) {
+										console.log('deleted');
+										journeys[change.id].remove(map);
 									}
-									return $span;
-									});
-
-							$content.append($('<div/>')
-								.attr('class', 'glance-panel')
-								.append($('<img/>')
-									.attr('class', 'meta avatar')
-									.attr('src', function () {
-										return getAvatar( record.metadata.hasOwnProperty('rider') ? record.metadata.rider : undefined );
-										})
-									.attr('alt', rider)
-									// TODO: add a popup on hover with info about user
-									)
-								.append($('<ul/>')
-									.attr('class','stats')
-									.append($('<li/>')
-										// .attr('id', 'metric-distance-' + itemReference)
-										.attr('class', 'distance')
-										.text(turf.lineDistance(record.lineString).toPrecision(2) + 'km') // TODO: make this the title text and add infographic line
-										)
-									.append($('<li/>')
-										.attr('class', 'duration')
-										.append(duration)
-										)
-									.append($('<li/>')
-										.attr('class', 'sentiment')
-										.text('+' + record.goodPoints.length + ' / -' + record.badPoints.length)  // TODO: make this (or similar) the title text and add infographic line
-										)
-									)
-								// TODO - sexy stats here
-								/* THIS WORKS ..
-								.append($('<img/>')
-									.attr('src','ui/images/stat-length.png')
-									)
-								*/
-								);
-
-							var $controls = $('<div/>')
-								.attr('class', 'map-controls')
-								.append($('<input/>')
-									.attr({
-										'type':  'checkbox',
-										'id':    itemId,
-										'class': 'journey',
-										})
-									.change( function() {
-										// console.dir(loadedRecords[itemName]);
-										if (this.checked) {
-											//FIXME: neither the override idea or the enable/disable idea below work, but they don't break it :/
-
-											var styleOverride = {};
-											if (document.getElementById('color.' + itemId).value) {
-												styleOverride = {'color': document.getElementById('color.' + itemId).value,}
-											}
-											// console.log($.extend({}, config.rendering['viz-canvas'].lineStyle, styleOverride));
-											loadedRecords[itemName].showOn(map, styleOverride);
-											// document.getElementById('color.' + itemId).removeAttribute('disabled');
-												/* {
-													'color': $('#color.' + itemId).val(),
-												} */
+									else {
+										console.log('modified/added');
+										if (journeys.hasOwnProperty(change.id)) {
+											console.log('update!');
+											/* FIXME: a bit buggy, but close
+											journeys[change.id].render(true);
+											*/
 										}
 										else {
-											loadedRecords[itemName].hideOn(map);
-											// document.getElementById('color.' + itemId).setAttribute('disabled', 'disabled');
+											console.log('new!');
+											/* FIXME: a bit buggy, but close
+											journeys[change.id] = new JourneyRecord(change);
+											journeys[change.id].render();
+											*/
 										}
-										$(this).parents('#journeys li').toggleClass('showing');
-										})
-									)
-								.append($('<input/>')
-									.attr({
-										'type': 'color',
-										'id': 'color.' + itemId,
-										'class': 'color',
-										'title': 'Set Journey line colour',
-										})
-									// .attr('disabled', 'disabled')
-									.val(config.rendering['viz-canvas'].lineStyle.color)
-									/* // if I ever get a better colour popup (than the disappointing Spectrum)
-									.click( function(evt) {
-										evt.preventDefault();
-										})
-									*/
-									.change( function(evt) {
-										console.log(this.value);
-										if (loadedRecords[itemName].lineStringLayer) {
-											loadedRecords[itemName].lineStringLayer.setStyle({ // CHECKME: unclear from Leaflet docs, but this doesn't override any style options already set
-											'color': this.value,
-											});
-										}
-										})
-									/*
-									.spectrum({
-										   showPalette: true,
-										   showSelectionPalette: true,
-										   maxSelectionSize: 8,
-										   hideAfterPaletteSelect: true,
-										   showInitial: true,
-										   // showInput: true,
-										   change: function(colour) {
-															console.log(colour);
-															loadedRecords[itemName].lineStringLayer.setStyle({ // CHECKME: ensure (unclear from Leaflet docs) that this doesn't override any style options already set
-																'color': colour.toHexString(),
-																});
-															}
-										})
-										*/
-									);
-
-							$item = $('<li/>')
-								.attr('id', 'li.' + itemId)
-									.append($controls)
-									.append($('<div/>')
-										.attr('class', 'hoozit')
-										.append($heading)
-										.append($content)
-										);
-							//	.data('record', record);
-							// console.log($item.data('record'));
-							// $('#' + itemId).checkboxradio('refresh');
-
-							// TODO: add a button/link to zoom to the track's bounds
-							$('#journeys').prepend($item);
-							$('#journeys').listview('refresh');
-						}
-						loadedRecords[itemName] = record;
-						});
-					});
-
-				});
+									}
+									});
+					}
+				).catch(
+					function(err) {
+						console.log('fail getting allDocs');
+						console.log(err);
+					}
+				);
 			});
 
 	</script>
@@ -265,97 +171,212 @@
 
 	<script type="text/javascript">
 
-		// currently uses Amazon AWS which is pretty horrible interface-, metadata- and auth-wise and I would like to change
-		function journeyRecords(dataSource) {
-
-			this.list = function(onSuccess, onFail) { // TODO: onFail not implemented
-
-				items = $.get('http://'  + dataSource.bucket + '.s3.amazonaws.com/?list-type=2&prefix=' + config.VIEWER_FILE_PREFIX );
-
-				items.done ( function(responseBody) {
-					$xml = $(responseBody);
-					resources = $xml.find('ListBucketResult Contents').toArray();
-					onSuccess && onSuccess(resources);
-					});
-			}
-		}
-
-		function journeyRecord(dataSource) {
+		function JourneyRecord(record) {
 			var __this = this;
-			this['metadata'] = {};
-			this['points'] = [];
-			this['source'], this['GJ'], this['url'], this['filename'] = null;
-			this['layerGroup'], this['lineStringLayer'] = null;
 
-			this.load = function(name, onSuccess, onFail) {
-				this.filename = name;
-				this.url = 'http://' + dataSource.bucket + '.s3.amazonaws.com/' + this.filename;
-				var journey = $.get(this.url);
+			// console.log(record.doc.type);
+			this['geoJSON']    = record.doc;
+			this['metadata']   = this.geoJSON.properties;
 
-				journey.done( function(responseBody) {
-					this.source = responseBody;
-					this.GJ = $.parseJSON(responseBody);
-					this.metadata = this.GJ.properties;
-					this['trail'] = _getTrail(this.GJ);
+			this.render = function(refresh) {
+				refresh = ( typeof refresh == 'undefined' ? false : refresh );
+				console.log('refresh = ' + refresh.toString());
 
-					// TODO: from here on in, we could call a _stats() method eventually
-					this['lineString'] = _getLineString(this.GJ);
-					this['goodPoints'] = _getPoints(this.GJ, BUTTON_VALUE_GOOD);
-					this['badPoints'] = _getPoints(this.GJ, BUTTON_VALUE_BAD);
-
-					onSuccess && onSuccess(this);
-					});
-			}
-
-			var _isPoint = function(feature, valueFilter) {
-				return (feature.geometry.type == 'Point'
-					&& feature.properties
-					&& feature.properties.measure
-					&& feature.properties.measure == 'button'
-					&&  ( valueFilter ? (feature.properties.value && (feature.properties.value == valueFilter)) : true )
+				// handle some missing values ..
+				var rider = this.metadata.hasOwnProperty('rider') ? this.metadata.rider : UNKNOWN_CYCLIST;
+				
+				var duration = ( this.metadata.hasOwnProperty('started') && this.metadata.hasOwnProperty('ended')
+					? function(start, finish){
+						var bits = millisecondsToComponents(new Date(finish) - new Date(start));
+						// FIXME: something about $().after() I don't get - jQ won't return the seconds unbolded here
+						// return $('<strong/>').text(bits.hours + ':'  + bits.mins).after(':' + bits.secs);
+						return bits.hours + ':'  + bits.mins + ':' + bits.secs;
+						}(this.metadata.started, this.metadata.ended)
+					: '[not recorded]'
 					);
-			}
 
-			var _getPoints = function(GJ, valueFilter) {
-				return GJ.features.filter( function(feature) {
-					return _isPoint(feature, valueFilter);
-					});
-			}
+				var lineString = function() { // TODO: use _getLineString?
+					// console.log(__this.geoJSON.features);
+					if ( __this.geoJSON && ( LineStrings = __this.geoJSON.features.filter(GJUtils.isLineString) ) ) {
+						return LineStrings[0]; // we'll just take the first, shouldn't be more than one
+					}
+					}();
 
-			var _getTrail = function(GJ) {
-				var lineString = _getLineString(GJ);
-				if ( lineString ) {
-					return lineString.geometry.coordinates;
+				var distance = lineString.geometry.coordinates.length ? turf.lineDistance(lineString) : 0; // this is to work around an error turfjs throws when geometry.coordinates is empty, but we also should not be uploading these tracks!
+
+				// console.log(rider + ' : ' + duration);
+
+				var $heading = $('<h3/>')
+					// .attr('title', itemReference) // this is invaluable at times if debugging based on file names
+					.append($('<label/>')
+						.attr('for', record.id)
+						.text(rider)
+						);
+
+				var goodPoints = GJUtils.getPoints(__this.geoJSON, BUTTON_VALUE_GOOD);
+				var badPoints = GJUtils.getPoints(__this.geoJSON, BUTTON_VALUE_BAD);
+
+				var $content = $('<p/>')
+					.attr('class','journey-summary')
+					.append( function() {
+						var $span = $('<span/>')
+							.attr('class', 'meta date')
+							.text( __this.metadata.hasOwnProperty('started') ? $.formatDateTime('MM dS, hh:ii', new Date(__this.metadata.started)) : UNKNOWN_TIME )
+							;
+						if(__this.metadata.hasOwnProperty('started')) {
+							$span.attr('title', 'Journey started: ' + $.formatDateTime("DD, dS MM yy 'at' g:iia", new Date(__this.metadata.started)));
+						}
+						return $span;
+						});
+
+				$content.append($('<div/>')
+					.attr('class', 'glance-panel')
+					.append($('<img/>')
+						.attr('class', 'meta avatar')
+						.attr('src', function () {
+							return getAvatar( __this.metadata.hasOwnProperty('rider') ? __this.metadata.rider : undefined );
+							})
+						.attr('alt', rider)
+						// TODO: add a popup on hover with info about user
+						)
+					.append($('<ul/>')
+						.attr('class','stats')
+						.append($('<li/>')
+							// .attr('id', 'metric-distance-' + itemReference)
+							.attr('class', 'distance')
+							.text(distance.toPrecision(2) + 'km') // TODO: make this the title text and add infographic line
+							)
+						.append($('<li/>')
+							.attr('class', 'duration')
+							.append(duration)
+							)
+						.append($('<li/>')
+							.attr('class', 'sentiment')
+							.text('+' + goodPoints.length + ' / -' + badPoints.length) 
+							// TODO: make this (or similar) the title text and add infographic line
+							)
+						)
+					// TODO - sexy stats here
+					/* THIS WORKS ..
+					.append($('<img/>')
+						.attr('src','ui/images/stat-length.png')
+						)
+					*/
+					);
+
+				var $controls = $('<div/>')
+					.attr('class', 'map-controls')
+					.append($('<input/>')
+						.attr({
+							'type':  'checkbox',
+							'id':    record.id,
+							'class': 'journey',
+							})
+						.change( function() {
+							if (this.checked) {
+								//FIXME: neither the override idea or the enable/disable idea below work, but they don't break it :/
+
+								var styleOverride = {};
+								if (document.getElementById('color.' + record.id).value) {
+									styleOverride = {'color': document.getElementById('color.' + record.id).value,}
+								}
+								// console.log($.extend({}, config.rendering['viz-canvas'].lineStyle, styleOverride));
+								journeys[record.id].showOn(map, styleOverride);
+								// document.getElementById('color.' + itemId).removeAttribute('disabled');
+									/* {
+										'color': $('#color.' + itemId).val(),
+									} */
+							}
+							else {
+								journeys[record.id].hideOn(map);
+								// document.getElementById('color.' + itemId).setAttribute('disabled', 'disabled');
+							}
+							$(this).parents('#journeys li').toggleClass('showing');
+							})
+						)
+					.append($('<input/>')
+						.attr({
+							'type': 'color',
+							'id': 'color.' + record.id,
+							'class': 'color',
+							'title': 'Set Journey line colour',
+							})
+						// .attr('disabled', 'disabled')
+						.val(config.rendering['viz-canvas'].lineStyle.color)
+						/* // if I ever get a better colour popup (than the disappointing Spectrum)
+						.click( function(evt) {
+							evt.preventDefault();
+							})
+						*/
+						.change( function(evt) {
+							console.log(this.value);
+							if (journeys[record.id].lineStringLayer) {
+								journeys[record.id].lineStringLayer.setStyle({ // CHECKME: unclear from Leaflet docs, but this doesn't override any style options already set
+								'color': this.value,
+								});
+							}
+							})
+						/*
+						.spectrum({
+							   showPalette: true,
+							   showSelectionPalette: true,
+							   maxSelectionSize: 8,
+							   hideAfterPaletteSelect: true,
+							   showInitial: true,
+							   // showInput: true,
+							   change: function(colour) {
+												console.log(colour);
+												loadedRecords[itemName].lineStringLayer.setStyle({ // CHECKME: ensure (unclear from Leaflet docs) that this doesn't override any style options already set
+													'color': colour.toHexString(),
+													});
+												}
+							})
+							*/
+						);
+
+				$item = $('<li/>')
+					.attr('id', 'li.' + record.id)
+						.append($controls)
+						.append($('<div/>')
+							.attr('class', 'hoozit')
+							.append($heading)
+							.append($content)
+							);
+
+				// TODO: add a button/link to zoom to the track's bounds
+				
+				if (refresh) {
+					$("#li\\." + record.id).replaceWith($item);
+					if(__this.layerGroup) {
+						console.log('redraw');
+						__this.layerGroup.eachLayer( function(layer) {
+							layer.redraw(); // FIXME: doesn't work??
+							});
+					}
 				}
-			}
-
-			var _getLineString = function(GJ) {
-				if ( (GJ) && ( LineStrings = GJ.features.filter(_isLineString) ) ) {
-					return LineStrings[0]; // we'll just take the first, shouldn't be more than one
+				else {
+					$('#journeys').append($item);
 				}
+				
+				$('#journeys').listview('refresh');
 			}
 
-			var _isLineString = function(feature) {
-				return (feature.geometry.type == 'LineString');
-			}
-
-			var _getPopupContent = function(properties) {
-				var displayValue = ( properties.value == BUTTON_VALUE_GOOD ? 'Sweet!' : ( properties.value == BUTTON_VALUE_BAD ? 'Stink' : properties.value ) ); // TODO: captions from config
-				var formattedDate = $.formatDateTime('D MM d, yy hh:ii', new Date(properties.time.replace('Z','+12:00'))); // see also http://momentjs.com
-				var markup = '<h2>' + displayValue + '</h2>\n<p>' + formattedDate + '</p>\n';
-
-				return markup;
-			}
+			this.remove = function(targetMap) {
+				console.log('removing');
+				this.hideOn(targetMap);
+				$("#li\\." + record.id).remove();
+				$('#journeys').listview('refresh');
+				};
 
 			this.showOn = function(targetMap, lineStyle) {
-				var lineStringLayer;
 				var featureIndex = 0;
 				var initialLineStyle = Object.assign({}, config.rendering['viz-canvas'].lineStyle, lineStyle ? lineStyle : {});
 
 				// NB order of this and subsequent L.geoJSON call is important - probably suboptimal architecture, should be refactored - be careful in the meantime!
-				var lineStringsLayerGroup = L.geoJson(this.GJ, {
+				var lineStringsLayerGroup = L.geoJson(this.geoJSON, {
 					'filter': function(feature, layer) {
 						return ( feature.geometry && feature.geometry.type && feature.geometry.type == 'LineString' );
+						// TODO: use GJUtils.isLineString(feature)
 						},
 					'onEachFeature': function(feature, layer) {
 						layer.setStyle(initialLineStyle);
@@ -367,7 +388,7 @@
 					});
 
 				// NB order of this and previous L.geoJSON call is important - probably suboptimal architecture, should be refactored - be careful in the meantime!
-				var pointsLayerGroup = L.geoJson(this.GJ, {
+				var pointsLayerGroup = L.geoJson(this.geoJSON, {
 					'filter': function(feature, layer) {
 						return ( feature.properties && feature.properties.measure && feature.properties.measure == 'button' );
 						},
@@ -386,9 +407,7 @@
 							'riseOnHover': true,
 							});
 
-						var popupContent = _getPopupContent(feature.properties);
-
-						__this.filename = __this.url.split('/').pop(); // *** whoa, I am just stumped why this filename property is lost at some point, but this restores it :/
+						var popupContent = getPopupContent(feature.properties);
 
 						// FIXME: categories not done properly here, read-only too
 						var categoryOptions;
@@ -407,7 +426,7 @@
 						popupContent += ' \
 							<form name="annotate"> \
 								<input type="hidden" name="index" value="' + featureIndex + '" /> \
-								<input type="hidden" name="resource" value="' + __this.filename + '" /> \
+								<input type="hidden" name="document" value="' + record.id + '" /> \
 							<label for="category.' +  + featureIndex + '">Category:</label> \
 							<select id="category.' +  + featureIndex + '" name="category"> \
 							' + categoryOptions + ' \
@@ -472,8 +491,8 @@
 							var tooltipText;
 							if(line.properties && line.properties.coordinateProperties) {
 								tooltipText = 'times';
-								var coordinatedProperties = coordinatedPropertiesAt(snapped.geometry.coordinates, line);
-								tooltipText = formatCoordinatedProperties(coordinatedProperties, ['lat', 'lon']);
+								var coordinateProperties = coordinatePropertiesAt(snapped.geometry.coordinates, line);
+								tooltipText = formatCoordinateProperties(coordinateProperties, ['lat', 'lon']);
 							}
 							else {
 								tooltipText = 'trackpoint';
@@ -499,7 +518,7 @@
 				}
 
 				// console.log('lineStringLayer: '); console.log(lineStringLayer);
-				this.lineStringLayer.bindPopup('<h2>Journey details</h2>\n' + formatAttributes(this.GJ));
+				this.lineStringLayer.bindPopup('<h2>Journey details</h2>\n' + formatAttributes(this.geoJSON));
 
 				// console.log('gJLayer: '); console.log(gJLayer);
 				targetMap.fitBounds(this.layerGroup.getBounds());
@@ -526,8 +545,8 @@
 					finishedProperties['time'] = __this.metadata.ended;
 				}
 
-				var startedPopup = _getPopupContent(startedProperties);
-				var finishedPopup = _getPopupContent(finishedProperties);
+				var startedPopup = getPopupContent(startedProperties);
+				var finishedPopup = getPopupContent(finishedProperties);
 
 				this.layerGroup.addLayer(L.marker(started, { 'icon': startMarker, }).bindPopup(startedPopup)).addTo(targetMap);
 				this.layerGroup.addLayer(L.marker(finished, { 'icon': finishMarker, }).bindPopup(finishedPopup)).addTo(targetMap);
@@ -535,7 +554,7 @@
 			}
 
 			this.hideOn = function(targetMap) {
-				this.layerGroup.eachLayer( function(layer) {
+				this.layerGroup && this.layerGroup.eachLayer( function(layer) {
 					targetMap.removeLayer(layer);
 					} );
 			}
@@ -543,25 +562,28 @@
 			this.update = function() {
 				// TODO: some tests here to make sure there is something loaded
 
-				var uploadTarget = this.url;
-
-				var req = $.ajax({
-					type: 'PUT',
-					url: uploadTarget,
-					//	dataType: 'json', // FIXME: failing because it doesn't vallidate as JSON, probably start looking at makegeoJSON
-					async: true,
-					data: JSON.stringify(this.GJ),
-					});
-
-				req.done( function(msg) {
-					console.log('Update to ' + uploadTarget + ' succeeded: ' + msg);
-					});
-
-				req.fail( function(xhr, failText) {
-					console.log('Error ' + xhr.status + ': ' + failText);
-					});
-
+				localStore.get(record.id).then(
+					function(doc) {
+						localStore.put(Object.assign({}, __this.geoJSON, {'_rev': doc._rev})).then(
+							function(result) {
+								console.log('yay update!');
+								console.log(result);
+							}).catch(
+							function(err) {
+								console.log('boo update for rev' + doc._rev + ' doc ' + __this.geoJSON);
+								console.log('err: ' + err.name + JSON.stringify(err));
+								// TODO - a better fail
+							});
+						});
 				};
+
+			var getPopupContent = function(properties) {
+				var displayValue = ( properties.value == BUTTON_VALUE_GOOD ? 'Sweet!' : ( properties.value == BUTTON_VALUE_BAD ? 'Stink' : properties.value ) ); // TODO: captions from config
+				var formattedDate = $.formatDateTime('D MM d, yy hh:ii', new Date(properties.time.replace('Z','+12:00'))); // see also http://momentjs.com
+				var markup = '<h2>' + displayValue + '</h2>\n<p>' + formattedDate + '</p>\n';
+
+				return markup;
+			}
 
 		}
 
@@ -572,21 +594,22 @@
 				fields[$(this).attr('name')] = $(this).val();
 				});
 
-			var GJ = loadedRecords[fields.resource].GJ;
-			var feature = GJ.features[fields.index];
+			var geoJSON = journeys[fields.document].geoJSON;
+			var feature = geoJSON.features[fields.index];
 			feature.properties['category'] = fields.category;
 			feature.properties['comment'] = fields.comment;
 
-			loadedRecords[fields.resource].update();
+			journeys[fields.document].update();
 
 			// refresh map
-			loadedRecords[fields.resource].showOn(map);
+			// TODO: won't need this if we trigger refreshes from document changes
+			journeys[fields.document].showOn(map);
 
 			// some feedback
 			$(frm).append('<p class="success">Updated</p>');
 			};
 
-		var coordinatedPropertiesAt = function(coordinates, timedLineString) {
+		var coordinatePropertiesAt = function(coordinates, timedLineString) {
 			var result = [];
 			if (timedLineString.properties && timedLineString.properties.coordinateProperties) {
 				var aligned = consolidateTimestampedLineString(timedLineString);
@@ -598,29 +621,29 @@
 			return result;
 			};
 
-		var pivotCoordinatedProperties = function(coordinatedProperties) {
+		var pivotCoordinateProperties = function(coordinateProperties) {
 			var result = {};
 
-			// console.log(coordinatedProperties[0]);
-			// if (coordinatedProperties.length > 0) {
-				Object.keys(coordinatedProperties[0]).forEach( function(propertyName) {
+			// console.log(coordinateProperties[0]);
+			if (coordinateProperties && coordinateProperties.length) {
+				Object.keys(coordinateProperties[0]).forEach( function(propertyName) {
 
 					result[propertyName] = [];
-					for(i=0 ; i < coordinatedProperties.length ; i++) {
+					for(i=0 ; i < coordinateProperties.length ; i++) {
 						// TODO - null values
-						result[propertyName].push(coordinatedProperties[i][propertyName]);
+						result[propertyName].push(coordinateProperties[i][propertyName]);
 					}
 				});
-			// }
+			}
 			return result;
 			};
 
-		var formatCoordinatedProperties = function(coordinatedProperties, exclusions, labels) {
+		var formatCoordinateProperties = function(coordinateProperties, exclusions, labels) {
 			exclusions = exclusions || [];
 			var listDelimiter = ',';
 			var lineDelimiter = '\n';
 			var resultLines = [];
-			var coordinateProperties = pivotCoordinatedProperties(coordinatedProperties);
+			var coordinateProperties = pivotCoordinateProperties(coordinateProperties);
 
 			// TODO - just handling nice labels for 'times' coordinate property at present
 

@@ -17,9 +17,7 @@ var dblClickBuffer = {
 	stamp: 0,
 };
 
-var dbConnection;
-var categories = [];
-localDatabaseStuff();
+var categories = populateCategories();
 configManagementHacks();
 
 document.addEventListener('deviceready', function() {
@@ -30,6 +28,42 @@ document.addEventListener('deviceready', function() {
 	$('#adaptive-connect').click();
 	}, false);
 
+document.addEventListener('deviceready', function() {
+	if (navigator.connection.type && navigator.connection.type != Connection.UNKNOWN && navigator.connection.type != Connection.NONE) {
+		bellUI.popup('Online via connection type ' + navigator.connection.type, 'long');
+		logActivity('Attempting to sync to remote datastore ..');
+		localStore.sync(remoteStore).on('complete', // FIXME: sometimes this triggers twice .. ???
+			function (info) {
+				logActivity(" .. succeeded!");
+				}).on('error',
+			function (err) {
+				logActivity(" .. failed, we'll try again later.");
+			});
+	}
+	else {
+		bellUI.popup('Not online', 'long', { fallback: window.alert });
+	}
+
+	document.addEventListener('online',	function() {
+		logActivity('*** app now ONLINE ***');
+		logActivity('Now online, so syncing to remote datastore ..');
+		localStore.sync(remoteStore).on('complete',
+			function (info) {
+				logActivity(" .. succeeded!");
+				}).on('error',
+			function (err) {
+				logActivity(" .. failed, we'll try again later.");
+			});
+		}, false);
+
+	}, false);
+
+// Note: There is only one point to this. I'm just curious if this (and more importantly 'online') is triggered outside a documentready as the docs seem to indicate won't work
+// https://www.npmjs.com/package/cordova-plugin-network-information
+document.addEventListener('offline', function() {
+    logActivity('*** app gone OFFLINE ***');
+	}, false);
+
 document.addEventListener('pause', function() {
     logActivity('*** app PAUSED ***');
 	}, false);
@@ -37,6 +71,17 @@ document.addEventListener('pause', function() {
 document.addEventListener('resume',	function() {
 	// TODO: add stopScan for pause
 	logActivity('*** app RESUMED ***');
+
+	if (navigator.connection.type && navigator.connection.type != Connection.UNKNOWN && navigator.connection.type != Connection.NONE) {
+		logActivity('Resumed, so attempting to sync to remote datastore ..');
+		localStore.sync(remoteStore).on('complete',
+			function (info) {
+				logActivity(" .. succeeded!");
+				}).on('error',
+			function (err) {
+				logActivity(" .. failed, we'll try again later.");
+			});
+	}
 	}, false);
 
 function logPosition(val, success, options) {
@@ -129,24 +174,11 @@ function Journey(title) {
 
 			// TODO: add annotation actions (here I think)
 
-			this.track.upload( function() {
-				// upload flag in DB to true
-				dbConnection.transaction(function (tx) {
-					// query.dump('tracks');// settings.setItem('file.prefix', 'dev-'); // console.log(settings.getItem('file.prefix'));
-// settings.removeItem('file.prefix');
-
-					var qry = 'UPDATE tracks SET uploaded=1 WHERE name=?';
-					tx.executeSql(qry, [__this.title], query.onSuccess, query.onFail);
-					// console.log(qry + ' **** ' + __this.title);
-					// evothings.printObject(tx);
-					});
-
-				__this.status = 'uploaded';
-				onSuccess && onSuccess.call();
-			});
+			__this.status = 'uploaded'; // legacy term, but basically doneski
 		}
 		else {
 			logActivity('No waypoints recorded, not uploading', 'warning');
+			// TODO: maybe delet ethe empty track document?
 			onFail && onFail.call();
 		}
 
@@ -224,37 +256,55 @@ function Track(parentJourney) {
 					},
 				}],
 			'properties': {
-				'name': parentJourney.title,
+				'schema':  '0.02',
+				'name':    parentJourney.title,
 				'version': _VERSION,
-				'device': settings.getItem('pairedDevice'),
+				'device':  settings.getItem('pairedDevice'),
 				'started': created,
+				'rider':   settings.getItem('riderName'),
 				},
 		};
 
-		dbConnection.transaction(function (tx) {
-			var qry = 'INSERT INTO tracks(name, geoJSON, stamp) VALUES (?,?,?)';
-			tx.executeSql(qry, [parentJourney.title, JSON.stringify(skeleton), Date.now()], function(transaction, result){
+		skeleton['_id'] = config.dataStore.prefix + Date.now();
+		console.log(JSON.stringify(skeleton));
+		localStore.put(skeleton).then(
+			function(result) {
+				console.log('yay');
+				console.log(result);
 				__this.cache = skeleton;
-				if (riderName = settings.getItem('riderName') ) {
-					console.log('Adding rider name metadata: ' + riderName);
-					__this.updateMetadata({'rider': riderName});
-				}
-				query.onSuccess(transaction, result);
-				}, query.onFail);
+				localStore.sync(remoteStore, {live: true}).on('change',
+					function (info) {
+						console.log('info: ' + JSON.stringify(info));
+					});
+			}).catch(
+			function(err) {
+				console.log('boo');
+				console.log('err: ' + err.name + JSON.stringify(err));
+				// TODO - a better fail
 			});
 		};
 
-	this.sync = function() {
-		dbConnection.transaction(function (tx) {
-			var qry = 'UPDATE tracks SET geoJSON=? WHERE name=?';
-			tx.executeSql(qry, [JSON.stringify(__this.cache), parentJourney.title], query.onSuccess, query.onFail);
-			});
+	// currently wraps this.sync() but will not be required after migration to PouchDB
+	this.store = function() {
+		localStore.get(__this.cache._id).then(
+			function(doc) {
+				localStore.put(Object.assign({}, __this.cache, {'_rev': doc._rev})).then(
+					function(result) {
+						console.log('yay update!');
+						console.log(result);
+					}).catch(
+					function(err) {
+						console.log('boo update for rev' + doc._rev + ' doc ' + __this.cache._id);
+						console.log('err: ' + err.name + JSON.stringify(err));
+						// TODO - a better fail
+					});
+				});
 		};
 
 	this.updateMetadata = function(properties) {
 		$.each(properties, function(key, val) {
 			__this.cache.properties[key] = val;
-			__this.sync();
+			__this.store();
 			});
 		};
 
@@ -294,7 +344,7 @@ function Track(parentJourney) {
 			this.cache.features.push(pointFeature);
 		}
 
-		this.sync();
+		this.store();
 
 		logThis && ( function() { // that is one pretentious if statement ;)
 			console.log('Track2: ' + JSON.stringify(__this.cache));
@@ -306,48 +356,6 @@ function Track(parentJourney) {
 	this.close = function() {
 		this.updateMetadata({'ended': new Date().toUTCString()}); // CHECKME: might be better off storing in UTC (also track.started)
 	}
-
-	this.upload = function(onSuccess, onFail) {
-		// based on http://jsfiddle.net/tednaleid/7eWgb/
-		logActivity('Uploading track "' + parentJourney.title + '" to AWS');
-
-		var filename = ( settings.getItem('file.prefix') ? settings.getItem('file.prefix') : '' ) + formatTimestamp(new Date(), 'filename') + '-' + device.uuid + '.json';
-
-		var bucket = settings.bucketName;
-		var uploadPath = 'http://' + bucket + '.s3.amazonaws.com/' + filename;
-
-		console.log(uploadPath);
-		var payload = JSON.stringify(this.cache);
-		console.log('Payload: ' + payload);
-
-		if(config.UPLOAD_ON_FINISH) {
-			var req = $.ajax({
-				type: 'PUT',
-				url: uploadPath,
-				/*	dataType: 'json',*/ // FIXME: failing because it doesn't validate as JSON <-- CHECKME
-				async: true,
-				data: payload,
-			});
-
-			req.done( function (msg) {
-				logActivity('Upload succeeded: ' + uploadPath);
-				if (msg) {
-					logActivity('Upload message: ' + msg);
-				}
-				onSuccess && onSuccess.call();
-			});
-
-			req.fail( function (xhr, failText) {
-				logActivity('Upload to ' + uploadPath + ' failed ..');
-				logActivity('Error ' + xhr.status + ': ' + failText);
-				onFail && onFail.call();
-			});
-		}
-		else {
-			console.log('Upload suppressed by config.UPLOAD_ON_FINISH');
-			onFail && onFail.call(); // ??? FIXME - good idea?
-		}
-	};
 
 	// NB. this does not change the (parent) journey *title* which is used as a database id (in the 'name' column :/)
 	this.rename = function(newTitle) {
@@ -394,7 +402,7 @@ function adaptiveFinish() {
 		journey.finish( function() {
 			logActivity('Journey2 ENDED');
 			sensor.disconnect();
-			query.lastTrack();
+			// query.lastTrack();
 			},
 			function() {
 				logActivity('Journey2 not ended', 'warning');
@@ -760,83 +768,18 @@ buttons - wait, connect, start, stop, -->review
 status: pending=grey, warning=red, ready=green, tracking=blue            , finished
 */
 
-function localDatabaseStuff() {
-	dbConnection = window.openDatabase(config.databaseParams.name, config.databaseParams.version, config.databaseParams.title, config.databaseParams.size, function() {
-		logActivity('Database ' + config.databaseParams.name + ' successfully opened or created.');
-	});
-
-	// query.drop('tracks');
-	dbConnection.transaction(function (tx) {
-		// FIXME: stamp can has something like DEFAULT CURRENT_TIMESTAMP, however, sucky sucky SQLite docs
-		var SQL = 'CREATE TABLE IF NOT EXISTS tracks ( \
-			name TEXT PRIMARY KEY, \
-			geoJSON TEXT, \
-			stamp INTEGER, \
-			uploaded INTEGER DEFAULT NULL \
-			);'
-		tx.executeSql(SQL, [], query.onSuccess, query.onFail);
-	});
-
-	// query.drop('categories');
-	dbConnection.transaction(function (tx) {
-		var SQL = 'CREATE TABLE IF NOT EXISTS categories ( \
-			name TEXT PRIMARY KEY, \
-			parent TEXT DEFAULT NULL, \
-			synced INTEGER \
-			);'
-		tx.executeSql(SQL, [], query.onSuccess, query.onFail);
-	});
-	query.lastTrack();
-
-	// query.testInsert();
-
-	populateCategories();
-
-	function populateCategories() { // TODO: this should sync with an online store if online
-		var timestamp = Date.now();
-		var categories = [
-			'Infrastructure',
-			'Environmental',
-			'Wayfinding',
-			'Social',
-			'Safety',
-			'Near miss',
-			'Traffic',
-			'Bike mechanics',
-			];
-		dbConnection.readTransaction(function (tx) {
-			tx.executeSql('SELECT * FROM categories', [], function(transaction, resultSet) {
-				console.log(resultSet.rows.length);
-				if (resultSet.rows.length > 0) {
-					loadCategories();
-				}
-				else {
-					dbConnection.transaction(function (tx) {
-						var SQL = 'INSERT INTO categories (name, synced) VALUES (?,?)';
-						$.each(categories, function(index, value) {
-							tx.executeSql(SQL, [value, timestamp], query.onSuccess, query.onFail);
-							});
-						loadCategories();
-					});
-				}
-				}, query.onFail);
-			});
+function populateCategories() { // TODO: this should sync with an online store if online
+	return [
+		'Infrastructure',
+		'Environmental',
+		'Wayfinding',
+		'Social',
+		'Safety',
+		'Near miss',
+		'Traffic',
+		'Bike mechanics',
+		];
 	}
-	// query.dump('categories');
-
-	function loadCategories() {
-		dbConnection.readTransaction( function (tx) {
-			tx.executeSql('SELECT name FROM categories', [], function(transaction, resultSet) {
-				for(var i = 0; i < resultSet.rows.length; i++) {
-					console.log('Result ' + i + ': ' + JSON.stringify(resultSet.rows.item(i)));
-					categories.push(resultSet.rows.item(i)['name']);
-				}
-				console.log('Categories loaded: ' + categories.toString());
-				}, query.onFail);
-			});
-	}
-
-}
 
 // ** Any temporary changes we might need when we break the application API in a new version, or any development parameters
 function configManagementHacks() {
@@ -844,7 +787,7 @@ function configManagementHacks() {
 	// settings.removeItem('file.prefix');
 
 	initialiseUsingDefault('connectAuthenticity', (config.useFauxConnection ? 'fake' : 'real') );
-	initialiseUsingDefault('bucketName', config.AWS_S3.bucket);
+	// initialiseUsingDefault('bucketName', config.AWS_S3.bucket);
 }
 
 function initialiseUsingDefault(settingName, defaultValue) {

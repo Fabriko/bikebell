@@ -98,3 +98,34 @@ Number.prototype.leadZeros = function(zeros) {
 		return this.toString();
 	}
 }
+
+GJUtils = {
+	'isLineString': function(feature) {
+		return (feature.geometry.type == 'LineString');
+		},
+		
+	'isPoint': function(feature, valueFilter) {
+		return (feature.geometry.type == 'Point'
+			&& feature.properties
+			&& feature.properties.measure
+			&& feature.properties.measure == 'button'
+			&&  ( valueFilter ? (feature.properties.value && (feature.properties.value == valueFilter)) : true )
+			);
+		},
+
+	'getPoints': function(GJ, valueFilter) {
+		var __this = this;
+		return GJ.features.filter( function(feature) {
+			return __this.isPoint(feature, valueFilter);
+			});
+		},
+
+	/*
+	var _getLineString = function(GJ) {
+		   if ( (GJ) && ( LineStrings = GJ.features.filter(_isLineString) ) ) {
+				   return LineStrings[0]; // we'll just take the first, shouldn't be more than one
+		   }
+	}
+	*/
+
+};
