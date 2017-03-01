@@ -230,18 +230,18 @@ input.journey {
 	background-color: #c1f5b9;
 }
 
-.ground-photo {
+.ground-photo.thumb {
 	border-radius: 10px;
 	border: thick double;
 	margin-top: 1em;
 	max-width: 90%; /* 100% should be OK, but seems to go beyond right margin of parent, so this be hack */
 }
 
-.leaflet-popup.bad .ground-photo {
+.leaflet-popup.bad .ground-photo.thumb {
 	border-color: red;
 }
 
-.leaflet-popup.good .ground-photo {
+.leaflet-popup.good .ground-photo.thumb {
 	border-color: green;
 }
 
