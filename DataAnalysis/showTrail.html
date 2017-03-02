@@ -27,7 +27,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.3.19';
+		var _VERSION = '0.3.20';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -395,8 +395,6 @@
 					'onEachFeature': function(feature, layer) {
 						// if (feature.properties && feature.properties.measure && feature.properties.measure == 'button') {
 
-						var pointLatitude = feature.geometry.coordinates[1];
-						var pointLongitude = feature.geometry.coordinates[0];
 						var hasCategory = feature.properties.hasOwnProperty('category');
 						var hasComment = feature.properties.hasOwnProperty('comment');
 						var hasAnnotations = hasCategory || hasComment;
@@ -457,37 +455,46 @@
 							if (!evt.popup.getContent().includes(depictionWrapperStart)) {
 
 								var depictionContent;
+								var imageRequestEndpoint = 'https://maps.googleapis.com/maps/api/streetview';
 
-								// Note could just use this.getLatLng() ?? here instead of setting thes evars above - depends if they are needed elsewhere
-								var metadataRequest = $.getJSON('https://maps.googleapis.com/maps/api/streetview/metadata?location=' + pointLatitude + ',' + pointLongitude + '&key=' + config.google_streetview_API_key);
+								// build metadata request - TODO: find out if heading affects this result i.e. are some headings not available at points where images are available?
+								var pointLatitude = evt.popup.getLatLng().lat.toString();
+								var pointLongitude = evt.popup.getLatLng().lng.toString();
+								var requestParams = {
+									'location': pointLatitude + ',' + pointLongitude,
+									'key':      config.google_streetview_API_key,
+									};
+								var metadataRequest = $.getJSON(imageRequestEndpoint + '/metadata?' + serialiseAsURLParams(requestParams));
 
 								metadataRequest.done(function(json) {
 									if (json.status == 'OK') {
+										
+										// build thumbnail/preview image request
 										var heading = GJUtils.attemptBearing(feature, GJUtils.getLineString(__this.geoJSON));
-										console.log('heading:'); console.log(heading);
-										var pointIdentifier = 'x' + pointLatitude.toString().replace('.','-') + 'y' + pointLongitude.toString().replace('.','-');
-										var previewImageURL = 'https://maps.googleapis.com/maps/api/streetview?size=200x200&location=' + pointLatitude + ',' + pointLongitude + (heading ? '&heading=' + heading : '') + '&key=' + config.google_streetview_API_key;
-										// &fov=90&heading=235&pitch=10
-										var identifierImage = '<img id="depiction-' + pointIdentifier + '"  class="ground-photo thumb" src="' + previewImageURL + '" />';
-										// popupContent += identifierImage;
-										depictionContent = '<a data-rel="popup" href="#depiction-expanded-' + pointIdentifier + '" data-transition="flip">' + identifierImage + '</a>';
-										// evt.popup.setContent(evt.popup.getContent() + depictionContent);
+										console.log('heading: ' + heading);
+										if (heading) {
+											requestParams['heading'] = heading;
+										}
+										// &fov=90&pitch=10
 
-										// console.log(map.getSize());
-										var fullImage = {
-											'width':  Math.round(map.getSize().x * 0.9),
-											'height': Math.round(map.getSize().y * 0.9),
-											};
-										// FIXME - need to allow for exceeding 640px limit - maybe not, seems to just round down to 631px ??
-										fullImage['URL'] =  'https://maps.googleapis.com/maps/api/streetview?size=' + fullImage.width + 'x' + fullImage.height + '&location=' + pointLatitude + ',' + pointLongitude + '&key=' + config.google_streetview_API_key;
-										// &fov=90&heading=235&pitch=10
+										requestParams['size'] = '200x200';
+										var previewImageURL = imageRequestEndpoint + '?' + serialiseAsURLParams(requestParams);
+
+										// build fullsize/expanded image request
+										var pointIdentifier = 'x' + pointLatitude.toString().replace('.','-') + 'y' + pointLongitude.toString().replace('.','-');
+										var identifierImage = '<img id="depiction-' + pointIdentifier + '"  class="ground-photo thumb" src="' + previewImageURL + '" />';
+
+										depictionContent = '<a data-rel="popup" href="#depiction-expanded-' + pointIdentifier + '" data-transition="flip">' + identifierImage + '</a>';
+
+										requestParams['size'] = [Math.round(map.getSize().x * 0.9), Math.round(map.getSize().y * 0.9)].join('x');
+										// NB: seems to just round down px if we exceed free limit of 640, so no problem there
 
 										// FIXME: close icon doesn't render
 										// <a href="#" data-rel="back" data-role="button" data-icon="delete" data-iconpos="notext" class="ui-btn-right">Close</a> \
 										// TODO: insert a heading with reverse geocoded position
 										$('<div id="depiction-expanded-' + pointIdentifier + '" data-role="popup" data-theme="a" data-overlay-theme="a"> \
 												<p> \
-													<img class="ground-photo expanded" src="' + fullImage.URL + '" /> \
+													<img class="ground-photo expanded" src="' + imageRequestEndpoint + '?' + serialiseAsURLParams(requestParams) + '" /> \
 												</p> \
 											</div> \
 											').popup();
@@ -758,6 +765,12 @@
 				return 'http://lorempixel.com/g/32/32/cats/'; // + userName;
 			}
 			return 'ui/images/user.placeholder.png';
+			};
+			
+		var serialiseAsURLParams = function(obj) {
+			return Object.keys(obj).map( function(key) {
+				return key + '=' + obj[key];
+				}).join('&');
 			};
 
 	</script>
