@@ -120,12 +120,37 @@ GJUtils = {
 			});
 		},
 
-	/*
-	var _getLineString = function(GJ) {
-		   if ( (GJ) && ( LineStrings = GJ.features.filter(_isLineString) ) ) {
-				   return LineStrings[0]; // we'll just take the first, shouldn't be more than one
-		   }
-	}
-	*/
+	'getLineString': function(GJ) {
+		var __this = this;
+		if ( (GJ.features) && ( LineStrings = GJ.features.filter(__this.isLineString) ) ) {
+			return LineStrings[0]; // we'll just take the first, shouldn't be more than one
+		}
+		},
 
+	'attemptBearing': function(point, lineString) {
+		if (!turf) {
+			return;
+		}
+		// console.log('bearing:'); console.log(point); console.log(lineString);
+		var trail = lineString.geometry.coordinates;
+		var viewPoint = point.geometry.coordinates;
+		var trackPointIndex;
+		if (trail.find( function(coord, seq) {
+			trackPointIndex = seq;
+			return (
+				coord[0] == viewPoint[0] && coord[1] == viewPoint[1] &&
+				seq < trail.length-1 &&
+				coord[0] != trail[seq+1][0] && coord[1] != trail[seq+1][1]
+				);
+			})) {
+			var point2 = {
+				type: 'Feature',
+				geometry: {
+					type: 'Point',
+					'coordinates': trail[trackPointIndex+1],
+				}
+				};
+			return turf.bearing(point, point2);
+		}
+		},
 };
