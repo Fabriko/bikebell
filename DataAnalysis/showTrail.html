@@ -27,7 +27,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.3.18';
+		var _VERSION = '0.3.19';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -451,61 +451,67 @@
 							}).on('popupopen', function(evt) {
 
 							console.log('popup open triggered');
+							
+							// need to check we haven't already added the image ot the popup, or it will request a new one and add it every time
+							var depictionWrapperStart = '<div class="depiction"';
+							if (!evt.popup.getContent().includes(depictionWrapperStart)) {
 
-							// Note could just use this.getLatLng() ?? here instead of setting thes evars above - depends if they are needed elsewhere
-							var metadataRequest = $.getJSON('https://maps.googleapis.com/maps/api/streetview/metadata?location=' + pointLatitude + ',' + pointLongitude + '&key=' + config.google_streetview_API_key);
+								var depictionContent;
 
-							metadataRequest.done(function(json) {
-								if (json.status == 'OK') {
-									var heading = GJUtils.attemptBearing(feature, GJUtils.getLineString(__this.geoJSON));
-									console.log('heading:'); console.log(heading);
-									var pointIdentifier = 'x' + pointLatitude.toString().replace('.','-') + 'y' + pointLongitude.toString().replace('.','-');
-									var previewImageURL = 'https://maps.googleapis.com/maps/api/streetview?size=200x200&location=' + pointLatitude + ',' + pointLongitude + (heading ? '&heading=' + heading : '') + '&key=' + config.google_streetview_API_key;
-									// &fov=90&heading=235&pitch=10
-									var identifierImage = '<img id="depiction-' + pointIdentifier + '"  class="ground-photo thumb" src="' + previewImageURL + '" />';
-									// popupContent += identifierImage;
-									var imageLink = '<a data-rel="popup" href="#depiction-expanded-' + pointIdentifier + '" data-transition="flip">' + identifierImage + '</a>';
-									evt.popup.setContent(evt.popup.getContent() + imageLink);
+								// Note could just use this.getLatLng() ?? here instead of setting thes evars above - depends if they are needed elsewhere
+								var metadataRequest = $.getJSON('https://maps.googleapis.com/maps/api/streetview/metadata?location=' + pointLatitude + ',' + pointLongitude + '&key=' + config.google_streetview_API_key);
 
-									// console.log(map.getSize());
-									var fullImage = {
-										'width':  Math.round(map.getSize().x * 0.9),
-										'height': Math.round(map.getSize().y * 0.9),
-										};
-									// FIXME - need to allow for exceeding 640px limit - maybe not, seems to just round down to 631px ??
-									fullImage['URL'] =  'https://maps.googleapis.com/maps/api/streetview?size=' + fullImage.width + 'x' + fullImage.height + '&location=' + pointLatitude + ',' + pointLongitude + '&key=' + config.google_streetview_API_key;
-									// &fov=90&heading=235&pitch=10
+								metadataRequest.done(function(json) {
+									if (json.status == 'OK') {
+										var heading = GJUtils.attemptBearing(feature, GJUtils.getLineString(__this.geoJSON));
+										console.log('heading:'); console.log(heading);
+										var pointIdentifier = 'x' + pointLatitude.toString().replace('.','-') + 'y' + pointLongitude.toString().replace('.','-');
+										var previewImageURL = 'https://maps.googleapis.com/maps/api/streetview?size=200x200&location=' + pointLatitude + ',' + pointLongitude + (heading ? '&heading=' + heading : '') + '&key=' + config.google_streetview_API_key;
+										// &fov=90&heading=235&pitch=10
+										var identifierImage = '<img id="depiction-' + pointIdentifier + '"  class="ground-photo thumb" src="' + previewImageURL + '" />';
+										// popupContent += identifierImage;
+										depictionContent = '<a data-rel="popup" href="#depiction-expanded-' + pointIdentifier + '" data-transition="flip">' + identifierImage + '</a>';
+										// evt.popup.setContent(evt.popup.getContent() + depictionContent);
 
-									// FIXME: close icon doesn't render
-									// <a href="#" data-rel="back" data-role="button" data-icon="delete" data-iconpos="notext" class="ui-btn-right">Close</a> \
-									// TODO: insert a heading with reverse geocoded position
-									$('<div id="depiction-expanded-' + pointIdentifier + '" data-role="popup" data-theme="a" data-overlay-theme="a"> \
-											<p> \
-												<img class="ground-photo expanded" src="' + fullImage.URL + '" /> \
-											</p> \
-										</div> \
-										').popup();
-								}
-								else {
-									evt.popup.setContent(evt.popup.getContent() + '<p class="notice">No imagery available here.</p>');
-								}
-								});
+										// console.log(map.getSize());
+										var fullImage = {
+											'width':  Math.round(map.getSize().x * 0.9),
+											'height': Math.round(map.getSize().y * 0.9),
+											};
+										// FIXME - need to allow for exceeding 640px limit - maybe not, seems to just round down to 631px ??
+										fullImage['URL'] =  'https://maps.googleapis.com/maps/api/streetview?size=' + fullImage.width + 'x' + fullImage.height + '&location=' + pointLatitude + ',' + pointLongitude + '&key=' + config.google_streetview_API_key;
+										// &fov=90&heading=235&pitch=10
 
-							metadataRequest.fail(function() {
-								evt.popup.setContent(evt.popup.getContent() + '<p class="notice">No image metadata</p>');
-								});
+										// FIXME: close icon doesn't render
+										// <a href="#" data-rel="back" data-role="button" data-icon="delete" data-iconpos="notext" class="ui-btn-right">Close</a> \
+										// TODO: insert a heading with reverse geocoded position
+										$('<div id="depiction-expanded-' + pointIdentifier + '" data-role="popup" data-theme="a" data-overlay-theme="a"> \
+												<p> \
+													<img class="ground-photo expanded" src="' + fullImage.URL + '" /> \
+												</p> \
+											</div> \
+											').popup();
+									}
+									else {
+										depictionContent = '<p class="notice">No imagery available here.</p>';
+									}
+									});
 
-/*
-							// Going to leave this here to maybe save some trouble if any of this is needed
-							// It's an attempt to reposition the popup, which gets skewed after the streetview image loads
-							// (this particular problem ended up being solved with CSS!)
-							var loc = this.getLatLng(); var __popup = this;
-							metadataRequest.always(function() {
-								console.log('JSON request promise resolved');
-								__popup.setLatLng(loc);
-								__popup.update();
-								});
-*/
+								metadataRequest.fail(function() {
+									depictionContent = '<p class="notice">No image metadata</p>';
+									});
+
+								// Going to leave this here to maybe save some trouble if any of this is needed
+								// It's an attempt to reposition the popup, which gets skewed after the streetview image loads
+								// (this particular problem ended up being solved with CSS!)
+								// var loc = this.getLatLng(); var __popup = this;
+								metadataRequest.always(function() {
+									console.log('JSON request promise resolved');
+									// __popup.setLatLng(loc);
+									// __popup.update();
+									evt.popup.setContent(evt.popup.getContent() + depictionWrapperStart + '>' + depictionContent + '</div>');
+									});
+							}
 							});
 
 						featureIndex++;
