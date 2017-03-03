@@ -245,10 +245,21 @@ input.journey {
 	border-color: green;
 }
 
-.notice {
+.response {
 	border-radius: 4px;
-	background-color: lightyellow;
 	padding: 0.2em 0.5em;
 	font-weight: bolder;
+	background-color: lightyellow;
+}
+
+.response.notice {
 	color: maroon;
+}
+
+.response.error {
+	color: red;
+}
+
+.response.result {
+	color: green;
 }
