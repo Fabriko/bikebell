@@ -230,6 +230,10 @@ input.journey {
 	background-color: #c1f5b9;
 }
 
+.depiction {
+	text-align: center;
+}
+
 .ground-photo.thumb {
 	border-radius: 10px;
 	border: thick double;
@@ -252,6 +256,10 @@ input.journey {
 	background-color: lightyellow;
 }
 
+p.response { /* just specific enough to override Leaflet's default popup p style */
+	margin-top: 0.5em; margin-bottom: 0.5em;
+}
+
 .response.notice {
 	color: maroon;
 }
@@ -260,6 +268,6 @@ input.journey {
 	color: red;
 }
 
-.response.result {
+.response.ok {
 	color: green;
 }
