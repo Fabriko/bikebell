@@ -21,6 +21,16 @@ var categories = populateCategories();
 configManagementHacks();
 
 document.addEventListener('deviceready', function() {
+
+	if (navigator.camera) {
+		$('#picture').removeClass('disabled');
+		$('#picture').click( function() {
+			console.log('Snap!');
+		});
+	}
+	});
+
+document.addEventListener('deviceready', function() {
 	evothings.scriptsLoaded( function() {
 		setSensor();
 		console.log('Set to ' + sensor.target);

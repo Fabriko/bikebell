@@ -224,6 +224,12 @@
 	padding-right: 1em;
 }
 
+.burger.menu ul li.disabled {
+	font-style: italic;
+	font-weight: lighter;
+	text-shadow: 1px 1px 2px #ccc;
+}
+
 .burger.menu ul li a,
 .burger.menu ul li a:visited {
 	border-top: 1px #3E4555 solid;
