@@ -9,6 +9,13 @@ var config = {
 
 	SHOW_TRACKPOINTS: 'properties', // none|markers|properties
 
+	APPLICATION: {
+		contact: {
+			email: 'fabriko.sensibel@gmail.com',
+		},
+		user_agent_string: 'Sensibel: https://github.com/Fabriko/bikebell',
+	},
+
 	dataStore: {
 		/* TODO:
 		user:     'user',
@@ -39,6 +46,8 @@ var config = {
 
 	enableButtonsWithoutGPS: false,
 	useFauxConnection: false, // DEPRECATE FOR settings.connectAuthenticity = 'fake' || 'real'
+
+	google_streetview_API_key: '<obtain-your-own-api-key>',
 
 	layer: { // browse some free styles: http://leaflet-extras.github.io/leaflet-providers/preview/index.html
 

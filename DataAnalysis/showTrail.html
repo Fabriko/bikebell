@@ -3,14 +3,14 @@
 <head>
 	<title>Sensibel ~ Journey browser</title>
 
-	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.0/dist/leaflet.css" />
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
 	<script src="http://code.jquery.com/jquery-2.2.0.min.js"></script>
 
-	<link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css" />
-	<script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script> <!-- FIXME: only need listview from JQM, can't assemble a custom package -->
+	<link rel="stylesheet" href="https://code.jquery.com/mobile/1.5.0-alpha.1/jquery.mobile-1.5.0-alpha.1.min.css" />
+	<script src="https://code.jquery.com/mobile/1.5.0-alpha.1/jquery.mobile-1.5.0-alpha.1.min.js"></script> <!-- FIXME: 1.5 alpha version required because 1.4.5 has a bug in popup dialogs -->
 
 	<script src="https://cdn.rawgit.com/agschwender/jquery.formatDateTime/master/dist/jquery.formatDateTime.min.js"></script> <!-- canonical source: https://github.com/agschwender/jquery.formatDateTime/raw/master/dist/jquery.formatDateTime.min.js -->
-	<script src="https://unpkg.com/leaflet@1.0.0/dist/leaflet.js"></script>
+	<script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
 	<script src="https://cdn.rawgit.com/makinacorpus/Leaflet.GeometryUtil/master/src/leaflet.geometryutil.js"></script>
 	<script src="https://cdn.rawgit.com/makinacorpus/Leaflet.AlmostOver/gh-pages/src/leaflet.almostover.js"></script>
 	<script src="https://npmcdn.com/@turf/turf@3.5.1/turf.min.js"></script>
@@ -27,7 +27,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.3.12';
+		var _VERSION = '0.3.22';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -46,10 +46,22 @@
 			'Bike mechanics',
 			];
 
+		var serviceResults = {}; // this is part of a really ugly story, read below for details/reasons
+		serviceResults['depiction'] =   '<div class="depiction" />';
+		serviceResults['description'] = '<div class="description" />';
+
 		var journeys = {};
 
 		var localStore = new PouchDB(config.dataStore.database);
 		var remoteStore = config.dataStore.endpoint + '/' + config.dataStore.database;
+		
+		// browser refuses this, need to rely on Referer header instead
+		// ( http://stackoverflow.com/a/33144144 )
+		/*
+		$(document).ajaxSend( function(evt, xhr) {
+			xhr.setRequestHeader('User-Agent', config.APPLICATION.user_agent_string);
+			});
+		*/
 
 		$(document).ready(function() {
 
@@ -63,8 +75,11 @@
 					'OSM Carto': config.layer.osm.tiles,
 					'Thunderforest OpenCycleMap': config.layer.Thunderforest_OpenCycleMap.tiles,
 					}
+					
 				baseMaps['Dark Matter'].addTo(map);
 				L.control.layers(baseMaps).addTo(map);
+				
+				map.attributionControl.addAttribution('<br/>Reverse geocoding uses <a href="http://nominatim.openstreetmap.org">Nominatim</a>'); // FIXME: this should really be on the popups and not the map, but I am so over messing with those
 			}
 			// console.log(map);
 
@@ -180,7 +195,7 @@
 
 			this.render = function(refresh) {
 				refresh = ( typeof refresh == 'undefined' ? false : refresh );
-				console.log('refresh = ' + refresh.toString());
+				// console.log('refresh = ' + refresh.toString());
 
 				// handle some missing values ..
 				var rider = this.metadata.hasOwnProperty('rider') ? this.metadata.rider : UNKNOWN_CYCLIST;
@@ -436,15 +451,149 @@
 						var commentValue = ( hasComment ? feature.properties.comment : '');
 						var placeHolder = 'What was so ' + (feature.properties.value == BUTTON_VALUE_GOOD ? 'good' : 'bad') + ' here?';
 						var commentForm = '<label for="comment.' +  + featureIndex + '">Comment:</label> \
-							<textarea id="comment.' +  + featureIndex + '" name="comment" placeholder="' + placeHolder + '">' + commentValue + '</textarea> \
+							<textarea id="comment.' + featureIndex + '" name="comment" placeholder="' + placeHolder + '">' + commentValue + '</textarea> \
 							<input type="button" value="Send"  onclick="sendAnnotation(this.form);" /> \
 							</form> \
 							';
 
 						popupContent += commentForm;
 
+						// this sets their order consistently because they are called asynchronously and we want them to display the same regardless which order the results come in
+						popupContent += Object.keys(serviceResults).map( function(key) {
+							return serviceResults[key];
+							});
+
 						layer.setIcon(displayMarker);
-						layer.bindPopup(popupContent);
+						layer.bindPopup(popupContent, {
+							className: (feature.properties.value == BUTTON_VALUE_GOOD ? 'good' : 'bad'),
+							}).on('popupopen', function(evt) {
+
+							console.log('popup open triggered');
+							var pointLatitude = evt.popup.getLatLng().lat.toString();
+							var pointLongitude = evt.popup.getLatLng().lng.toString();
+
+							// need to check we haven't already added the location description to the popup, or it will request a new one and add it every time
+							if ($(evt.popup.getContent()).is('.description:empty')) {
+
+								var descriptionContent;
+								var reverseGeocodingRequestEndpoint = 'http://nominatim.openstreetmap.org/reverse';
+								
+								// build request
+								var requestParams = {
+									'lat':    pointLatitude,
+									'lon':    pointLongitude,
+									'format': 'json',
+									'zoom':   17,
+									'email':  config.APPLICATION.contact.email,
+									};
+
+								var reverseGeocodingRequest = $.getJSON([reverseGeocodingRequestEndpoint , serialiseAsURLParams(requestParams)].join('?'));
+
+								reverseGeocodingRequest.done(function(json) {
+									if ( json.address ) {
+										console.log(json.address);
+										// building, house_number, road, suburb, city
+										descriptionContent = [
+											'<p class="response ok">',
+												[
+													json.address.road,
+												].join(),
+											'</p>',
+											].join('\n');
+									}
+									else { // we'll treat as an error ..
+										console.log('Reverse geocoding error response: ..');
+										console.log(json);
+										descriptionContent = '<p class="response notice">No location description available here.</p>';
+									}
+									});
+
+								reverseGeocodingRequest.fail(function() {
+									descriptionContent = '<p class="response error">Error requesting a location description.</p>';
+									});
+
+								reverseGeocodingRequest.always(function() {
+									console.log('JSON request promise resolved (Nominatim)');
+
+									// ok, this bit disgusts me, but this UI is temporary ..
+									// Leaflet will only accept contents as string or single HTML DOM element, jQuery has no native method or easy path to dump the contents of a jQ object as HTML, so elegant DOM substitution is difficult here ..
+									// and the dog ate my homework
+									evt.popup.setContent(evt.popup.getContent().replace(serviceResults.description, '<div class="description">' + descriptionContent + '</div>'));
+
+									});
+
+							}
+
+							// need to check we haven't already added the image to the popup, or it will request a new one and add it every time
+							if ($(evt.popup.getContent()).is('.depiction:empty')) {
+
+								var depictionContent;
+								var imageRequestEndpoint = 'https://maps.googleapis.com/maps/api/streetview';
+
+								// build metadata request - TODO: find out if heading affects this result i.e. are some headings not available at points where images are available?
+								var requestParams = {
+									'location': pointLatitude + ',' + pointLongitude,
+									'key':      config.google_streetview_API_key,
+									};
+
+								var metadataRequest = $.getJSON(imageRequestEndpoint + '/metadata?' + serialiseAsURLParams(requestParams));
+
+								metadataRequest.done(function(json) {
+									if (json.status == 'OK') {
+										
+										// build thumbnail/preview image request
+										var heading = GJUtils.attemptBearing(feature, GJUtils.getLineString(__this.geoJSON));
+										console.log('heading: ' + heading);
+										if (heading) {
+											requestParams['heading'] = heading;
+										}
+										// &fov=90&pitch=10
+
+										requestParams['size'] = '200x200';
+										var previewImageURL = imageRequestEndpoint + '?' + serialiseAsURLParams(requestParams);
+
+										var pointIdentifier = 'x' + pointLatitude.toString().replace('.','-') + 'y' + pointLongitude.toString().replace('.','-');
+										var identifierImage = '<img id="depiction-' + pointIdentifier + '"  class="ground-photo thumb" src="' + previewImageURL + '" />';
+
+										// build fullsize/expanded image and link markup
+										depictionContent = '<a data-rel="popup" href="#depiction-expanded-' + pointIdentifier + '" data-transition="flip">' + identifierImage + '</a>';
+
+										requestParams['size'] = [Math.round(map.getSize().x * 0.9), Math.round(map.getSize().y * 0.9)].join('x');
+										// NB: seems to just round down px if we exceed free limit of 640, so no problem there
+
+										// FIXME: close icon doesn't render
+										// <a href="#" data-rel="back" data-role="button" data-icon="delete" data-iconpos="notext" class="ui-btn-right">Close</a> \
+										// TODO: insert a heading with reverse geocoded position
+										$('<div id="depiction-expanded-' + pointIdentifier + '" data-role="popup" data-theme="a" data-overlay-theme="a"> \
+												<p> \
+													<img class="ground-photo expanded" src="' + imageRequestEndpoint + '?' + serialiseAsURLParams(requestParams) + '" /> \
+												</p> \
+											</div> \
+											').popup();
+									}
+									else {
+										depictionContent = '<p class="response notice">No imagery available here.</p>';
+									}
+									});
+
+								metadataRequest.fail(function() {
+									depictionContent = '<p class="response error">No image metadata</p>';
+									});
+
+								// Going to leave this here to maybe save some trouble if any of this is needed
+								// It's an attempt to reposition the popup, which gets skewed after the streetview image loads
+								// (this particular problem ended up being solved with CSS!)
+								// var loc = this.getLatLng(); var __popup = this;
+								metadataRequest.always(function() {
+									console.log('JSON request promise resolved (Streetview)');
+									// __popup.setLatLng(loc);
+									// __popup.update();
+
+									// refer note above (same operation on 'description' div) for explanation
+									evt.popup.setContent(evt.popup.getContent().replace(serviceResults.depiction, '<div class="depiction">' + depictionContent + '</div>'));
+									});
+							}
+							});
 
 						featureIndex++;
 						},
@@ -690,6 +839,12 @@
 				return 'http://lorempixel.com/g/32/32/cats/'; // + userName;
 			}
 			return 'ui/images/user.placeholder.png';
+			};
+			
+		var serialiseAsURLParams = function(obj) {
+			return Object.keys(obj).map( function(key) {
+				return key + '=' + obj[key];
+				}).join('&');
 			};
 
 	</script>

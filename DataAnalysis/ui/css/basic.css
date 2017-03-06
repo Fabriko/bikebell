@@ -212,3 +212,62 @@ h1 .logo {
 input.journey {
 	visibility: hidden;
 }
+
+/* ah jeez, thanks https://github.com/Leaflet/Leaflet/issues/724#issuecomment-35599099 */
+/*
+.leaflet-popup-content {
+	width:auto !important;
+}
+*/
+
+.bad .leaflet-popup-content-wrapper,
+.bad .leaflet-popup-tip {
+	background-color: #ecbebc;
+}
+
+.good .leaflet-popup-content-wrapper,
+.good .leaflet-popup-tip {
+	background-color: #c1f5b9;
+}
+
+.depiction {
+	text-align: center;
+}
+
+.ground-photo.thumb {
+	border-radius: 10px;
+	border: thick double;
+	margin-top: 1em;
+	max-width: 90%; /* 100% should be OK, but seems to go beyond right margin of parent, so this be hack */
+}
+
+.leaflet-popup.bad .ground-photo.thumb {
+	border-color: red;
+}
+
+.leaflet-popup.good .ground-photo.thumb {
+	border-color: green;
+}
+
+.response {
+	border-radius: 4px;
+	padding: 0.2em 0.5em;
+	font-weight: bolder;
+	background-color: lightyellow;
+}
+
+p.response { /* just specific enough to override Leaflet's default popup p style */
+	margin-top: 0.5em; margin-bottom: 0.5em;
+}
+
+.response.notice {
+	color: maroon;
+}
+
+.response.error {
+	color: red;
+}
+
+.response.ok {
+	color: green;
+}
