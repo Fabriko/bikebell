@@ -25,7 +25,16 @@ document.addEventListener('deviceready', function() {
 	if (navigator.camera) {
 		$('#picture').removeClass('disabled');
 		$('#picture').click( function() {
-			console.log('Snap!');
+			navigator.camera.getPicture( function(result) {
+					console.log(result);
+				},
+				function() {
+					console.log('failed or whatever FIXME');
+				},
+				{
+					// select from https://cordova.apache.org/docs/en/latest/reference/cordova-plugin-camera/index.html#module_camera.CameraOptions
+				}
+				);
 		});
 	}
 	});
