@@ -27,7 +27,7 @@
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.3.21';
+		var _VERSION = '0.3.22';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -54,6 +54,14 @@
 
 		var localStore = new PouchDB(config.dataStore.database);
 		var remoteStore = config.dataStore.endpoint + '/' + config.dataStore.database;
+		
+		// browser refuses this, need to rely on Referer header instead
+		// ( http://stackoverflow.com/a/33144144 )
+		/*
+		$(document).ajaxSend( function(evt, xhr) {
+			xhr.setRequestHeader('User-Agent', config.APPLICATION.user_agent_string);
+			});
+		*/
 
 		$(document).ready(function() {
 
@@ -67,8 +75,11 @@
 					'OSM Carto': config.layer.osm.tiles,
 					'Thunderforest OpenCycleMap': config.layer.Thunderforest_OpenCycleMap.tiles,
 					}
+					
 				baseMaps['Dark Matter'].addTo(map);
 				L.control.layers(baseMaps).addTo(map);
+				
+				map.attributionControl.addAttribution('<br/>Reverse geocoding uses <a href="http://nominatim.openstreetmap.org">Nominatim</a>'); // FIXME: this should really be on the popups and not the map, but I am so over messing with those
 			}
 			// console.log(map);
 
@@ -184,7 +195,7 @@
 
 			this.render = function(refresh) {
 				refresh = ( typeof refresh == 'undefined' ? false : refresh );
-				console.log('refresh = ' + refresh.toString());
+				// console.log('refresh = ' + refresh.toString());
 
 				// handle some missing values ..
 				var rider = this.metadata.hasOwnProperty('rider') ? this.metadata.rider : UNKNOWN_CYCLIST;
@@ -472,7 +483,8 @@
 									'lat':    pointLatitude,
 									'lon':    pointLongitude,
 									'format': 'json',
-									'zoom': 17,
+									'zoom':   17,
+									'email':  config.APPLICATION.contact.email,
 									};
 
 								var reverseGeocodingRequest = $.getJSON([reverseGeocodingRequestEndpoint , serialiseAsURLParams(requestParams)].join('?'));

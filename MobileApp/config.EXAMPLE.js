@@ -9,6 +9,13 @@ var config = {
 
 	SHOW_TRACKPOINTS: 'properties', // none|markers|properties
 
+	APPLICATION: {
+		contact: {
+			email: 'fabriko.sensibel@gmail.com',
+		},
+		user_agent_string: 'Sensibel: https://github.com/Fabriko/bikebell',
+	},
+
 	dataStore: {
 		/* TODO:
 		user:     'user',
