@@ -26,16 +26,49 @@ document.addEventListener('deviceready', function() {
 		$('#picture').removeClass('disabled');
 		$('#picture').click( function() {
 			navigator.camera.getPicture( function(result) {
-					console.log(result);
+				console.log(result);
+				// make a directory
+				logActivity('External dir: ' + cordova.file.externalApplicationStorageDirectory);
+				logActivity('App storage dir: ' + cordova.file.applicationStorageDirectory);
+
+				var dataDirectoryLocation = ( device.platform.match(/android/i) ? cordova.file.externalDataDirectory : cordova.file.dataDirectory );
+
+				logActivity("We'll use " + dataDirectoryLocation);
+
+				/*
+				window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, function (fs) {
+					// cordova.file.applicationStorageDirectory
+					fs.root.getDirectory('sensibel-test', { create: true, exclusive: false, }, function(dir) { logActivity('ok dir'); logActivity(dir.fullPath); }, function() { logActivity('dir create fail'); });
+				}, function() { logActivity('fs fail'); } );
+				*/
+
+				window.resolveLocalFileSystemURL(dataDirectoryLocation, function (fs) {
+						logActivity('gonna try creating dir..');
+						fs.getDirectory('sensibel-test', {
+							create: true,
+							exclusive: false,
+							}, function(dir) {
+								logActivity('ok dir');
+								logActivity(dir.fullPath);
+							}, function() {
+								logActivity('dir create fail');
+							});
+					}, function() {
+						logActivity('fs fail');
+					});
+
+					// generate a UUID
+					// copy cached file
+					// store filename in DB
+					// upload to CDN
 				},
 				function() {
-					console.log('failed or whatever FIXME');
+					console.log('camera failed or whatever FIXME');
 				},
 				{
 					// select from https://cordova.apache.org/docs/en/latest/reference/cordova-plugin-camera/index.html#module_camera.CameraOptions
-				}
-				);
-		});
+				});
+			});
 	}
 	});
 
