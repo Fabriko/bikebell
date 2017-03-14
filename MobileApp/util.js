@@ -134,17 +134,6 @@ var outcome = {
 		},
 	};
 
-// based off http://stackoverflow.com/a/2117523
-function UUishID(short) {
-	short = ( typeof short === undefined || short );
-	var mask = ( short ? 'xxxxxxxxxxxx' : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx' );
-	return mask.replace(/[xy]/g, function(c) {
-		var r = Math.random()*16|0,
-		    v = ( c == 'x' ? r : (r&0x3|0x8) );
-		return v.toString(16);
-		});
-}
-
 Storage.prototype.hasItem = function(itemName, rejectEmpty) {
 	var setting = this.getItem(itemName);
 	return ( (setting !== null) && (rejectEmpty ? setting.length > 0 : true) );
@@ -168,3 +157,23 @@ testStorageHasItem = function() {
 }();
 */
 
+SBUtils = {
+
+	// based off http://stackoverflow.com/a/2117523
+	'UUishID': function(short) {
+		short = ( typeof short === undefined || short );
+		var mask = ( short ? 'xxxxxxxxxxxx' : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx' );
+		return mask.replace(/[xy]/g, function(c) {
+			var r = Math.random()*16|0,
+				v = ( c == 'x' ? r : (r&0x3|0x8) );
+			return v.toString(16);
+			});
+	},
+
+	'isAndroid': function() {
+		return device.platform.match(/android/i);
+	},
+	
+};
+
+UUishID = SBUtils.UUishID;

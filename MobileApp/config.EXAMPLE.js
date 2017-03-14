@@ -27,6 +27,10 @@ var config = {
 		prefix:   '', // TODO - make this optional ideally (rather than having to set it blank)
 	},
 
+	capturedMedia: {
+		local_directory: 'media',
+	},
+
 	IDPairingsHack: {
 		'<device1-id>': '<sensor1-name>',
 		'<device2-id>': '<sensor2-name>'
