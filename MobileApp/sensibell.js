@@ -22,68 +22,12 @@ configManagementHacks();
 
 document.addEventListener('deviceready', function() {
 
-	// from https://cordova.apache.org/docs/en/latest/reference/cordova-plugin-camera/index.html#take-a-picture-and-get-a-fileentry-object
-	var moveMedia = function(URI, directoryEntry, newName, successCallback, failCallback) {
-		newName = newName || fileEntry.name;
-		successCallback = successCallback || function() {
-			logActivity('Success moving image to ' + dir + '/' + fileName);
-			};
-		failCallback = failCallback || function() {
-			logActivity('Failed moving image to ' + dir + '/' + fileName);
-			};
-		window.resolveLocalFileSystemURL(URI, function(fileEntry) {
-			console.log("got file: " + fileEntry.fullPath);
-			fileEntry.moveTo(directoryEntry, newName, successCallback, failCallback);
-			}, function() {
-			// If don't get the FileEntry (which may happen when testing
-			// on some emulators), copy to a new FileEntry.
-			logActivity('Failed to resolve URI ' + URI + ' as fileEntry: ' + err + '(https://www.w3.org/TR/2011/WD-file-system-api-20110419/#idl-def-FileError)');
-			if(failCallback) {
-				failCallback();
-			}
-			});
-		};
-
 	if (navigator.camera) {
 		$('#picture').removeClass('disabled');
 		$('#picture').click( function() {
-			navigator.camera.getPicture( function(loc) {
-				console.log('Stored in ' + loc);
-				// make a directory
-				logActivity('External dir: ' + cordova.file.externalApplicationStorageDirectory);
-				logActivity('App storage dir: ' + cordova.file.applicationStorageDirectory);
 
-				var dataDirectoryLocation = ( SBUtils.isAndroid() ? cordova.file.externalDataDirectory : cordova.file.dataDirectory );
-
-				logActivity("We'll use " + dataDirectoryLocation);
-
-				window.resolveLocalFileSystemURL(dataDirectoryLocation, function (fs) {
-						// logActivity('gonna try creating dir..');
-						fs.getDirectory(config.capturedMedia.local_directory, {
-							create: true,
-							exclusive: false,
-							}, function(dir) {
-								logActivity('Success creating or opening media directory ' + dir.fullPath);
-								var fileName = SBUtils.UUishID() + '.jpg';
-								moveMedia(loc, dir, fileName);
-							}, function(err) {
-								logActivity('Failed creating or accessing media directory ' + dataDirectoryLocation + '/' + config.capturedMedia.local_directory + ': ' + err + '(https://www.w3.org/TR/2011/WD-file-system-api-20110419/#idl-def-FileError)');
-							});
-					}, function() {
-						logActivity('Failed to resolve media directory ' + dataDirectoryLocation + ': ' + err + '(https://www.w3.org/TR/2011/WD-file-system-api-20110419/#idl-def-FileError)');
-					});
-
-					// generate a UUID /
-					// copy cached file /
-					// store filename in DB
-					// upload to CDN
-				},
-				function() {
-					console.log('camera failed or whatever FIXME');
-				},
-				{
-					// select from https://cordova.apache.org/docs/en/latest/reference/cordova-plugin-camera/index.html#module_camera.CameraOptions
-				});
+			var photo = new CapturedMedia();
+			photo.grab();
 			});
 	}
 	});

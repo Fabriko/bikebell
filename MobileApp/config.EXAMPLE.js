@@ -28,7 +28,7 @@ var config = {
 	},
 
 	capturedMedia: {
-		local_directory: 'media',
+		LOCAL_DIRECTORY: 'media',
 	},
 
 	IDPairingsHack: {
