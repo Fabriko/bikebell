@@ -5,6 +5,15 @@ var config = {
 	DB_LOGGING: false,
 	UPLOAD_ON_FINISH: true,
 
+	PREFERENCES: { // TODO: move these to a user-configurable place
+		media: {
+			upload_on_wifi_only: true,
+			images: {
+				keep_originals: false,
+			},
+		},
+	},
+
 	VIEWER_FILE_PREFIX: '2016', // to filter developer file uploads or recently dated files
 
 	SHOW_TRACKPOINTS: 'properties', // none|markers|properties
