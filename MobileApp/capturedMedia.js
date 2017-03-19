@@ -128,9 +128,17 @@ function CapturedMedia() {
 			journey.track.addMedia(__this.location, properties);
 		}
 		else {
-			// TODO
+			// must add 'time' here if omitted, which is a bit repetitive (refactor?)
+			if (!properties.hasOwnProperty('time')) {
+				var timeStamp = new Date();
+				properties.time = formatTimestamp(timeStamp, 'W3CDTF');
+				};
+
+			var geoJSON = turf.point(__this.location, properties);
+			// TODO: annotation popup
+			
 			logActivity('TODO: we need to add this as floating media to Couch');
-			console.log('with properties ' + JSON.stringify(properties));
+			console.log(JSON.stringify(geoJSON));
 		}
 	}
 

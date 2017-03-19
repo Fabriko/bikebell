@@ -329,7 +329,7 @@ function Track(parentJourney) {
 		return (this.cache.features[0].geometry.coordinates.length && (this.cache.features[0].geometry.coordinates.length > 0)); // FIXME - not keen on relying on first position in this.cache.features array to identify the linestring (trail)
 		};
 
-	this.addMedia = function(position, properties) { // TODO: consolidate properties into a single parameter (default 'time' though)
+	this.addMedia = function(position, properties) {
 
 		logActivity('Adding media reference to trail "' + parentJourney.title + '" @(' + position[0] + ',' + position[1] + ')' );
 
