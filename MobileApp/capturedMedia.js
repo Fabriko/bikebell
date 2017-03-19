@@ -28,7 +28,7 @@ function CapturedMedia() {
 					exclusive: false,
 					}, function(dir) {
 						logActivity('Success creating or opening media directory ' + dir.fullPath);
-						var fileName = SBUtils.UUishID() + '.jpg';
+						var fileName = __this.uuid + '.jpg';
 
 						window.resolveLocalFileSystemURL(URI, function(fileEntry) {
 							console.log("got file: " + fileEntry.fullPath);
@@ -137,8 +137,23 @@ function CapturedMedia() {
 			var geoJSON = turf.point(__this.location, properties);
 			// TODO: annotation popup
 			
-			logActivity('TODO: we need to add this as floating media to Couch');
+			logActivity('Adding ' + __this.name + ' as floating media to Couch');
 			console.log(JSON.stringify(geoJSON));
+
+			localStore.put(Object.assign({'_id': __this.uuid}, geoJSON)).then(
+				function(result) {
+					console.log('yay point');
+					console.log(result);
+					localStore.sync(remoteStore, {live: true}).on('change',
+						function (info) {
+							console.log('info: ' + JSON.stringify(info));
+						});
+				}).catch(
+				function(err) {
+					console.log('boo point');
+					console.log('err: ' + err.name + JSON.stringify(err));
+					// TODO - a better fail
+				});
 		}
 	}
 
@@ -146,8 +161,12 @@ function CapturedMedia() {
 	this.load = function(){}; // TODO
 
 	this.init = function(){
+		// synonyms for functions, hmmm...
 		__this.record = __this.take = __this.capture = __this.grab = __this.snap;
 		__this.send = __this.upload = __this.beamup;
+		
+		__this.uuid = SBUtils.UUishID();
+		
 		}();
 
 }
