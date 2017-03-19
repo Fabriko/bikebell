@@ -3,6 +3,7 @@
 function CapturedMedia() {
 
 	var __this = this;
+	this['location'] = this['type'] = this['name'] = null;
 
 	this.stash = function(URI, stashSuccessOps, stashFailOps) {
 		stashSuccessOps = stashSuccessOps || function() {
@@ -31,6 +32,7 @@ function CapturedMedia() {
 
 						window.resolveLocalFileSystemURL(URI, function(fileEntry) {
 							console.log("got file: " + fileEntry.fullPath);
+							__this.name = fileName;
 							fileEntry.moveTo(dir, fileName, stashSuccessOps, stashFailOps);
 							}, function() {
 							// If don't get the FileEntry (which may happen when testing
@@ -51,37 +53,86 @@ function CapturedMedia() {
 			}
 			else {
 				logActivity('cordova.file is not supported here, image stuck at ' + URI);
-				stashFailOps();
+				logActivity("We'll see how we go using the default storage details");
+				
+				var fileName = URI.split('/').pop();
+				__this.name = fileName;
+
+				stashSuccessOps();
+				// stashFailOps();
 			}
 		};
 
 	this.snap = function(grabSuccessOps, grabFailOps) {
+
 		grabSuccessOps = grabSuccessOps || function() {
 			logActivity('Default CapturedMedia.grab: grabSuccessOps() being called ..');
+			__this.notarise();
 			};
 		grabFailOps = grabFailOps || function() {
 			logActivity('Default CapturedMedia.grab: grabFailOps() being called ..');
 			};
 
-		navigator.camera.getPicture( function(loc) {
-			console.log('Stored in ' + loc);
-			// make a directory
-			
-			// generate a UUID /
-			// copy cached file /
-			// store filename in DB
-			// upload to CDN
-			__this.stash(loc, grabSuccessOps, grabFailOps);
+		__this.type = 'image/jpeg';
+		logPosition( function(loc) {
+			__this.location = [loc.coords.latitude, loc.coords.longitude]; // FIXME: temporary, we actually will want to pass and use the whole loc object, like the next commented line: ..
+			// __this.location = loc;
+			navigator.camera.getPicture( function(path) {
+				console.log('Stored in ' + path);
+				// __this.description TODO
 
-			},
-			function() {
-				console.log('camera failed or whatever FIXME');
-				grabFailOps();
-			},
-			{
-				// select from https://cordova.apache.org/docs/en/latest/reference/cordova-plugin-camera/index.html#module_camera.CameraOptions
-			});
+				// store filename in DB
+				__this.stash(path, grabSuccessOps, grabFailOps);
+
+				// upload to CDN
+
+				},
+				function() {
+					console.log('camera failed or whatever FIXME');
+					grabFailOps();
+				},
+				{
+					// select from https://cordova.apache.org/docs/en/latest/reference/cordova-plugin-camera/index.html#module_camera.CameraOptions
+				});
+			}, function() {
+			bellUI.popup("Can't geolocate captured media");
+			
+			// FIXME: what gets notarised when we don't know the location yet?
+			__this.location = config.dummyLoc; // TODO: approximate from last position and tag as uncertain
+			
+			navigator.camera.getPicture( function(path) {
+				console.log('Stored in ' + path);
+				// __this.description TODO
+				__this.stash(path, grabSuccessOps, grabFailOps);
+				},
+				function() {
+					console.log('camera failed or whatever FIXME');
+					grabFailOps();
+				},
+				{
+					// select from https://cordova.apache.org/docs/en/latest/reference/cordova-plugin-camera/index.html#module_camera.CameraOptions
+				});
+			} /* , {} geo options go here */ );
 	};
+
+	this.notarise = function(additionalProperties) {
+		additionalProperties = additionalProperties || {};
+		var standardProperties = {
+			'type': __this.type,
+			'name': __this.name,
+			}; // TODO , __this.description);
+		var properties = Object.assign({}, standardProperties, additionalProperties);
+		// TODO: annotation popup
+
+		if(sensibelStatus.state.tracking) {
+			journey.track.addMedia(__this.location, properties);
+		}
+		else {
+			// TODO
+			logActivity('TODO: we need to add this as floating media to Couch');
+			console.log('with properties ' + JSON.stringify(properties));
+		}
+	}
 
 	this.beamup = function(){}; // TODO
 	this.load = function(){}; // TODO

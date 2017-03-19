@@ -96,24 +96,25 @@ document.addEventListener('resume',	function() {
 	}
 	}, false);
 
-function logPosition(val, success, options) {
+function logPosition(logSuccessOps, logFailOps, options) { // NB: initial val parameter has been removed, also logFailOps parameter inserted before options parameter
+	logFailOps = logFailOps || function() {
+		bellUI.popup("Couldn't locate :(", 'short'); // FIXME: do something more useful with this
+		};
+
 	if ( options === undefined ) {
 		options = config.geoPositionOptions;
 	}
-
-	logActivity('*** KEY ' + val + ' ****');
-	var msg = 'Key ' + val + ' triggered ';
 
 	if (navigator.geolocation) {
 		// console.log('supports ' + navigator.geolocation);
 		return navigator.geolocation.getCurrentPosition(
 			function(position) {
-				logActivity(msg += ' @(' + position.coords.latitude + ',' + position.coords.longitude + ')');
-				success.call(this, position);
+				logActivity('positioned@ (' + position.coords.latitude + ',' + position.coords.longitude + ')');
+				logSuccessOps.call(this, position);
 			},
 			function(error) {
-				logActivity(msg += "but couldn't locate, error #" + error.code + ': "' + error.message + '"');
-				bellUI.popup("Couldn't locate :(", 'short'); // FIXME: do something more useful with this
+				logActivity("couldn't locate, error #" + error.code + ': "' + error.message + '"');
+				logFailOps();
 			},
 			options
 		);
@@ -328,15 +329,45 @@ function Track(parentJourney) {
 		return (this.cache.features[0].geometry.coordinates.length && (this.cache.features[0].geometry.coordinates.length > 0)); // FIXME - not keen on relying on first position in this.cache.features array to identify the linestring (trail)
 		};
 
+	this.addMedia = function(position, properties) { // TODO: consolidate properties into a single parameter (default 'time' though)
+
+		logActivity('Adding media reference to trail "' + parentJourney.title + '" @(' + position[0] + ',' + position[1] + ')' );
+
+		// FIXME - fails when there are no features yet!
+		// console.log(JSON.stringify(this.cache));
+		var features = this.cache.features[0]; // FIXME - not keen on relying on first position in this.cache.features array to identify the linestring (trail)
+
+		var geometry = {
+			'type':        'Point',
+			'coordinates': position,
+			};
+
+		if (!properties.hasOwnProperty('time')) {
+			var timeStamp = new Date();
+			properties.time = formatTimestamp(timeStamp, 'W3CDTF');
+			};
+
+		var pointFeature = turf.feature(geometry, properties);
+		this.cache.features.push(pointFeature);
+
+		this.store();
+		console.log('Track2: ' + JSON.stringify(this.cache));
+
+		return pointFeature;
+		};
+
 	this.addData = function(measure, position, data) {
 		var isBreadcrumb = ( measure == 'position' );
 		var logThis = config.POSITION_LOGGING || !isBreadcrumb;
 		var pointFeature = null;
-		var timeStamp = new Date();
+		var timeStamp = new Date(); // FIXME - I should be using the geolocation API Position.timestamp
 
 		logThis && logActivity('Adding ' + ( isBreadcrumb ? '' : measure + ' of ' + data.toString() + ' ') + 'to trail "' + parentJourney.title + '" @(' + position[0] + ',' + position[1] + ')' );
 
+		// FIXME - fails when there are no features yet!
+		// console.log(JSON.stringify(this.cache));
 		var features = this.cache.features[0]; // FIXME - not keen on relying on first position in this.cache.features array to identify the linestring (trail)
+
 		features.geometry.coordinates.push(position);
 		features.properties.coordinateProperties.times.push(timeStamp.valueOf());
 
@@ -523,7 +554,9 @@ function buttonBad() {
 }
 
 function processButton(val) {
-	logPosition(val, function(loc) {
+	logActivity('*** KEY ' + val + ' ****  triggered');
+
+	logPosition(function(loc) {
 		/*
 		var options = {
 			color:     (val == '01' ? 'green' : 'red'), // FIXME: use classes if possible

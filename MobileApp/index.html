@@ -8,6 +8,7 @@
 	<title>Bike Bell app</title>
 
     <script src="libs/leaflet.js"></script>
+    <script src="libs/turf.min.js"></script> <!-- whole thing; unable to get a working cutom build from https://turfjs-builder.herokuapp.com/ -->
 	<!-- <script src='https://api.mapbox.com/mapbox.js/v2.2.4/mapbox.js'></script> -->
 
     <script src="libs/jquery/jquery-2.1.4.js"></script>
@@ -33,7 +34,7 @@
 
 	<script>
 	console.log('===========');
-	var _VERSION = '0.5.5-201703162312';
+	var _VERSION = '0.5.6-201703191438';
 	var settings = window.localStorage;
 
 	document.addEventListener(
