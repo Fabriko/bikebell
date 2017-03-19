@@ -144,9 +144,13 @@ function CapturedMedia() {
 				function(result) {
 					console.log('yay point');
 					console.log(result);
-					localStore.sync(remoteStore, {live: true}).on('change',
+					localStore.replicate.to(remoteStore).then(
 						function (info) {
+							logActivity('Succeeded replicating floating file ' + __this.uuid + ' up:');
 							console.log('info: ' + JSON.stringify(info));
+						}, function(err) {
+							logActivity('Replicating floating file ' + __this.uuid + ' up failed:');
+							console.log(err);
 						});
 				}).catch(
 				function(err) {
