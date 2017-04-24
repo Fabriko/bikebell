@@ -41,15 +41,15 @@ document.addEventListener('deviceready', function() {
 	}, false);
 
 document.addEventListener('deviceready', function() {
-	if (navigator.connection.type && navigator.connection.type != Connection.UNKNOWN && navigator.connection.type != Connection.NONE) {
+	if (SBUtils.isOnline()) {
 		bellUI.popup('Online via connection type ' + navigator.connection.type, 'long');
 		logActivity('Attempting to sync to remote datastore ..');
 		localStore.sync(remoteStore).on('complete', // FIXME: sometimes this triggers twice .. ???
 			function (info) {
-				logActivity(" .. succeeded!");
+				logActivity(" .. succeeded to sync to remote datastore!");
 				}).on('error',
 			function (err) {
-				logActivity(" .. failed, we'll try again later.");
+				logActivity(" .. failed to sync to remote datastore, we'll try again later.");
 			});
 	}
 	else {
@@ -61,10 +61,10 @@ document.addEventListener('deviceready', function() {
 		logActivity('Now online, so syncing to remote datastore ..');
 		localStore.sync(remoteStore).on('complete',
 			function (info) {
-				logActivity(" .. succeeded!");
+				logActivity(" .. succeeded syncing to remote datastore!");
 				}).on('error',
 			function (err) {
-				logActivity(" .. failed, we'll try again later.");
+				logActivity(" .. failed syncing to remote datastore, we'll try again later.");
 			});
 		}, false);
 
@@ -84,17 +84,23 @@ document.addEventListener('resume',	function() {
 	// TODO: add stopScan for pause
 	logActivity('*** app RESUMED ***');
 
-	if (navigator.connection.type && navigator.connection.type != Connection.UNKNOWN && navigator.connection.type != Connection.NONE) {
+	if (SBUtils.isOnline()) {
 		logActivity('Resumed, so attempting to sync to remote datastore ..');
 		localStore.sync(remoteStore).on('complete',
 			function (info) {
-				logActivity(" .. succeeded!");
+				logActivity(" .. succeeded sync to remote datastore!");
 				}).on('error',
 			function (err) {
-				logActivity(" .. failed, we'll try again later.");
+				logActivity(" .. failed sync to remote datastore, we'll try again later.");
 			});
 	}
 	}, false);
+
+document.addEventListener('online', function() {
+	if (SBUtils.uploadHappy()) {
+		CapturedMedia.checkUploads();
+	}
+	});
 
 function logPosition(logSuccessOps, logFailOps, options) { // NB: initial val parameter has been removed, also logFailOps parameter inserted before options parameter
 	logFailOps = logFailOps || function() {

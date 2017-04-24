@@ -94,7 +94,7 @@
 
 			localStore.sync(remoteStore).then( // one-shot wrapper because we want to report status more easily and also ..???
 					function (info) {
-						console.log(' .. succeeded! Setting up a live sync now');
+						console.log(' .. single sync succeeded! Setting up a live sync now');
 						startLiveSync();
 					}).catch(
 					function (err) {

@@ -4,6 +4,13 @@ function CapturedMedia() {
 
 	var __this = this;
 	this['location'] = this['type'] = this['name'] = null;
+	// this['localURI'] = null;
+	this['fileObject'] = null;
+	this['fileEntry'] = null;
+	
+	
+	
+this['b64'] = null;
 
 	this.stash = function(URI, stashSuccessOps, stashFailOps) {
 		stashSuccessOps = stashSuccessOps || function() {
@@ -33,14 +40,45 @@ function CapturedMedia() {
 						window.resolveLocalFileSystemURL(URI, function(fileEntry) {
 							console.log("got file: " + fileEntry.fullPath);
 							__this.name = fileName;
-							fileEntry.moveTo(dir, fileName, stashSuccessOps, stashFailOps);
+							fileEntry.moveTo(dir, fileName, function(fe) {
+								// __this.localURI = fileEntry.toURL();
+								// __this.fileObject = fe.file(/* stashSuccessOps */ function(fo){logActivity('File object init to: ' + JSON.stringify(__this.fileObject));}, stashFailOps);
+
+
+
+				fe.file(/* stashSuccessOps */ function(fo){
+					__this.fileObject = fo;
+					logActivity('File object init to: ' + JSON.stringify(__this.fileObject));
+					
+					/*
+					var readerTmp = new FileReader();
+					
+					readerTmp.onloadend = function(e) {
+						__this.b64 = readerTmp.result;
+						
+						logActivity('Just set to ' + __this.b64);
+						};
+						
+					readerTmp.readAsDataURL(fo);
+					*/
+					
+					stashSuccessOps.call();
+					}, stashFailOps);
+								
+
+								
+								__this.fileEntry = fe;
+
+logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE object
+
+
+								logActivity('CapturedMedia.fileEntry URL is ' + fe.toURL());
+								}, stashFailOps);
 							}, function() {
 							// If don't get the FileEntry (which may happen when testing
 							// on some emulators), copy to a new FileEntry.
 							logActivity('Failed to resolve URI ' + URI + ' as fileEntry: ' + err + '(https://www.w3.org/TR/2011/WD-file-system-api-20110419/#idl-def-FileError)');
-							if(stashFailOps) {
-								stashFailOps();
-							}
+							stashFailOps();
 							});
 					}, function(err) {
 						logActivity('Failed creating or accessing media directory ' + dataDirectoryLocation + '/' + config.capturedMedia.LOCAL_DIRECTORY + ': ' + err + '(https://www.w3.org/TR/2011/WD-file-system-api-20110419/#idl-def-FileError)');
@@ -54,12 +92,18 @@ function CapturedMedia() {
 			else {
 				logActivity('cordova.file is not supported here, image stuck at ' + URI);
 				logActivity("We'll see how we go using the default storage details");
-				
+
+				// __this.localURI = URI;
 				var fileName = URI.split('/').pop();
 				__this.name = fileName;
 
 				stashSuccessOps();
-				// stashFailOps();
+				/*
+				window.resolveLocalFileSystemURL(URI, function(fileEntry) {
+					__this.fileObject = fileEntry.file(stashSuccessOps, stashFailOps);
+					}, stashFailOps);
+				*/
+
 			}
 		};
 
@@ -67,7 +111,13 @@ function CapturedMedia() {
 
 		grabSuccessOps = grabSuccessOps || function() {
 			logActivity('Default CapturedMedia.grab: grabSuccessOps() being called ..');
+			logActivity('Prpearing to notarise.');
 			__this.notarise();
+			logActivity('Notarised.');
+			if (SBUtils.uploadHappy()) {
+				logActivity('Happily ready to upload');
+				__this.beamup();
+			}
 			};
 		grabFailOps = grabFailOps || function() {
 			logActivity('Default CapturedMedia.grab: grabFailOps() being called ..');
@@ -98,7 +148,7 @@ function CapturedMedia() {
 			bellUI.popup("Can't geolocate captured media");
 			
 			// FIXME: what gets notarised when we don't know the location yet?
-			__this.location = config.dummyLoc; // TODO: approximate from last position and tag as uncertain
+			__this.location = dummyLoc; // TODO: approximate from last position and tag as uncertain
 			
 			navigator.camera.getPicture( function(path) {
 				console.log('Stored in ' + path);
@@ -128,11 +178,20 @@ function CapturedMedia() {
 			journey.track.addMedia(__this.location, properties);
 		}
 		else {
+			
+			
+			logActivity('Adding ' + __this.name + ' as floating media to Couch (1)');
+			
+			
 			// must add 'time' here if omitted, which is a bit repetitive (refactor?)
 			if (!properties.hasOwnProperty('time')) {
 				var timeStamp = new Date();
 				properties.time = formatTimestamp(timeStamp, 'W3CDTF');
 				};
+			logActivity('Adding ' + __this.name + ' as floating media to Couch (2)');
+			logActivity('properties: ' + JSON.stringify(properties));
+			logActivity('this.location: ' + JSON.stringify(__this.location));
+
 
 			var geoJSON = turf.point(__this.location, properties);
 			// TODO: annotation popup
@@ -154,23 +213,95 @@ function CapturedMedia() {
 						});
 				}).catch(
 				function(err) {
-					console.log('boo point');
+					logActvity('boo point');
 					console.log('err: ' + err.name + JSON.stringify(err));
 					// TODO - a better fail
 				});
 		}
 	}
 
-	this.beamup = function(){}; // TODO
+	this.beamup = function(){
+		// TODO: put in albums??
+		var target = config.capturedMedia.REMOTE_API.endpoint + '/image';
+		// logActivity('Uploading image ' + __this.localURI + ' to ' + target);
+		logActivity('Uploading image ' + __this.name + ' to ' + target);
+		
+// logActivity(JSON.stringify(__this.fileEntry));
+		if(typeof(__this.fileObject) !== undefined) {
+
+
+
+logActivity('File object: ' + JSON.stringify(__this.fileObject));
+
+var rdr = new FileReader();
+// var dataUrl = rdr.readAsDataURL(__this.fileObject);
+rdr.onloadend = function(e) {
+	var payload = rdr.result;
+	// logActivity(rdr.type);
+	logActivity('Just set to ' + fixedEncodeURIComponent(payload));
+
+
+
+			var post = $.ajax(target, {
+				method: 'POST',
+				// dataType: 'json',
+				contentType: __this.fileObject.type,
+				data: payload,
+				/*
+				data: {
+					// 'type': 'base64',
+					// 'image': b64EncodeUnicode(__this.fileObject),
+					'image': dataUrl, //rdr.readAsDataURL(__this.fileObject),
+					// 'type': 'URL',
+					// 'image': __this.localURL,
+					// 'image': __this.fileEntry.toURL(),
+					// 'image': encodeURIComponent(__this.fileEntry.toURL()), // UP TO DEBUGGING AROUND HERE - 'bad request'
+					'type': 'file',
+					// 'image': __this.fileObject,
+					// '_fake_status': 200,
+					},
+				*/
+				headers: {
+					'Authorization': 'Bearer ' + config.capturedMedia.REMOTE_API.OAuth.access_token,
+					},
+				});
+				
+			post.done( function(data, status) {
+				// logActivity('Uploaded image from ' + __this.localURI + ' to ' + JSON.stringify(data));
+				logActivity('Uploaded image from ' + __this.name + ' to ' + JSON.stringify(data));
+				});
+				
+			post.fail( function(xhr, failText, err) {
+				// logActivity('Failed uploading image from ' + __this.localURI + ': ' + JSON.stringify(err));
+				logActivity('Failed uploading image from ' + __this.name + ': ' + failText + '--' + JSON.stringify(err));
+				});
+
+
+	};
+	
+rdr.readAsBinary(__this.fileObject);
+
+
+
+
+		}
+		else {
+			logActivity("Upload won't work without file system stuff, maybe implement a fixer later");
+		}
+	}
+
 	this.load = function(){}; // TODO
 
-	this.init = function(){
-		// synonyms for functions, hmmm...
+	var init = function(){
+		// synonyms for methods, hmmm...
 		__this.record = __this.take = __this.capture = __this.grab = __this.snap;
 		__this.send = __this.upload = __this.beamup;
+
+		__this['uuid'] = SBUtils.UUishID();
 		
-		__this.uuid = SBUtils.UUishID();
-		
+		logActivity('capturedMedia init-ed');
 		}();
 
 }
+
+CapturedMedia.checkUploads = function() {}; // TODO
