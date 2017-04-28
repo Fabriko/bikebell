@@ -227,7 +227,6 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 			var rdr = new FileReader();
 
 			rdr.onloadend = function(evt) {
-				logActivity(rdr.type);
 				var imageBlob = new Blob([new Uint8Array(evt.target.result)], {
 					'type': 'image/jpeg',
 					});
@@ -237,25 +236,20 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 				var post = new XMLHttpRequest();
 				dataFields.append('image', imageBlob);
 				dataFields.append('type', 'file');
-				post.open('POST', target, false); // FIXME: make async
+				post.open('POST', target);
 				post.setRequestHeader('Authorization', 'Bearer ' + config.capturedMedia.REMOTE_API.OAuth.access_token);
 				post.send(dataFields);
-				logActivity('Uploaded image from ' + __this.name + ' to ' + target);
-
-/*
 				
-			post.done( function(data, status) {
-				// logActivity('Uploaded image from ' + __this.localURI + ' to ' + JSON.stringify(data));
-				logActivity('Uploaded image from ' + __this.name + ' to ' + JSON.stringify(data));
-				});
-				
-			post.fail( function(xhr, failText, err) {
-				// logActivity('Failed uploading image from ' + __this.localURI + ': ' + JSON.stringify(err));
-				logActivity('Failed uploading image from ' + __this.name + ': ' + failText + ' -- ' + JSON.stringify(err));
-				logActivity('Output: ' + xhr.responseText);
-				});
+				post.onloadend = function(evt) {
+					logActivity('Uploaded image from ' + __this.name + ' to ' + target);
+					logActivity(post.responseText);
+					// TODO: grab its ID and notarise that
+					};
 
-*/
+				post.onerror = function(err) { // untested
+					logActivity('Failed uploading image from ' + __this.name + ': ' + JSON.stringify(err));
+					logActivity('Output: ' + xhr.responseText);
+					};
 
 				};
 			// rdr.error = function {} // TODO
