@@ -7,10 +7,6 @@ function CapturedMedia() {
 	// this['localURI'] = null;
 	this['fileObject'] = null;
 	this['fileEntry'] = null;
-	
-	
-	
-this['b64'] = null;
 
 	this.stash = function(URI, stashSuccessOps, stashFailOps) {
 		stashSuccessOps = stashSuccessOps || function() {
@@ -111,7 +107,7 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 
 		grabSuccessOps = grabSuccessOps || function() {
 			logActivity('Default CapturedMedia.grab: grabSuccessOps() being called ..');
-			logActivity('Prpearing to notarise.');
+			logActivity('Preparing to notarise.');
 			__this.notarise();
 			logActivity('Notarised.');
 			if (SBUtils.uploadHappy()) {
@@ -223,48 +219,30 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 	this.beamup = function(){
 		// TODO: put in albums??
 		var target = config.capturedMedia.REMOTE_API.endpoint + '/image';
-		// logActivity('Uploading image ' + __this.localURI + ' to ' + target);
 		logActivity('Uploading image ' + __this.name + ' to ' + target);
-		
-// logActivity(JSON.stringify(__this.fileEntry));
+
 		if(typeof(__this.fileObject) !== undefined) {
+			logActivity('File object: ' + JSON.stringify(__this.fileObject));
 
+			var rdr = new FileReader();
 
+			rdr.onloadend = function(evt) {
+				logActivity(rdr.type);
+				var imageBlob = new Blob([new Uint8Array(evt.target.result)], {
+					'type': 'image/jpeg',
+					});
 
-logActivity('File object: ' + JSON.stringify(__this.fileObject));
+				// https://blog.garstasio.com/you-dont-need-jquery/ajax/ - thank you!!
+				var dataFields = new FormData();
+				var post = new XMLHttpRequest();
+				dataFields.append('image', imageBlob);
+				dataFields.append('type', 'file');
+				post.open('POST', target, false); // FIXME: make async
+				post.setRequestHeader('Authorization', 'Bearer ' + config.capturedMedia.REMOTE_API.OAuth.access_token);
+				post.send(dataFields);
+				logActivity('Uploaded image from ' + __this.name + ' to ' + target);
 
-var rdr = new FileReader();
-// var dataUrl = rdr.readAsDataURL(__this.fileObject);
-rdr.onloadend = function(e) {
-	var payload = rdr.result;
-	// logActivity(rdr.type);
-	logActivity('Just set to ' + fixedEncodeURIComponent(payload));
-
-
-
-			var post = $.ajax(target, {
-				method: 'POST',
-				// dataType: 'json',
-				contentType: __this.fileObject.type,
-				data: payload,
-				/*
-				data: {
-					// 'type': 'base64',
-					// 'image': b64EncodeUnicode(__this.fileObject),
-					'image': dataUrl, //rdr.readAsDataURL(__this.fileObject),
-					// 'type': 'URL',
-					// 'image': __this.localURL,
-					// 'image': __this.fileEntry.toURL(),
-					// 'image': encodeURIComponent(__this.fileEntry.toURL()), // UP TO DEBUGGING AROUND HERE - 'bad request'
-					'type': 'file',
-					// 'image': __this.fileObject,
-					// '_fake_status': 200,
-					},
-				*/
-				headers: {
-					'Authorization': 'Bearer ' + config.capturedMedia.REMOTE_API.OAuth.access_token,
-					},
-				});
+/*
 				
 			post.done( function(data, status) {
 				// logActivity('Uploaded image from ' + __this.localURI + ' to ' + JSON.stringify(data));
@@ -273,17 +251,15 @@ rdr.onloadend = function(e) {
 				
 			post.fail( function(xhr, failText, err) {
 				// logActivity('Failed uploading image from ' + __this.localURI + ': ' + JSON.stringify(err));
-				logActivity('Failed uploading image from ' + __this.name + ': ' + failText + '--' + JSON.stringify(err));
+				logActivity('Failed uploading image from ' + __this.name + ': ' + failText + ' -- ' + JSON.stringify(err));
+				logActivity('Output: ' + xhr.responseText);
 				});
 
+*/
 
-	};
-	
-rdr.readAsBinary(__this.fileObject);
-
-
-
-
+				};
+			// rdr.error = function {} // TODO
+			rdr.readAsArrayBuffer(__this.fileObject);
 		}
 		else {
 			logActivity("Upload won't work without file system stuff, maybe implement a fixer later");
