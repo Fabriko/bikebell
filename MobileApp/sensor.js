@@ -1,16 +1,68 @@
-// JavaScript code for the blend Sensibell app.
+var knownDevices = {};
 
-// API docs: http://evothings.com/doc/raw/plugins/com.evothings.ble/com.evothings.module_ble.html
+knownDevices['Sensibel'] = {}; // TODO: stub
 
-// this is pretty damn handy: http://evothings.com/arduino-ble-quick-walk-through/
+knownDevices['iBeacon'] = {
+//	'name'    : 'MyTag',
+	'services': {
+		's1': {
+			'uuid'           : '00001800-0000-1000-8000-00805f9b34fb',
+			'characteristics': {
+				'c6': {
+					'uuid'      : '00002a00-0000-1000-8000-00805f9b34fb',
+					'properties': evothings.easyble.PROPERTY_READ,
+					'writeType' : evothings.easyble.WRITE_TYPE_DEFAULT,
+					},
+				'c7': {
+					'uuid'      : '00002a01-0000-1000-8000-00805f9b34fb',
+					'properties': evothings.easyble.PROPERTY_READ,
+					'writeType' : evothings.easyble.WRITE_TYPE_DEFAULT,
+					},
+				'c8': {
+					'uuid'      : '00002a04-0000-1000-8000-00805f9b34fb',
+					'properties': evothings.easyble.PROPERTY_READ,
+					'writeType' : evothings.easyble.WRITE_TYPE_DEFAULT,
+					},
+				},
+			},
+		// NB missing s2 for now TODO
+		's4': {
+			'uuid'           : '0000fff0-0000-1000-8000-00805f9b34fb',
+			'characteristics': {
+				'c18': {
+					'uuid'       : '0000fff1-0000-1000-8000-00805f9b34fb',
+					'properties' : evothings.easyble.PROPERTY_READ,
+					'writeType'  : evothings.easyble.WRITE_TYPE_DEFAULT,
+					'descriptors': {
+						'd21': {
+							'uuid': '00002902-0000-1000-8000-00805f9b34fb',
+							},
+						},
+					},
+				'c7': {
+					'uuid'      : '00002a01-0000-1000-8000-00805f9b34fb',
+					'properties': evothings.easyble.PROPERTY_READ,
+					'writeType' : evothings.easyble.WRITE_TYPE_DEFAULT,
+					},
+				'c8': {
+					'uuid'      : '00002a04-0000-1000-8000-00805f9b34fb',
+					'properties': evothings.easyble.PROPERTY_READ,
+					'writeType' : evothings.easyble.WRITE_TYPE_DEFAULT,
+					},
+				},
+			},
+		},
+	};
 
 function Sensor() {
-	__this = this;
+	var __this = this;
 
-	this.init = function() {
+	// var init = function() {
 		this['target'] = null;
 		this['connectedDevice'] = null;
-	}
+		this['services'] = null;
+		this['deviceClass'] = ble;
+	// };
 
 	this.set = function() {
 
@@ -20,9 +72,12 @@ function Sensor() {
 		while (!this.target);
 
 		logActivity('This is handset device ' + device.uuid + ' wanting to pair with ' + ( this.target ? this.target : '[unpaired]' ) + ( isFakingConnection() ? ' [FAKED]' : '' ) ); // shouldn't need that last ternary while above do/while is in place
-	}
+	};
 
-	this.connectFromScratch = function(success) { // TODO: success param not implemented 
+	this.connectFromScratch = function(onConnectSuccess, onConnectFail) {
+		
+logActivity('connectFromScratch()');
+		
 		if ( typeof(this.target) === undefined ) {  // TODO: test this predicate
 			this.set();
 		}
@@ -37,123 +92,118 @@ function Sensor() {
 			*/
 		}
 		else {
-			console.log('connectFromScratch to ' + this.target);
-			console.log('Scanning for ' + this.target);
+			console.log('connectFromScratch to ' + __this.target);
+			logActivity('Scanning for ' + __this.target);
 
-			evothings.easyble.startScan(
+			// TODO: test bluetooth on and go to settings if not
+
+logActivity(JSON.stringify(ble));
+
+			ble.stopScan();
+			ble.startScan(
+				[], // TODO - filter better
 				function(foundDevice) {
-					// evothings.printObject(foundDevice);
-					foundDevice.name = foundDevice.name || (foundDevice.advertisementData ? foundDevice.advertisementData.kCBAdvDataLocalName : null);
-					if(foundDevice.hasName(__this.target)) {
+
+
+
+
+
+					console.log('a goody?');
+					// logActivity(JSON.stringify(foundDevice));
+logActivity(foundDevice.address);
+					foundDevice.name = foundDevice.name || (foundDevice.advertising ? foundDevice.advertising.name : null);
+					console.log(foundDevice.name + ' == ' + __this.target);
+					if(foundDevice.address == 'E4:7E:40:CC:C0:E2') {
 						// evothings.printObject(foundDevice);
-						logActivity('Target EasyBLE device FOUND: ' + foundDevice.name + ' with address ' + foundDevice.address, 'success');
-						evothings.easyble.stopScan();
-						__this.connect(foundDevice, function() {
-							success.call();
+						logActivity('Target BLE central device FOUND: ' + foundDevice.name); // + ' with address ' + foundDevice.address, 'success');
+
+//						ble.connect('E4:7E:40:CC:C0:E2', function() { // __this.target
+								__this.connectedDevice = foundDevice;
+
+								logActivity('CONNECTED to ' +  __this.connectedDevice.address);
+								sensibelStatus.add('BLE');
+
+
+						ble.stopScan();
+
+								onConnectSuccess && onConnectSuccess.call();
+								
+								
+/*								
+								
+								
+							}, function(errorCode) {
+								logActivity('Failed in connection to ' + __this.target);
+
+
+
+
+                               statusMessage = ( errorCode == 'EASYBLE_ERROR_DISCONNECTED' ? 'Disconnected' : 'Not connected' );
+                               __this.connectedDevice = null;
+                               logActivity('Connect error with ' + foundDevice.name + ': ' + errorCode, 'error');
+                               sensibelStatus.remove('BLE');
+                               onConnectFail && onConnectFail.call();
+
+
+
 							});
-/*
+
+
+*/
+							
+							
+							
+
+	/*
 						if (success) {
 							success.call(foundDevice);
 						}
-*/
+	*/
 					}
 					else {
 						// evothings.printObject(deviceInfo);
-						logActivity('Foreign device found: ' + foundDevice.name + ' with address ' + foundDevice.address, 'notice');
+						logActivity('Foreign device found: ' + foundDevice.name); // + ' with address ' + foundDevice.address, 'notice');
 					}
+// deviceObject.stopScan();
 				},
 				function (error) {
-					logActivity('BLE Scan error: ' + error, 'error');
+					logActivity('BLE CEntral Scan error: ' + error, 'error');
+
+
+
+                               onConnectFail && onConnectFail.call();
+					
+					
+					
 					// failure(target); TODO
 				}
 			);
 		}
-	}
+	};
+	
+	
+	this.listen = function( service_uuid, characteristic_uuid) {
 
-	this.connect = function(foundDevice, onSuccess, onFail) {
- 		logActivity('Connecting to ' + foundDevice.name + ' ...');
-		//TODO; we need a spinner or whatever here
-		foundDevice.connect(
-			function(connectedDevice) {
-				__this.connectedDevice = connectedDevice;
-				logActivity('CONNECTED to ' +  connectedDevice.name);
-				sensibelStatus.add('BLE');
-				onSuccess && onSuccess.call();
-			},
-			function(errorCode)	{
-				statusMessage = ( errorCode == 'EASYBLE_ERROR_DISCONNECTED' ? 'Disconnected' : 'Not connected' );
-				__this.connectedDevice = null;
-				logActivity('Connect error with ' + foundDevice.name + ': ' + errorCode, 'error');
-				sensibelStatus.remove('BLE');
-				onFail && onFail.call();
-			});
-	}
 
-	this.listen = function(success, fail) {
-		logActivity('Listening to notifications for ' + this.target);
-		// evothings.printObject(this.connectedDevice.advertisementData);
+logActivity('Gonna start listening goo');
 
-		// FIXME - I don't understand what goes on here
-		this.connectedDevice.readServices(
-			null, // null means read info for all services
-			function(connectedDevice) {
-				__this.addMethodsToDeviceObject(connectedDevice);
-				success(connectedDevice);
-			},
-			function(errorCode)	{
-				fail(errorCode);
-			});
-	}
 
-	// The addMethodsToDeviceObject method is almost completely copied from code supplied by a colleague who is nameless until I ask permission to credit him (or her)
-	// The comments are left intact. I don;t claim to understand it, but agree with the comment that it's weird!
-	/**
-	 * Add instance methods to the device object.
-	 * @private
-	 */
-	this.addMethodsToDeviceObject = function(connectedDevice) {
-		/**
-		 * Object that holds info about a Sensibell device.
-		 * @namespace evothings.sensibell.sensibellDevice
-		 */
 
-		/**
-		 * @function setNotification
-		 * @description Set a notification callback.
-		 * @param {Uint8Array} uint8array - The data to be written.
-		 * @memberof evothings.sensibell.sensibellDevice
-		 * @instance
-		 * @public
-		 */
-		connectedDevice.setNotification = function(callback) {
-			// Debug logging.
-			//console.log('setNotification');
 
-			// Must write this descriptor value to enable enableNotification().
-			// Yes, it's weird.
-			// Without it, enableNotification() fails silently;
-			// we never get the data we should be getting.
-			connectedDevice.writeDescriptor(
-				'91a6b702-bcb7-4c9b-c546-75aa0000c47e',
-				'00002902-0000-1000-8000-00805f9b34fb',
-				new Uint8Array([1,0]),
-				function() {
-					console.log('writeDescriptor success');
-				},
-				function(errorCode) {
-					console.log('writeDescriptor error: ' + errorCode);
-				});
+		ble.startNotification('E4:7E:40:CC:C0:E2', service_uuid, characteristic_uuid, function(buffer) {
+			// Decode the ArrayBuffer into a typed Array based on the data you expect
+			var data = new Uint8Array(buffer)[0];
+			console.log('Pressed: ' + input);
+			alert("Button state changed to " + data[0]);
+			buttonDispatcher(input);
+		}, function() {
+			logActivity('Failed to notify changed state.');
+		});
 
-			connectedDevice.enableNotification(
-				'91a6b702-bcb7-4c9b-c546-75aa0000c47e',
-				callback,
-				function(errorCode) {
-					console.log('enableNotification error: ' + errorCode);
-				});
-		};
-	}
+		
+	};
 
-	this.disconnect = this.disconn = function() {
+	this.disconnect = this.disconn = function() { // TODO: not ported yet to ble
 		if (isFakingConnection()) {
 			document.removeEventListener('volumeupbutton', buttonGood);
 			document.removeEventListener('volumedownbutton', buttonBad);
@@ -168,9 +218,9 @@ function Sensor() {
 		}
 
 		sensibelStatus.remove('BLE');
-	}
+	};
 
-	this.init();
+	// init();
 
 }
 

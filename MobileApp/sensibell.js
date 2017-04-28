@@ -1,13 +1,7 @@
 /* Globals */
 
-// Hardware
-sensor = new Sensor();
+sensibelApp = {};
 
-// oh, what a mess! some legacy stuff we can probably kill eventually
-var app = sensor;
-var blend = app; // FIXME, this sucks
-var sensortag;
-var SENSOR = blend; // new Sensor(blend); <-- FOR LATER, now it just has to work
 
 // Data
 var journey = new Journey('Sensibel-' + formatTimestamp(new Date()));
@@ -22,10 +16,29 @@ configManagementHacks();
 
 document.addEventListener('deviceready', function() {
 	evothings.scriptsLoaded( function() {
-		setSensor();
+
+
+
+
+// Hardware
+sensor = new Sensor();
+
+// oh, what a mess! some legacy stuff we can probably kill eventually
+var app = sensor;
+var blend = app; // FIXME, this sucks
+var sensortag;
+var SENSOR = blend; // new Sensor(blend); <-- FOR LATER, now it just has to work
+
+
+
+
+
+		// setSensor();
+		sensor.set();
+
 		console.log('Set to ' + sensor.target);
+		$('#adaptive-connect').click();
 		});
-	$('#adaptive-connect').click();
 	}, false);
 
 document.addEventListener('deviceready', function() {
@@ -72,7 +85,7 @@ document.addEventListener('resume',	function() {
 	// TODO: add stopScan for pause
 	logActivity('*** app RESUMED ***');
 
-	if (navigator.connection.type && navigator.connection.type != Connection.UNKNOWN && navigator.connection.type != Connection.NONE) {
+	if (navigator.connection.type && navigator.connection.type != navigator.connection.UNKNOWN && navigator.connection.type != navigator.connection.NONE) {
 		logActivity('Resumed, so attempting to sync to remote datastore ..');
 		localStore.sync(remoteStore).on('complete',
 			function (info) {
@@ -462,17 +475,8 @@ function setSensor() {
 function connectSensor() {
 	console.log("We'll now connect to " + sensor.target);
 	sensor.connectFromScratch( function() {
-		sensor.listen( function(connectedDevice) {
-				connectedDevice.setNotification( function(data) {
-					var input = new Uint8Array(data)[0];
-					console.log('Pressed: ' + input);
-					buttonDispatcher(input);
-					});
-			},
-			function(errorCode)	{
-				console.log('Connect error: ' + errorCode + '.');
-			});
-		}); // , {'B:01':buttonGood,'B:02':buttonBad} );
+		sensor.listen('0xAA00', "characteristic_uuid"); // FIXME
+		} ); // , {'B:01':buttonGood,'B:02':buttonBad} );
 }
 
 function isFakingConnection() {
@@ -785,6 +789,8 @@ function populateCategories() { // TODO: this should sync with an online store i
 function configManagementHacks() {
 	// settings.setItem('file.prefix', 'dev-'); // console.log(settings.getItem('file.prefix'));
 	// settings.removeItem('file.prefix');
+	// settings.removeItem('pairedDevice');
+	settings.setItem('pairedDevice', 'Sensibel EVO3');
 
 	initialiseUsingDefault('connectAuthenticity', (config.useFauxConnection ? 'fake' : 'real') );
 	// initialiseUsingDefault('bucketName', config.AWS_S3.bucket);
