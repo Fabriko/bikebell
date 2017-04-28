@@ -38,6 +38,17 @@ var config = {
 
 	capturedMedia: {
 		LOCAL_DIRECTORY: 'media',
+		album: '<album-id>',
+		REMOTE_API: {
+			user:     '<user-id>',
+			// thanks api@imgur.com for your support - not!!
+			endpoint: 'https://api.imgur.com/3',
+			OAuth: {
+				access_token:  '<access-token>',
+				refresh_token: '<refresh-token>',
+				client_secret: '<client-secret>',
+			},
+		},
 	},
 
 	IDPairingsHack: {

@@ -236,6 +236,7 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 				var post = new XMLHttpRequest();
 				dataFields.append('image', imageBlob);
 				dataFields.append('type', 'file');
+				dataFields.append('album', config.capturedMedia.album);
 				post.open('POST', target);
 				post.setRequestHeader('Authorization', 'Bearer ' + config.capturedMedia.REMOTE_API.OAuth.access_token);
 				post.send(dataFields);
