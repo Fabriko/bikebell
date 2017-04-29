@@ -162,68 +162,65 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 	};
 
 	this.addProperties = function(additionalProperties) {
-		if(this.track_id) {
-			logActivity('Part of ' + this.track_id);
-			
-			localStore.put(Object.assign({
-				'_id': __this.track_id + '-' + __this.uuid + '-meta', // FIXME_ this wouldn't be unique enough if we used this method more than once for any reason - otherwise OK under the assumption it only runs once per point
-				'local_id': __this.uuid,
-				}, additionalProperties))
-				.then(function(response) {
-					logActivity('Media queue document added ' + response.id);
-					})
-				.catch(function (err) {
-					logActivity('Failed adding media queue document ' + JSON.stringify(err));
-					// TODO: how to handle this?
+		if(this.journey) {
+			logActivity('Part of ' + this.journey.track.id);
+
+			if(journey.isActive()) {
+				logActivity('AN ACTIVE journey');
+
+				turf.propEach(this.journey.track.cache, function (currentProperties, currentIndex) {
+					if (currentProperties.name == __this.uuid + '.jpg') {
+						Object.assign(currentProperties, additionalProperties);
+						logActivity('Rev ' + doc._rev);
+					}
 					});
+				this.journey.track.store();
+			}
+
+			else {
+				
+				// FIXME: not tested
+				// get doc with that id
+				localStore.get(this.journey.track.id)
+					.then(function(doc) {
+						logActivity(JSON.stringify(doc.features));
+
+						turf.propEach(doc, function (currentProperties, currentIndex) {
+							// logActivity(currentIndex + '. ' + JSON.stringify(currentProperties));
+							if (currentProperties.name == __this.uuid + '.jpg') {
+								Object.assign(currentProperties, additionalProperties);
+								// Object.assign(doc.features[currentIndex].properties, additionalProperties);
+								// logActivity(JSON.stringify(currentProperties));
+								logActivity('Rev ' + doc._rev);
+								
+
+								localStore.put(doc)
+									.then(function(response) {
+										logActivity(JSON.stringify(response));
+										logActivity('Media file identifiers added to ' + __this.track_id);
+										})
+									.catch(function (err) {
+										logActivity('Failed adding media file identifiers to ' + __this.track_id);
+										// TODO: how to handle this?
+										});
+							}
+							});
 
 
-/*				// This produces a sad and silent error where (I think) the document properties get overwritten by the breadcrumb update syncs, so going to try creating a queue document
 
-			// get doc with that id
-			localStore.get(this.track_id)
-				.then(function(doc) {
-					logActivity(JSON.stringify(doc.features));
-					
-	
-
-					turf.propEach(doc, function (currentProperties, currentIndex) {
-						// logActivity(currentIndex + '. ' + JSON.stringify(currentProperties));
-						if (currentProperties.name == __this.uuid + '.jpg') {
-							Object.assign(currentProperties, additionalProperties);
-							// Object.assign(doc.features[currentIndex].properties, additionalProperties);
-							// logActivity(JSON.stringify(currentProperties));
-							logActivity('Rev ' + doc._rev);
-							
-
-							localStore.put(doc)
-								.then(function(response) {
-									logActivity(JSON.stringify(response));
-									logActivity('Media file identifiers added to ' + __this.track_id);
-									})
-								.catch(function (err) {
-									logActivity('Failed adding media file identifiers to ' + __this.track_id);
-									// TODO: how to handle this?
-									});
-						}
+						})
+					.catch(function (err) {
+						logActivity("Didn't find doc with id == " + __this.track_id);
+						// TODO: how to handle this?
 						});
-
-
-
-					})
-				.catch(function (err) {
-					logActivity("Didn't find doc with id == " + __this.track_id);
-					// TODO: how to handle this?
-					});
-*/
-
+				}
 		}
 		else {
 			logActivity('Floating file id: ' + __this.uuid);
 			localStore.get(__this.uuid)
 				.then(function(doc) {
 					Object.assign(doc.properties, additionalProperties);
-					// logActivity(JSON.stringify(doc));
+					logActivity(JSON.stringify(doc));
 					localStore.put(doc)
 						.then(function(response) {
 							logActivity('Floating media file updated.');
@@ -234,16 +231,6 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 						})
 					});
 
-			
-/*			
-			localStore.allDocs({
-				include_docs: true,
-				key: __this.uuid,
-				})
-				.then( function(result) {
-					logActivity(JSON.stringify(result));
-					});
-*/
 		}
 		};
 
@@ -357,7 +344,7 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 		__this.send = __this.upload = __this.beamup;
 
 		__this['uuid'] = SBUtils.UUishID();
-		__this['track_id'] = sensibelStatus.state.tracking ? journey.track.id : null;
+		__this['journey'] = sensibelStatus.state.tracking ? journey : null;
 		
 		logActivity('capturedMedia init-ed');
 		}();
