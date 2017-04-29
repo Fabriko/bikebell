@@ -161,6 +161,39 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 			} /* , {} geo options go here */ );
 	};
 
+	this.addProperties = function(additionalProperties) {
+		if(sensibelStatus.state.tracking) {
+			logActivity(journey.track); // TODO: stub
+		}
+		else {
+			logActivity(__this.uuid);
+			localStore.get(__this.uuid)
+				.then(function(doc) {
+					Object.assign(doc.properties, additionalProperties);
+					// logActivity(JSON.stringify(doc));
+					localStore.put(doc)
+						.then(function(response) {
+							logActivity('Floating media file updated.');
+							})
+						.catch(function (err) {
+							logActivity('Update of floating media file failed.');
+							// TODO: how to handle this?
+						})
+					});
+
+			
+/*			
+			localStore.allDocs({
+				include_docs: true,
+				key: __this.uuid,
+				})
+				.then( function(result) {
+					logActivity(JSON.stringify(result));
+					});
+*/
+		}
+		};
+
 	this.notarise = function(additionalProperties) {
 		additionalProperties = additionalProperties || {};
 		var standardProperties = {
@@ -175,19 +208,16 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 		}
 		else {
 			
-			
 			logActivity('Adding ' + __this.name + ' as floating media to Couch (1)');
-			
 			
 			// must add 'time' here if omitted, which is a bit repetitive (refactor?)
 			if (!properties.hasOwnProperty('time')) {
 				var timeStamp = new Date();
 				properties.time = formatTimestamp(timeStamp, 'W3CDTF');
 				};
-			logActivity('Adding ' + __this.name + ' as floating media to Couch (2)');
+
 			logActivity('properties: ' + JSON.stringify(properties));
 			logActivity('this.location: ' + JSON.stringify(__this.location));
-
 
 			var geoJSON = turf.point(__this.location, properties);
 			// TODO: annotation popup
@@ -195,7 +225,7 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 			logActivity('Adding ' + __this.name + ' as floating media to Couch');
 			console.log(JSON.stringify(geoJSON));
 
-			localStore.put(Object.assign({'_id': __this.uuid}, geoJSON)).then(
+			localStore.put(Object.assign({'_id': __this.uuid,}, geoJSON)).then(
 				function(result) {
 					console.log('yay point');
 					console.log(result);
@@ -243,8 +273,13 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 				
 				post.onloadend = function(evt) {
 					logActivity('Uploaded image from ' + __this.name + ' to ' + target);
-					logActivity(post.responseText);
-					// TODO: grab its ID and notarise that
+					// grab its ID and notarise that
+					var responseJSON = JSON.parse(post.responseText);
+					logActivity(JSON.stringify(responseJSON.data));
+					__this.addProperties({
+						'remote_id': responseJSON.data.id,
+						'URL': 'http://imgur.com/' + responseJSON.data.id,
+						});
 					};
 
 				post.onerror = function(err) { // untested
