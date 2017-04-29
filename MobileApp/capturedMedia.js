@@ -162,11 +162,64 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 	};
 
 	this.addProperties = function(additionalProperties) {
-		if(sensibelStatus.state.tracking) {
-			logActivity(journey.track); // TODO: stub
+		if(this.track_id) {
+			logActivity('Part of ' + this.track_id);
+			
+			localStore.put(Object.assign({
+				'_id': __this.track_id + '-' + __this.uuid + '-meta', // FIXME_ this wouldn't be unique enough if we used this method more than once for any reason - otherwise OK under the assumption it only runs once per point
+				'local_id': __this.uuid,
+				}, additionalProperties))
+				.then(function(response) {
+					logActivity('Media queue document added ' + response.id);
+					})
+				.catch(function (err) {
+					logActivity('Failed adding media queue document ' + JSON.stringify(err));
+					// TODO: how to handle this?
+					});
+
+
+/*				// This produces a sad and silent error where (I think) the document properties get overwritten by the breadcrumb update syncs, so going to try creating a queue document
+
+			// get doc with that id
+			localStore.get(this.track_id)
+				.then(function(doc) {
+					logActivity(JSON.stringify(doc.features));
+					
+	
+
+					turf.propEach(doc, function (currentProperties, currentIndex) {
+						// logActivity(currentIndex + '. ' + JSON.stringify(currentProperties));
+						if (currentProperties.name == __this.uuid + '.jpg') {
+							Object.assign(currentProperties, additionalProperties);
+							// Object.assign(doc.features[currentIndex].properties, additionalProperties);
+							// logActivity(JSON.stringify(currentProperties));
+							logActivity('Rev ' + doc._rev);
+							
+
+							localStore.put(doc)
+								.then(function(response) {
+									logActivity(JSON.stringify(response));
+									logActivity('Media file identifiers added to ' + __this.track_id);
+									})
+								.catch(function (err) {
+									logActivity('Failed adding media file identifiers to ' + __this.track_id);
+									// TODO: how to handle this?
+									});
+						}
+						});
+
+
+
+					})
+				.catch(function (err) {
+					logActivity("Didn't find doc with id == " + __this.track_id);
+					// TODO: how to handle this?
+					});
+*/
+
 		}
 		else {
-			logActivity(__this.uuid);
+			logActivity('Floating file id: ' + __this.uuid);
 			localStore.get(__this.uuid)
 				.then(function(doc) {
 					Object.assign(doc.properties, additionalProperties);
@@ -275,7 +328,7 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 					logActivity('Uploaded image from ' + __this.name + ' to ' + target);
 					// grab its ID and notarise that
 					var responseJSON = JSON.parse(post.responseText);
-					logActivity(JSON.stringify(responseJSON.data));
+					// logActivity(JSON.stringify(responseJSON.data));
 					__this.addProperties({
 						'remote_id': responseJSON.data.id,
 						'URL': 'http://imgur.com/' + responseJSON.data.id,
@@ -304,6 +357,7 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 		__this.send = __this.upload = __this.beamup;
 
 		__this['uuid'] = SBUtils.UUishID();
+		__this['track_id'] = sensibelStatus.state.tracking ? journey.track.id : null;
 		
 		logActivity('capturedMedia init-ed');
 		}();

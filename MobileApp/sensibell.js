@@ -275,7 +275,7 @@ function Track(parentJourney) {
 					},
 				}],
 			'properties': {
-				'schema':  '0.02',
+				'schema':  '0.03',
 				'name':    parentJourney.title,
 				'version': _VERSION,
 				'device':  settings.getItem('pairedDevice'),
@@ -291,6 +291,7 @@ function Track(parentJourney) {
 				console.log('yay');
 				console.log(result);
 				__this.cache = skeleton;
+				__this.id = skeleton._id;
 				localStore.sync(remoteStore, {live: true}).on('change',
 					function (info) {
 						console.log('info: ' + JSON.stringify(info));
@@ -351,7 +352,7 @@ function Track(parentJourney) {
 		if (!properties.hasOwnProperty('time')) {
 			var timeStamp = new Date();
 			properties.time = formatTimestamp(timeStamp, 'W3CDTF');
-			};
+		}
 
 		var pointFeature = turf.feature(geometry, properties);
 		this.cache.features.push(pointFeature);
