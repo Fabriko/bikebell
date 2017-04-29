@@ -44,13 +44,7 @@ document.addEventListener('deviceready', function() {
 	if (SBUtils.isOnline()) {
 		bellUI.popup('Online via connection type ' + navigator.connection.type, 'long');
 		logActivity('Attempting to sync to remote datastore ..');
-		localStore.sync(remoteStore).on('complete', // FIXME: sometimes this triggers twice .. ???
-			function (info) {
-				logActivity(" .. succeeded to sync to remote datastore!");
-				}).on('error',
-			function (err) {
-				logActivity(" .. failed to sync to remote datastore, we'll try again later.");
-			});
+		syncData();
 	}
 	else {
 		bellUI.popup('Not online', 'long', { fallback: window.alert });
@@ -59,13 +53,7 @@ document.addEventListener('deviceready', function() {
 	document.addEventListener('online',	function() {
 		logActivity('*** app now ONLINE ***');
 		logActivity('Now online, so syncing to remote datastore ..');
-		localStore.sync(remoteStore).on('complete',
-			function (info) {
-				logActivity(" .. succeeded syncing to remote datastore!");
-				}).on('error',
-			function (err) {
-				logActivity(" .. failed syncing to remote datastore, we'll try again later.");
-			});
+		syncData();
 		}, false);
 
 	}, false);
@@ -433,6 +421,18 @@ function Track(parentJourney) {
 	*/
 
 	};
+
+function syncData() {
+	if (localStore) {
+		localStore.sync(remoteStore).on('complete',
+			function (info) {
+				logActivity(" .. succeeded syncing to remote datastore!");
+				}).on('error',
+			function (err) {
+				logActivity(" .. failed syncing to remote datastore, we'll try again later.");
+			});
+	}
+}
 
 function adaptiveStart() {
 	console.log('Big button Start journey pressed');
