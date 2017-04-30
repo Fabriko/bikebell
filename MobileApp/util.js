@@ -175,4 +175,13 @@ SBUtils.round = function(number, precision) {
     var tempNumber = number * factor;
     var roundedTempNumber = Math.round(tempNumber);
     return roundedTempNumber / factor;
-};
+	};
+
+SBUtils.trimIfString = function(val) {
+	if (typeof val === 'string') {
+		return val.trim();
+	}
+	else {
+		return val;
+	}
+	};
