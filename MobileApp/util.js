@@ -157,19 +157,6 @@ testStorageHasItem = function() {
 }();
 */
 
-// from https://developer.mozilla.org/en-US/docs/Web/API/WindowBase64/Base64_encoding_and_decoding#Solution_1_–_escaping_the_string_before_encoding_it
-function b64EncodeUnicode(str) {
-    return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
-        return String.fromCharCode('0x' + p1);
-    }));
-}
-
-function fixedEncodeURIComponent(str) {
-  return encodeURIComponent(str).replace(/[!'()*]/g, function(c) {
-    return '%' + c.charCodeAt(0).toString(16);
-  });
-}
-
 SBUtils = {
 
 	// based off http://stackoverflow.com/a/2117523
@@ -188,12 +175,13 @@ SBUtils = {
 		},
 
 	'uploadHappy': function() {
-return true; // FIXME - this is failing because Connection isn't defined for some reason
+// return true; // FIXME - this is failing because Connection isn't defined for some reason
 		return navigator.connection && navigator.connection.type && 
 			config.PREFERENCES.media.upload_on_connection_types.includes(navigator.connection.type);
 		},
 
 	'isOnline': function() {
+		// Connection constant values for reference: 'ethernet', 'wifi', '4g', '3g', '2g', 'cellular'
 		return navigator.connection && navigator.connection.type &&
 			navigator.connection.type != Connection.UNKNOWN &&
 			navigator.connection.type != Connection.NONE;

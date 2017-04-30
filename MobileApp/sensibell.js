@@ -41,10 +41,12 @@ document.addEventListener('deviceready', function() {
 	}, false);
 
 document.addEventListener('deviceready', function() {
+	
+
 	if (SBUtils.isOnline()) {
 		bellUI.popup('Online via connection type ' + navigator.connection.type, 'long');
 		logActivity('Attempting to sync to remote datastore ..');
-		syncData();
+		syncData(syncMedia);
 	}
 	else {
 		bellUI.popup('Not online', 'long', { fallback: window.alert });
@@ -53,7 +55,7 @@ document.addEventListener('deviceready', function() {
 	document.addEventListener('online',	function() {
 		logActivity('*** app now ONLINE ***');
 		logActivity('Now online, so syncing to remote datastore ..');
-		syncData();
+		syncData(syncMedia);
 		}, false);
 
 	}, false);
@@ -74,13 +76,7 @@ document.addEventListener('resume',	function() {
 
 	if (SBUtils.isOnline()) {
 		logActivity('Resumed, so attempting to sync to remote datastore ..');
-		localStore.sync(remoteStore).on('complete',
-			function (info) {
-				logActivity(" .. succeeded sync to remote datastore!");
-				}).on('error',
-			function (err) {
-				logActivity(" .. failed sync to remote datastore, we'll try again later.");
-			});
+		syncData();
 	}
 	}, false);
 
@@ -422,15 +418,116 @@ function Track(parentJourney) {
 
 	};
 
-function syncData() {
+function syncData(onSyncSuccess, onSyncFailure) {
 	if (localStore) {
 		localStore.sync(remoteStore).on('complete',
 			function (info) {
 				logActivity(" .. succeeded syncing to remote datastore!");
-				}).on('error',
+				onSyncSuccess && onSyncSuccess.call();
+				}
+			).on('error',
 			function (err) {
 				logActivity(" .. failed syncing to remote datastore, we'll try again later.");
-			});
+				onSyncFailure && onSyncFailure.call();
+				}
+			);
+	}
+}
+
+function syncMedia() {
+	logActivity('Going to sync media files then notarise them');
+	if (localStore) {
+
+		// check and sync journey media
+		localStore.createIndex({
+			index: {
+				fields: [
+//					'properties.type',
+					'features.geometry.type', // for 'has a linestring'?
+					'features.properties.type',
+					'features.properties.remote_id',
+					'properties.rider',
+					],
+				}
+			}).then(function(result) {
+				logActivity('Index created: ' + JSON.stringify(result));
+				var userName = settings.getItem('riderName');  // TODO: this value should really be more abstractly available in Personalization 2.0
+				logActivity('userName is ' + userName);
+				localStore.find({
+					// this next object is code formatted for strict JSON in a departure from style because it's easier that way to move between online query tools (thanks Douglas C :( )
+					"selector": {
+						"properties.rider": { "$exists": false }, // also query for blank values, then set to userName
+						"features": {
+							"$all": [
+								{
+									"$elemMatch": {
+										"geometry.type": "LineString"
+									}
+								},
+								{
+									"$elemMatch": {
+										"properties.type": {
+											"$in": ["image/jpeg"] // FIXME - cater for other media types
+										}, 
+										"properties.remote_id": {
+											"$exists": false
+										}
+									}
+								}
+							]
+						}
+					},
+// NB: this was too complex or not supported in Mango (yet) - it works on Cloudant
+// it won't be necessary once empty rider values are impossible
+/*
+	"selector": {
+		"properties.rider": {
+			"$or": [
+				{ "$eq": userName },
+				{ "$exists": false }
+			]
+		}
+	},
+*/					
+					}).then(function(result) {
+							logActivity('Query results returned: ' + result.docs.length);
+						}
+					).catch(function(err) {
+						logActivity('Find query error: ' + JSON.stringify(err));
+						}
+					);
+				}
+			).catch(function(err) {
+				logActivity('Index creation error: ' + JSON.stringify(err));
+				}
+			);
+
+
+
+
+
+/*
+		// check and sync floating media
+		localStore.createIndex({
+			index: {
+				fields: [
+					'properties.type',
+					'properties.remote_id',
+					'properties.rider',
+					],
+				}
+			}).then(function(result) {
+				logActivity('Index created: ' + JSON.stringify(result));
+				}
+			).catch(function(err) {
+				logActivity('Index creation error: ' + JSON.stringify(err));
+				}
+			);
+*/
+
+
+
+
 	}
 }
 
@@ -835,6 +932,7 @@ function populateCategories() { // TODO: this should sync with an online store i
 
 // ** Any temporary changes we might need when we break the application API in a new version, or any development parameters
 function configManagementHacks() {
+	// settings.setItem('riderName', 'Hughb');
 	// settings.setItem('file.prefix', 'dev-'); // console.log(settings.getItem('file.prefix'));
 	// settings.removeItem('file.prefix');
 
