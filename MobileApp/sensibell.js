@@ -536,17 +536,85 @@ function markWaypoint(map, waypoint) {
 
 	if (map) {
 		var uid = UUishID(true); // FIXME: if I end up using a precise enough UTC timestamp in geoJSON, that can serve as an identifier suffix
+		var wayPopup = L.popup({'className':'notes ' + ( isGood ? 'good' : 'bad')});
 		var headline = '<h3>' + ( isGood ? 'Sweet!' : 'Stink' ) + '</h3>';
 		// var formattedDate = $.formatDateTime('yy hh:ii', new Date(feature.properties.time.replace('Z','+13:00')));
 
 		var commentValue = ( waypoint.properties.hasOwnProperty('comment') ? waypoint.properties.comment : '' );
 		var metadata = ' \
-			<p><strong>Position:</strong> ' + waypoint.geometry.coordinates[1] + ',' + waypoint.geometry.coordinates[0] + '</p> \
+			<p><strong>Position:</strong> (' + SBUtils.round(waypoint.geometry.coordinates[1], 5) + ', ' + SBUtils.round(waypoint.geometry.coordinates[0], 5) + ')</p> \
 			<p><strong>Time:</strong> ' + waypoint.properties.time + '</p> \
 			';
+		/*
 		if (commentValue.length > 0) {
 			metadata += '<p><strong>Comment:</strong> ' + commentValue + '</p>';
 		}
+		*/
+
+//		if (journey && journey.isActive()) {
+			var notePlaceHolder = 'What was so ' + ( isGood ? 'good' : 'bad') + ' here?';
+			var categoriesValue = ( waypoint.properties.hasOwnProperty('categories') ? waypoint.properties.categories : '' );
+			var categoriesOptions = '';
+			$.each(categories, function(index, value) {
+				categoriesOptions += '<option value="' + value + '"' + ( categoriesValue == value ? ' selected="selected"' : '' ) + '>' + value + '</option>';
+				});
+
+			var editing = '\
+					<form> \
+						<div class="field"> \
+						<label for="note-"' + uid + '">Comment:</label> \
+						<textarea data-setting="comment" placeholder="' + notePlaceHolder + '" name="note-"' + uid + '" id="note-"' + uid + '">' + commentValue + '</textarea> \
+						</div> \
+						<div class="field"> \
+						<label for="category-"' + uid + '">Category:</label> \
+						<select data-setting="category" name="category-"' + uid + '" id="category-' + uid + '"> \
+						<option data-placeholder="true"></option> \
+						' + categoriesOptions + ' \
+						</select> \
+						</div> \
+						<div class="actions"> \
+						<input type="reset" value="Cancel" id="' + uid + '-action-cancel" /> \
+						<input type="submit" value="Save" id="' + uid + '-action-save" /> \
+						</div> \
+					</form> \
+					';
+//		}
+
+
+		var $popupContent = $('<div>' + headline + metadata + editing + '</div>');
+
+		var $edits = $popupContent.find('form'); // '#popup-' + uid);
+		$edits.submit( function(event) {
+				event.preventDefault();
+				// console.log('Before: ' + JSON.stringify(waypoint));
+				$(this).find('[data-setting]:input').each( function() { // FIXME: ideally flag and only save the fields that were changed
+					waypoint.properties[$(this).data('setting')] = $(this).val();
+					// alert($(this).data('setting'));
+				});
+				// FIXME: sync limited to active journey and can only be done before upload, but works as limited app is now
+//				if (journey && journey.isActive()) {
+					journey.track.store();
+//				}
+				bellUI.popup('Notes saved'); // TODO: make popup success themed (green?)
+				// TODO: close the leaflet popup - below fails I think because it's not visible in scope
+				// wayPopup.closePopup();
+				// console.log('After: ' + JSON.stringify(waypoint));
+			});
+		$edits.find(':reset').click( function(event) {
+			event.preventDefault();
+			bellUI.popup('Notes cancelled'); // TODO: make popup fail themed (red?)
+			// TODO: close the leaflet popup - below fails I think because it's not visible in scope
+			// wayPopup.closePopup();
+			});
+		$edits.find('select').selectmenu();
+//		$modal.popup();
+
+
+
+
+
+/*
+
 
 		var modalLink = '<p><a id="annotate-' + uid + '" data-rel="popup" href="#popup-' + uid + '" data-position-to="window" data-transition="slideup">Add notes</a></p>';
 
@@ -581,7 +649,6 @@ function markWaypoint(map, waypoint) {
 				</form> \
 			</div> \
 			';
-
 		// $('#annotate-' + uid).button(); // FIXME: doesn't work :(
 		var $popupContent = $('<div>' + headline + metadata + modalLink + modalContent + '</div>');
 		var $modal = $popupContent.find('#popup-' + uid);
@@ -607,9 +674,10 @@ function markWaypoint(map, waypoint) {
 			});
 		$modal.find('select').selectmenu();
 		$modal.popup();
+*/
 
 		L.circleMarker(L.latLng(waypoint.geometry.coordinates[1], waypoint.geometry.coordinates[0]), options)
-			.bindPopup(L.popup({'className':'notes ' + ( isGood ? 'good' : 'bad')}).setContent($popupContent[0]))
+			.bindPopup(wayPopup.setContent($popupContent[0]))
 			.addTo(map)
 			;
 	}
