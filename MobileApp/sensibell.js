@@ -17,7 +17,9 @@ var dblClickBuffer = {
 	stamp: 0,
 };
 
-var categories = populateCategories();
+var categories;
+
+populateCategories();
 configManagementHacks();
 
 document.addEventListener('deviceready', function() {
@@ -536,77 +538,74 @@ function markWaypoint(map, waypoint) {
 
 	if (map) {
 		var uid = UUishID(true); // FIXME: if I end up using a precise enough UTC timestamp in geoJSON, that can serve as an identifier suffix
+		// var wayPopup = L.popup({'className':'notes ' + ( isGood ? 'good' : 'bad')});
 		var headline = '<h3>' + ( isGood ? 'Sweet!' : 'Stink' ) + '</h3>';
 		// var formattedDate = $.formatDateTime('yy hh:ii', new Date(feature.properties.time.replace('Z','+13:00')));
 
 		var commentValue = ( waypoint.properties.hasOwnProperty('comment') ? waypoint.properties.comment : '' );
 		var metadata = ' \
-			<p><strong>Position:</strong> ' + waypoint.geometry.coordinates[1] + ',' + waypoint.geometry.coordinates[0] + '</p> \
+			<p><strong>Position:</strong> (' + SBUtils.round(waypoint.geometry.coordinates[1], 5) + ', ' + SBUtils.round(waypoint.geometry.coordinates[0], 5) + ')</p> \
 			<p><strong>Time:</strong> ' + waypoint.properties.time + '</p> \
 			';
-		if (commentValue.length > 0) {
-			metadata += '<p><strong>Comment:</strong> ' + commentValue + '</p>';
-		}
 
-		var modalLink = '<p><a id="annotate-' + uid + '" data-rel="popup" href="#popup-' + uid + '" data-position-to="window" data-transition="slideup">Add notes</a></p>';
-
-		// TODO: insert a Streetview(TM) image (if online) or other aide memoire here ??
-
+		//		if (journey && journey.isActive()) {
 		var notePlaceHolder = 'What was so ' + ( isGood ? 'good' : 'bad') + ' here?';
 		var categoriesValue = ( waypoint.properties.hasOwnProperty('categories') ? waypoint.properties.categories : '' );
 		var categoriesOptions = '';
 		$.each(categories, function(index, value) {
 			categoriesOptions += '<option value="' + value + '"' + ( categoriesValue == value ? ' selected="selected"' : '' ) + '>' + value + '</option>';
 			});
-		//  FIXME: add @data-title to div element, doesn't seem to work
-		var modalContent = ' \
-			<div data-role="popup" id="popup-' + uid + '" class="ui-content waypoint" data-dismissible="false" data-overlay-theme="a"> \
-				<h4>Adding notes</h4> \
-				<form> \
-					<div class="field"> \
-					<label for="note-"' + uid + '">Comment:</label> \
-					<textarea data-setting="comment" placeholder="' + notePlaceHolder + '" name="note-"' + uid + '" id="note-"' + uid + '">' + commentValue + '</textarea> \
-					</div> \
-					<div class="field"> \
-					<label for="category-"' + uid + '">Category:</label> \
-					<select data-setting="category" name="category-"' + uid + '" id="category-' + uid + '"> \
-					<option data-placeholder="true"></option> \
-					' + categoriesOptions + ' \
-					</select> \
-					</div> \
-					<div class="actions"> \
-					<input type="reset" value="Cancel" id="' + uid + '-action-cancel" /> \
-					<input type="submit" value="Save" id="' + uid + '-action-save" /> \
-					</div> \
-				</form> \
-			</div> \
-			';
 
-		// $('#annotate-' + uid).button(); // FIXME: doesn't work :(
-		var $popupContent = $('<div>' + headline + metadata + modalLink + modalContent + '</div>');
-		var $modal = $popupContent.find('#popup-' + uid);
-		$modal.submit( function(event) {
-				event.preventDefault();
-				// console.log('Before: ' + JSON.stringify(waypoint));
-				$(this).find('[data-setting]:input').each( function() { // FIXME: ideally flag and only save the fields that were changed
-					waypoint.properties[$(this).data('setting')] = $(this).val();
-					// alert($(this).data('setting'));
-				});
-				// FIXME: sync limited to active journey and can only be done before upload, but works as limited app is now
-				if (journey && journey.isActive()) {
-					journey.track.sync();
-				}
-				$(this).popup('close');
-				bellUI.popup('Notes saved'); // TODO: make popup success themed (green?)
-				// console.log('After: ' + JSON.stringify(waypoint));
-			});
-		$modal.find(':reset').click( function(event) {
+		var editing = '\
+			<form> \
+				<div class="field"> \
+				<label for="note-"' + uid + '">Comment:</label> \
+				<textarea data-setting="comment" placeholder="' + notePlaceHolder + '" name="note-"' + uid + '" id="note-"' + uid + '">' + commentValue + '</textarea> \
+				</div> \
+				<div class="field"> \
+				<label for="category-"' + uid + '">Category:</label> \
+				<select data-setting="category" name="category-"' + uid + '" id="category-' + uid + '"> \
+				<option data-placeholder="true"></option> \
+				' + categoriesOptions + ' \
+				</select> \
+				</div> \
+				<div class="actions"> \
+				<input type="reset" value="Cancel" id="' + uid + '-action-cancel" /> \
+				<input type="submit" value="Save" id="' + uid + '-action-save" /> \
+				</div> \
+			</form> \
+			';
+		//		}
+
+
+		var $popupContent = $('<div>' + headline + metadata + editing + '</div>');
+
+		var $edits = $popupContent.find('form'); // '#popup-' + uid);
+		$edits.submit( function(event) {
 			event.preventDefault();
-			$modal.popup('close');
-			bellUI.popup('Notes cancelled'); // TODO: make popup fail themed (red?)
+			// console.log('Before: ' + JSON.stringify(waypoint));
+			$(this).find('[data-setting]:input').each( function() { // FIXME: ideally flag and only save the fields that were changed
+				waypoint.properties[$(this).data('setting')] = $(this).val();
+				// alert($(this).data('setting'));
+				});
+			
+			// FIXME: legacy restrictions below?
+			//				if (journey && journey.isActive()) {
+			journey.track.store();
+			//				}
+			
+			bellUI.popup('Notes saved'); // TODO: make popup success themed (green?)
+			// TODO: close the leaflet popup - below fails I think because it's not visible in scope
+			// wayPopup.closePopup();
+			// console.log('After: ' + JSON.stringify(waypoint));
 			});
-		$modal.find('select').selectmenu();
-		$modal.popup();
+		$edits.find(':reset').click( function(event) {
+			event.preventDefault();
+			bellUI.popup('Notes cancelled'); // TODO: make popup fail themed (red?)
+			// TODO: close the leaflet popup - below fails I think because it's not visible in scope
+			// wayPopup.closePopup();
+			});
+		$edits.find('select').selectmenu();
 
 		L.circleMarker(L.latLng(waypoint.geometry.coordinates[1], waypoint.geometry.coordinates[0]), options)
 			.bindPopup(L.popup({'className':'notes ' + ( isGood ? 'good' : 'bad')}).setContent($popupContent[0]))
@@ -768,17 +767,29 @@ buttons - wait, connect, start, stop, -->review
 status: pending=grey, warning=red, ready=green, tracking=blue            , finished
 */
 
-function populateCategories() { // TODO: this should sync with an online store if online
-	return [
-		'Infrastructure',
-		'Environmental',
-		'Wayfinding',
-		'Social',
-		'Safety',
-		'Near miss',
-		'Traffic',
-		'Bike mechanics',
-		];
+function populateCategories() {
+	logActivity('Loading categories from document ' + config.dataStore.sources.settings);
+	localStore.get(config.dataStore.sources.settings)
+		.then(function(doc) {
+			logActivity('Loaded categories from document ' + config.dataStore.sources.settings + '. NB: this will not update until the app restarts.');
+			// TODO: possibly check schema in future before interpreting
+			logActivity('Categories will be: ' + JSON.stringify(doc.settings.categories));
+			categories = doc.settings.categories;
+			})
+		.catch(function(err) {
+			logActivity('Unable to access categories source: ' + config.dataStore.sources.settings);
+			// let's hard code this to a standard list to head off any serious problems with this new feature
+			categories = [
+				'Infrastructure',
+				'Environmental',
+				'Wayfinding',
+				'Social',
+				'Safety',
+				'Near miss',
+				'Traffic',
+				'Bike mechanics',
+				];
+			});
 	}
 
 // ** Any temporary changes we might need when we break the application API in a new version, or any development parameters

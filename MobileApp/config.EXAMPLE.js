@@ -25,6 +25,9 @@ var config = {
 		database: 'my_journey_database',
 		endpoint: 'https://user:pass@example.org', // no leading slash is going to work best for now ..
 		prefix:   '', // TODO - make this optional ideally (rather than having to set it blank)
+		sources: {
+			settings: 'app_settings',
+		},
 	},
 
 	IDPairingsHack: {

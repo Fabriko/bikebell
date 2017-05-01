@@ -77,9 +77,9 @@ $(document).on('pageinit', function() {
 
 	$('#settings').submit( function(event) {
 		event.preventDefault();
-		$(this).find('[data-setting]:input').each( function() { // FIXME: ideally flag and only save the fields that were changed
-			settings.setItem($(this).data('setting'), $(this).val());
-			// console.log( $(this).data('setting') + ' = ' + $(this).val());
+		$(this).find('[data-setting]:input').each( function() { // FIXME: ideally flag and only save dirty fields
+			settings.setItem($(this).data('setting'), SBUtils.trimIfString($(this).val()));
+			console.log( $(this).data('setting') + ' = ' + $(this).val());
 		});
 		$(this).popup('close');
 		bellUI.popup('Settings saved'); // TODO: make popup success themed (green?)
