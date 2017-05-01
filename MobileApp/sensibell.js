@@ -548,54 +548,56 @@ function markWaypoint(map, waypoint) {
 			<p><strong>Time:</strong> ' + waypoint.properties.time + '</p> \
 			';
 
-//		if (journey && journey.isActive()) {
-			var notePlaceHolder = 'What was so ' + ( isGood ? 'good' : 'bad') + ' here?';
-			var categoriesValue = ( waypoint.properties.hasOwnProperty('categories') ? waypoint.properties.categories : '' );
-			var categoriesOptions = '';
-			$.each(categories, function(index, value) {
-				categoriesOptions += '<option value="' + value + '"' + ( categoriesValue == value ? ' selected="selected"' : '' ) + '>' + value + '</option>';
-				});
+		//		if (journey && journey.isActive()) {
+		var notePlaceHolder = 'What was so ' + ( isGood ? 'good' : 'bad') + ' here?';
+		var categoriesValue = ( waypoint.properties.hasOwnProperty('categories') ? waypoint.properties.categories : '' );
+		var categoriesOptions = '';
+		$.each(categories, function(index, value) {
+			categoriesOptions += '<option value="' + value + '"' + ( categoriesValue == value ? ' selected="selected"' : '' ) + '>' + value + '</option>';
+			});
 
-			var editing = '\
-					<form> \
-						<div class="field"> \
-						<label for="note-"' + uid + '">Comment:</label> \
-						<textarea data-setting="comment" placeholder="' + notePlaceHolder + '" name="note-"' + uid + '" id="note-"' + uid + '">' + commentValue + '</textarea> \
-						</div> \
-						<div class="field"> \
-						<label for="category-"' + uid + '">Category:</label> \
-						<select data-setting="category" name="category-"' + uid + '" id="category-' + uid + '"> \
-						<option data-placeholder="true"></option> \
-						' + categoriesOptions + ' \
-						</select> \
-						</div> \
-						<div class="actions"> \
-						<input type="reset" value="Cancel" id="' + uid + '-action-cancel" /> \
-						<input type="submit" value="Save" id="' + uid + '-action-save" /> \
-						</div> \
-					</form> \
-					';
-//		}
+		var editing = '\
+			<form> \
+				<div class="field"> \
+				<label for="note-"' + uid + '">Comment:</label> \
+				<textarea data-setting="comment" placeholder="' + notePlaceHolder + '" name="note-"' + uid + '" id="note-"' + uid + '">' + commentValue + '</textarea> \
+				</div> \
+				<div class="field"> \
+				<label for="category-"' + uid + '">Category:</label> \
+				<select data-setting="category" name="category-"' + uid + '" id="category-' + uid + '"> \
+				<option data-placeholder="true"></option> \
+				' + categoriesOptions + ' \
+				</select> \
+				</div> \
+				<div class="actions"> \
+				<input type="reset" value="Cancel" id="' + uid + '-action-cancel" /> \
+				<input type="submit" value="Save" id="' + uid + '-action-save" /> \
+				</div> \
+			</form> \
+			';
+		//		}
 
 
 		var $popupContent = $('<div>' + headline + metadata + editing + '</div>');
 
 		var $edits = $popupContent.find('form'); // '#popup-' + uid);
 		$edits.submit( function(event) {
-				event.preventDefault();
-				// console.log('Before: ' + JSON.stringify(waypoint));
-				$(this).find('[data-setting]:input').each( function() { // FIXME: ideally flag and only save the fields that were changed
-					waypoint.properties[$(this).data('setting')] = $(this).val();
-					// alert($(this).data('setting'));
-					});
-				// FIXME: sync limited to active journey and can only be done before upload, but works as limited app is now
-//				if (journey && journey.isActive()) {
-					journey.track.store();
-//				}
-				bellUI.popup('Notes saved'); // TODO: make popup success themed (green?)
-				// TODO: close the leaflet popup - below fails I think because it's not visible in scope
-				// wayPopup.closePopup();
-				// console.log('After: ' + JSON.stringify(waypoint));
+			event.preventDefault();
+			// console.log('Before: ' + JSON.stringify(waypoint));
+			$(this).find('[data-setting]:input').each( function() { // FIXME: ideally flag and only save the fields that were changed
+				waypoint.properties[$(this).data('setting')] = $(this).val();
+				// alert($(this).data('setting'));
+				});
+			
+			// FIXME: legacy restrictions below?
+			//				if (journey && journey.isActive()) {
+			journey.track.store();
+			//				}
+			
+			bellUI.popup('Notes saved'); // TODO: make popup success themed (green?)
+			// TODO: close the leaflet popup - below fails I think because it's not visible in scope
+			// wayPopup.closePopup();
+			// console.log('After: ' + JSON.stringify(waypoint));
 			});
 		$edits.find(':reset').click( function(event) {
 			event.preventDefault();
