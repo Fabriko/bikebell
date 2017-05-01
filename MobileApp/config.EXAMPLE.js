@@ -26,7 +26,7 @@ var config = {
 		endpoint: 'https://user:pass@example.org', // no leading slash is going to work best for now ..
 		prefix:   '', // TODO - make this optional ideally (rather than having to set it blank)
 		sources: {
-			categories: 'app_categories',
+			settings: 'app_settings',
 		},
 	},
 

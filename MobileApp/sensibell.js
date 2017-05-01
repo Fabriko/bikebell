@@ -765,17 +765,17 @@ buttons - wait, connect, start, stop, -->review
 status: pending=grey, warning=red, ready=green, tracking=blue            , finished
 */
 
-function populateCategories() { // TODO: this should sync with an online store if online
-	logActivity('Loading categories from document ' + config.dataStore.sources.categories);
-	localStore.get(config.dataStore.sources.categories)
+function populateCategories() {
+	logActivity('Loading categories from document ' + config.dataStore.sources.settings);
+	localStore.get(config.dataStore.sources.settings)
 		.then(function(doc) {
-			logActivity('Loaded categories from document ' + config.dataStore.sources.categories + '. NB: this will not update until the app restarts.');
+			logActivity('Loaded categories from document ' + config.dataStore.sources.settings + '. NB: this will not update until the app restarts.');
 			// TODO: possibly check schema in future before interpreting
-			logActivity('Categories will be: ' + JSON.stringify(doc.categories));
-			categories = doc.categories;
+			logActivity('Categories will be: ' + JSON.stringify(doc.settings.categories));
+			categories = doc.settings.categories;
 			})
 		.catch(function(err) {
-			logActivity('Unable to access categories source: ' + config.dataStore.sources.categories);
+			logActivity('Unable to access categories source: ' + config.dataStore.sources.settings);
 			// let's hard code this to a standard list to head off any serious problems with this new feature
 			categories = [
 				'Infrastructure',
