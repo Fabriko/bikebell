@@ -287,7 +287,7 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 	}
 
 	this.beamup = function(){
-		// TODO: put in albums??
+		// background: https://gist.github.com/hughbris/65b3baa55b58acb7beaaad885a63a458
 		var target = config.capturedMedia.REMOTE_API.endpoint + '/image';
 		logActivity('Uploading image ' + __this.name + ' to ' + target);
 
@@ -303,10 +303,12 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 
 				// https://blog.garstasio.com/you-dont-need-jquery/ajax/ - thank you!!
 				var dataFields = new FormData();
-				var post = new XMLHttpRequest();
 				dataFields.append('image', imageBlob);
 				dataFields.append('type', 'file');
-				dataFields.append('album', config.capturedMedia.album);
+				if (config.capturedMedia.hasOwnProperty('album')) {
+					dataFields.append('album', config.capturedMedia.album);
+				}
+				var post = new XMLHttpRequest();
 				post.open('POST', target);
 				post.setRequestHeader('Authorization', 'Bearer ' + config.capturedMedia.REMOTE_API.OAuth.access_token);
 				post.send(dataFields);
@@ -324,7 +326,7 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 
 				post.onerror = function(err) { // untested
 					logActivity('Failed uploading image from ' + __this.name + ': ' + JSON.stringify(err));
-					logActivity('Output: ' + xhr.responseText);
+					logActivity('Output: ' + post.responseText);
 					};
 
 				};
@@ -351,4 +353,6 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 
 }
 
-CapturedMedia.checkUploads = function() {}; // TODO
+CapturedMedia.checkUploads = function() { // TODO
+	logActivity('Here should be checking uploads - TODO');
+	};

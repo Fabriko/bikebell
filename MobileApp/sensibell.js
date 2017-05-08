@@ -1,5 +1,11 @@
 /* Globals */
 
+// Kludge setting
+var POUCH_FIND_SUPPORTS_LOGIC_JUNCTIVE_OPS = false; // this helps us work around some non-supported logical operators in local PouchDB - "$and" as well as, it seems, probably "$or" and "$nor" at least
+// (error: unknown operator "$and" - should be one of $eq, $lte, $lt, $gt, $gte, $exists, $ne, $in, $nin, $size, $mod, $regex, $elemMatch, $type or $all)
+// this doesn't happen on Cloudant (server)
+// https://github.com/pouchdb/pouchdb/issues/6366 is probably(?) relevant
+
 // Hardware
 sensor = new Sensor();
 
@@ -32,7 +38,7 @@ document.addEventListener('deviceready', function() {
 	}
 	});
 
-document.addEventListener('deviceready', function() {
+document.addEventListener('deviceready', function() {  // TODO: merge this into next event listener ( - easy!)
 	evothings.scriptsLoaded( function() {
 		setSensor();
 		console.log('Set to ' + sensor.target);
@@ -46,7 +52,9 @@ document.addEventListener('deviceready', function() {
 	if (SBUtils.isOnline()) {
 		bellUI.popup('Online via connection type ' + navigator.connection.type, 'long');
 		logActivity('Attempting to sync to remote datastore ..');
-		syncData(syncMedia);
+		syncData(function() {
+			syncMedia(!POUCH_FIND_SUPPORTS_LOGIC_JUNCTIVE_OPS);
+			});
 	}
 	else {
 		bellUI.popup('Not online', 'long', { fallback: window.alert });
@@ -55,10 +63,14 @@ document.addEventListener('deviceready', function() {
 	document.addEventListener('online',	function() {
 		logActivity('*** app now ONLINE ***');
 		logActivity('Now online, so syncing to remote datastore ..');
-		syncData(syncMedia);
+		syncData(function() {
+			syncMedia(!POUCH_FIND_SUPPORTS_LOGIC_JUNCTIVE_OPS);
+			});
 		}, false);
 
 	}, false);
+
+// FIXME: These could/should all be moved under document ready above
 
 // Note: There is only one point to this. I'm just curious if this (and more importantly 'online') is triggered outside a documentready as the docs seem to indicate won't work
 // https://www.npmjs.com/package/cordova-plugin-network-information
@@ -129,16 +141,6 @@ function displayStatus(status, classes) { // TODO: make classes an array, would 
 	$('#status').text(status);
 	classes = 'status' + ( classes ? ' ' + classes  :'' );
 	$('#status').parents('.status').attr('class', classes); /* [0].classList.length ) ; */
-}
-
-function logActivity(msg) {
-	console.log($('<div>' + msg + '</div>').text()); // strip out any HTML meant for the app screen console
-	$('#activities').prepend(
-		'<span class="timestamp meta">' + formatTimestamp(new Date(), 'log') + '</span>' +
-		': ' +
-		msg +
-		'<br/>'
-	);
 }
 
 function Journey(title) {
@@ -434,66 +436,124 @@ function syncData(onSyncSuccess, onSyncFailure) {
 	}
 }
 
-function syncMedia() {
-	logActivity('Going to sync media files then notarise them');
-	if (localStore) {
+function syncMedia(remoteQuery) { // we are happy to treat remoteQuery as false if not supplied!
+	logActivity('Going to sync media files then notarise them, remoteQuery is ' + (remoteQuery ? 'true' : 'false'));
+	
+	var metadataSource = ((remoteQuery || !localStore) ? new MangoHTTP(config.dataStore.endpoint, config.dataStore.database, {auth_user: config.dataStore.username, auth_pass: config.dataStore.password,}) : localStore); // TODO - we can then apply the same methods to source and will work regardless of prototype
+	
+	var userName = settings.getItem('riderName');  // TODO: this value should really be more abstractly available in Personalization 2.0
+
+	/*
+	This is meant to be a wrapper for too-complex Mango queries not supported yet in PouchDB-find ($and, $or).
+	We can get away with it if we know we are online and know we just synced (remoteQuery toggles that).
+	We won't need this when $and is supported.
+
+	TODO still:
+		- get to operating on the results, beamup() finally!
+		- do the same for floating media uploads (below)
+		- consolidate metadataSource interface so no branching from value of remoteQuery
+		- get the index right and create it
+		- another attempt with $.ajax, since that has a closer interface to PouchDB.find
+		+ detect real network status (DNS, not captive portal) 
+	*/
+	
+	logActivity('userName is ' + userName); //  userName='';
+
+	// request object is code-formatted for strict JSON in a departure from style because it's easier that way to move between online query tools (thanks Douglas C :( )
+	var request = {
+		"selector": {
+			"properties.rider": userName, // { "$exists": false }, // also query for blank values, then set to userName
+			"features": {
+				"$and": [
+					{
+						"$elemMatch": {
+							"geometry.type": "LineString"
+						}
+					},
+					{
+						"$elemMatch": {
+							"properties.type": {
+								"$in": ["image/jpeg"] // FIXME - cater for other media types
+							},
+							"properties.remote_id": {
+								"$exists": false
+							}
+						}
+					}
+				]
+			}
+		},
+		"fields": [
+			"_id",
+			"_rev"
+		],
+		"sort": [
+			{
+				"_id": "asc"
+			}
+		]
+	};
+
+
+	// FIXME: this index is not being engaged by the query, so tweak it!
+	var syncIndex = {
+		index: {
+			fields: [
+				'properties.rider',
+				'features',
+				],
+			}/*,
+		missing_is_null: true */
+		};
+
+	metadataSource.createIndex(syncIndex, function() {
+		logActivity('Are we here?');
+		console.log(JSON.stringify(request));
+		metadataSource.find(request, function(result) {
+			logActivity('Successful find! Moving on ..');
+			logActivity(JSON.stringify(result));
+			});
+	});
+
+	if (false && localStore) { // FIXME: just disabling this so we can test remote queries explicitly
 
 		// check and sync journey media
 		localStore.createIndex({
 			index: {
 				fields: [
 //					'properties.type',
+					'properties.rider',
 					'features.geometry.type', // for 'has a linestring'?
 					'features.properties.type',
 					'features.properties.remote_id',
-					'properties.rider',
 					],
 				}
 			}).then(function(result) {
 				logActivity('Index created: ' + JSON.stringify(result));
 				var userName = settings.getItem('riderName');  // TODO: this value should really be more abstractly available in Personalization 2.0
+				
+userName = "";
+
+				
+				
+				
 				logActivity('userName is ' + userName);
 				localStore.find({
-					// this next object is code formatted for strict JSON in a departure from style because it's easier that way to move between online query tools (thanks Douglas C :( )
 					"selector": {
-						"properties.rider": { "$exists": false }, // also query for blank values, then set to userName
+						"properties.rider": userName, // { "$exists": false }, // also query for blank values, then set to userName
 						"features": {
-							"$all": [
-								{
-									"$elemMatch": {
-										"geometry.type": "LineString"
-									}
-								},
-								{
-									"$elemMatch": {
-										"properties.type": {
-											"$in": ["image/jpeg"] // FIXME - cater for other media types
-										}, 
-										"properties.remote_id": {
-											"$exists": false
-										}
-									}
-								}
-							]
+							"$elemMatch": {
+								"geometry.type": "LineString"
+							}
 						}
 					},
-// NB: this was too complex or not supported in Mango (yet) - it works on Cloudant
-// it won't be necessary once empty rider values are impossible
-/*
-	"selector": {
-		"properties.rider": {
-			"$or": [
-				{ "$eq": userName },
-				{ "$exists": false }
-			]
-		}
-	},
-*/					
 					}).then(function(result) {
-							logActivity('Query results returned: ' + result.docs.length);
+						logActivity('Query results returned: ' + result.docs.length);
+						logActivity('Warning: ' + (result.warning ? result.warning : 'no'));
 						}
 					).catch(function(err) {
-						logActivity('Find query error: ' + JSON.stringify(err));
+						logActivity('Find query error: ' + err);
+						logActivity('Warning: ' + (error.warning ? error.warning : 'no'));
 						}
 					);
 				}
@@ -530,6 +590,8 @@ function syncMedia() {
 
 	}
 }
+
+
 
 function adaptiveStart() {
 	console.log('Big button Start journey pressed');

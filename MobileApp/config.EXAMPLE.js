@@ -32,7 +32,9 @@ var config = {
 		// etc
 		*/
 		database: 'my_journey_database',
-		endpoint: 'https://user:pass@example.org', // no leading slash is going to work best for now ..
+		endpoint: 'https://user:pass@example.org', // no trailing slash is going to work best for now ..
+		username: 'user',
+		password: 'pass',
 		prefix:   '', // TODO - make this optional ideally (rather than having to set it blank)
 	},
 
