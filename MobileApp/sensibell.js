@@ -31,24 +31,18 @@ document.addEventListener('deviceready', function() {
 	if (navigator.camera) {
 		$('#picture').removeClass('disabled');
 		$('#picture').click( function() {
-
 			var photo = new CapturedMedia();
 			photo.grab();
 			});
 	}
-	});
-
-document.addEventListener('deviceready', function() {  // TODO: merge this into next event listener ( - easy!)
+	
 	evothings.scriptsLoaded( function() {
 		setSensor();
 		console.log('Set to ' + sensor.target);
 		});
 	$('#adaptive-connect').click();
-	}, false);
-
-document.addEventListener('deviceready', function() {
 	
-
+	
 	if (SBUtils.isOnline()) {
 		bellUI.popup('Online via connection type ' + navigator.connection.type, 'long');
 		logActivity('Attempting to sync to remote datastore ..');
@@ -63,39 +57,34 @@ document.addEventListener('deviceready', function() {
 	document.addEventListener('online',	function() {
 		logActivity('*** app now ONLINE ***');
 		logActivity('Now online, so syncing to remote datastore ..');
-		syncData(function() {
-			syncMedia(!POUCH_FIND_SUPPORTS_LOGIC_JUNCTIVE_OPS);
-			});
+
+		if (SBUtils.uploadHappy()) {
+			CapturedMedia.checkUploads(); // TODO - stub and should call next block in its success callback when implemented
+			syncData(function() {
+				syncMedia(!POUCH_FIND_SUPPORTS_LOGIC_JUNCTIVE_OPS);
+				});
+		}
 		}, false);
 
-	}, false);
 
-// FIXME: These could/should all be moved under document ready above
+	document.addEventListener('offline', function() {
+		logActivity('*** app gone OFFLINE ***');
+		}, false);
 
-// Note: There is only one point to this. I'm just curious if this (and more importantly 'online') is triggered outside a documentready as the docs seem to indicate won't work
-// https://www.npmjs.com/package/cordova-plugin-network-information
-document.addEventListener('offline', function() {
-    logActivity('*** app gone OFFLINE ***');
-	}, false);
+	document.addEventListener('pause', function() {
+		logActivity('*** app PAUSED ***');
+		}, false);
 
-document.addEventListener('pause', function() {
-    logActivity('*** app PAUSED ***');
-	}, false);
+	document.addEventListener('resume',	function() {
+		// TODO: add stopScan for pause
+		logActivity('*** app RESUMED ***');
 
-document.addEventListener('resume',	function() {
-	// TODO: add stopScan for pause
-	logActivity('*** app RESUMED ***');
+		if (SBUtils.isOnline()) {
+			logActivity('Resumed, so attempting to sync to remote datastore ..');
+			syncData();
+		}
+		}, false);
 
-	if (SBUtils.isOnline()) {
-		logActivity('Resumed, so attempting to sync to remote datastore ..');
-		syncData();
-	}
-	}, false);
-
-document.addEventListener('online', function() {
-	if (SBUtils.uploadHappy()) {
-		CapturedMedia.checkUploads();
-	}
 	});
 
 function logPosition(logSuccessOps, logFailOps, options) { // NB: initial val parameter has been removed, also logFailOps parameter inserted before options parameter
@@ -457,7 +446,7 @@ function syncMedia(remoteQuery) { // we are happy to treat remoteQuery as false 
 		+ detect real network status (DNS, not captive portal) 
 	*/
 	
-	logActivity('userName is ' + userName); //  userName='';
+	logActivity('userName is ' + userName); // logActivity('Now fudged to ' + (userName=''));
 
 	// request object is code-formatted for strict JSON in a departure from style because it's easier that way to move between online query tools (thanks Douglas C :( )
 	var request = {
