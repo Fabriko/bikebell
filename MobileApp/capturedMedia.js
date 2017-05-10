@@ -1,6 +1,6 @@
 // requires: cordova, File plugin, Camera plugin
 
-function CapturedMedia() {
+function CapturedMedia(mediaName) {
 
 	var __this = this;
 	this['location'] = this['type'] = this['name'] = null;
@@ -45,24 +45,24 @@ function CapturedMedia() {
 				fe.file(/* stashSuccessOps */ function(fo){
 					__this.fileObject = fo;
 					logActivity('File object init to: ' + JSON.stringify(__this.fileObject));
-					
+
 					/*
 					var readerTmp = new FileReader();
-					
+
 					readerTmp.onloadend = function(e) {
 						__this.b64 = readerTmp.result;
-						
+
 						logActivity('Just set to ' + __this.b64);
 						};
-						
+
 					readerTmp.readAsDataURL(fo);
 					*/
-					
+
 					stashSuccessOps.call();
 					}, stashFailOps);
-								
 
-								
+
+
 								__this.fileEntry = fe;
 
 logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE object
@@ -112,7 +112,13 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 			logActivity('Notarised.');
 			if (SBUtils.uploadHappy()) {
 				logActivity('Happily ready to upload');
-				__this.beamup();
+				__this.beamup( function() {
+					var responseJSON = JSON.parse(this.responseText);
+					__this.addProperties({
+						'remote_id': responseJSON.data.id,
+						'URL': 'http://imgur.com/' + responseJSON.data.id,
+						});
+					});
 			}
 			};
 		grabFailOps = grabFailOps || function() {
@@ -142,10 +148,10 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 				});
 			}, function() {
 			bellUI.popup("Can't geolocate captured media");
-			
+
 			// FIXME: what gets notarised when we don't know the location yet?
 			__this.location = dummyLoc; // TODO: approximate from last position and tag as uncertain
-			
+
 			navigator.camera.getPicture( function(path) {
 				console.log('Stored in ' + path);
 				// __this.description TODO
@@ -178,7 +184,7 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 			}
 
 			else {
-				
+
 				// FIXME: not tested
 				// get doc with that id
 				localStore.get(this.journey.track.id)
@@ -192,7 +198,7 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 								// Object.assign(doc.features[currentIndex].properties, additionalProperties);
 								// logActivity(JSON.stringify(currentProperties));
 								logActivity('Rev ' + doc._rev);
-								
+
 
 								localStore.put(doc)
 									.then(function(response) {
@@ -247,9 +253,9 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 			journey.track.addMedia(__this.location, properties);
 		}
 		else {
-			
+
 			logActivity('Adding ' + __this.name + ' as floating media to Couch (1)');
-			
+
 			// must add 'time' here if omitted, which is a bit repetitive (refactor?)
 			if (!properties.hasOwnProperty('time')) {
 				var timeStamp = new Date();
@@ -261,7 +267,7 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 
 			var geoJSON = turf.point(__this.location, properties);
 			// TODO: annotation popup
-			
+
 			logActivity('Adding ' + __this.name + ' as floating media to Couch');
 			console.log(JSON.stringify(geoJSON));
 
@@ -286,7 +292,7 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 		}
 	}
 
-	this.beamup = function(){
+	this.beamup = function(onBeamSuccess, onBeamFail) {
 		// background: https://gist.github.com/hughbris/65b3baa55b58acb7beaaad885a63a458
 		var target = config.capturedMedia.REMOTE_API.endpoint + '/image';
 		logActivity('Uploading image ' + __this.name + ' to ' + target);
@@ -306,27 +312,27 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 				dataFields.append('image', imageBlob);
 				dataFields.append('type', 'file');
 				if (config.capturedMedia.hasOwnProperty('album')) {
+					logActivity('Album will be ' + config.capturedMedia.album);
 					dataFields.append('album', config.capturedMedia.album);
 				}
 				var post = new XMLHttpRequest();
 				post.open('POST', target);
 				post.setRequestHeader('Authorization', 'Bearer ' + config.capturedMedia.REMOTE_API.OAuth.access_token);
 				post.send(dataFields);
-				
-				post.onloadend = function(evt) {
+
+				// FIXME: Imgur API is triggering this when the API key expires! also tested onloadend, need to check HTTP status or response body *groan*
+				post.onload = function(evt) {
 					logActivity('Uploaded image from ' + __this.name + ' to ' + target);
 					// grab its ID and notarise that
 					var responseJSON = JSON.parse(post.responseText);
-					// logActivity(JSON.stringify(responseJSON.data));
-					__this.addProperties({
-						'remote_id': responseJSON.data.id,
-						'URL': 'http://imgur.com/' + responseJSON.data.id,
-						});
+					logActivity(JSON.stringify(responseJSON.data));
+					onBeamSuccess && onBeamSuccess.call(post, evt);
 					};
 
 				post.onerror = function(err) { // untested
 					logActivity('Failed uploading image from ' + __this.name + ': ' + JSON.stringify(err));
 					logActivity('Output: ' + post.responseText);
+					onBeamFail && onBeamFail(post, err);
 					};
 
 				};
@@ -338,16 +344,47 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 		}
 	}
 
-	this.load = function(){}; // TODO
+	this.loadFile = function(onLoadSuccess, onLoadFail) {
+		logActivity('Loading media ..');
 
-	var init = function(){
+		if(cordova.file) {
+			var dataDirectoryLocation = ( SBUtils.isAndroid() ? cordova.file.externalDataDirectory : cordova.file.dataDirectory ) + '/' + config.capturedMedia.LOCAL_DIRECTORY;
+
+			logActivity("We'll retrieve from  " + dataDirectoryLocation);
+
+			var stashedLocation = dataDirectoryLocation + '/' + __this.name;
+			logActivity(stashedLocation);
+
+			window.resolveLocalFileSystemURL(stashedLocation, function(fileEntry) {
+				logActivity(JSON.stringify(fileEntry));
+
+				fileEntry.file(function(fo) {
+					__this.fileObject = fo;
+					onLoadSuccess && onLoadSuccess.call();
+					});
+				});
+		}
+		else {
+			onLoadFail && onLoadFail.call();
+		}
+
+		};
+
+	var init = function() {
 		// synonyms for methods, hmmm...
 		__this.record = __this.take = __this.capture = __this.grab = __this.snap;
 		__this.send = __this.upload = __this.beamup;
 
-		__this['uuid'] = SBUtils.UUishID();
-		__this['journey'] = sensibelStatus.state.tracking ? journey : null;
-		
+		if (mediaName) {
+			__this.name = mediaName;
+			__this['uuid'] = mediaName.replace('.jpg', ''); // FIXME: this is pretty hacky
+		}
+		else {
+			__this['uuid'] = SBUtils.UUishID();
+			__this['journey'] = sensibelStatus.state.tracking ? journey : null;
+			logActivity('capturedMedia creat-ed');
+		}
+
 		logActivity('capturedMedia init-ed');
 		}();
 

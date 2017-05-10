@@ -35,14 +35,14 @@ document.addEventListener('deviceready', function() {
 			photo.grab();
 			});
 	}
-	
+
 	evothings.scriptsLoaded( function() {
 		setSensor();
 		console.log('Set to ' + sensor.target);
 		});
 	$('#adaptive-connect').click();
-	
-	
+
+
 	if (SBUtils.isOnline()) {
 		bellUI.popup('Online via connection type ' + navigator.connection.type, 'long');
 		logActivity('Attempting to sync to remote datastore ..');
@@ -427,31 +427,18 @@ function syncData(onSyncSuccess, onSyncFailure) {
 
 function syncMedia(remoteQuery) { // we are happy to treat remoteQuery as false if not supplied!
 	logActivity('Going to sync media files then notarise them, remoteQuery is ' + (remoteQuery ? 'true' : 'false'));
-	
-	var metadataSource = ((remoteQuery || !localStore) ? new MangoHTTP(config.dataStore.endpoint, config.dataStore.database, {auth_user: config.dataStore.username, auth_pass: config.dataStore.password,}) : localStore); // TODO - we can then apply the same methods to source and will work regardless of prototype
-	
+
+	var metadataSource = ((remoteQuery || !localStore) ? new MangoHTTP(config.dataStore.endpoint, config.dataStore.database, {auth_user: config.dataStore.username, auth_pass: config.dataStore.password,}) : localStore);
+	// TODO - get the MangoHTTP .find() and .index() interfaces close to PouchDB's, then we can apply the same methods to source and will work regardless of prototype
+
 	var userName = settings.getItem('riderName');  // TODO: this value should really be more abstractly available in Personalization 2.0
 
-	/*
-	This is meant to be a wrapper for too-complex Mango queries not supported yet in PouchDB-find ($and, $or).
-	We can get away with it if we know we are online and know we just synced (remoteQuery toggles that).
-	We won't need this when $and is supported.
-
-	TODO still:
-		- get to operating on the results, beamup() finally!
-		- do the same for floating media uploads (below)
-		- consolidate metadataSource interface so no branching from value of remoteQuery
-		- get the index right and create it
-		- another attempt with $.ajax, since that has a closer interface to PouchDB.find
-		+ detect real network status (DNS, not captive portal) 
-	*/
-	
 	logActivity('userName is ' + userName); // logActivity('Now fudged to ' + (userName=''));
 
 	// request object is code-formatted for strict JSON in a departure from style because it's easier that way to move between online query tools (thanks Douglas C :( )
 	var request = {
 		"selector": {
-			"properties.rider": userName, // { "$exists": false }, // also query for blank values, then set to userName
+			"properties.rider": userName,
 			"features": {
 				"$and": [
 					{
@@ -483,7 +470,6 @@ function syncMedia(remoteQuery) { // we are happy to treat remoteQuery as false 
 		]
 	};
 
-
 	// FIXME: this index is not being engaged by the query, so tweak it!
 	var syncIndex = {
 		index: {
@@ -496,88 +482,97 @@ function syncMedia(remoteQuery) { // we are happy to treat remoteQuery as false 
 		};
 
 	metadataSource.createIndex(syncIndex, function() {
-		logActivity('Are we here?');
-		console.log(JSON.stringify(request));
+		logActivity('Created an index');
+		// logActivity(JSON.stringify(request));
 		metadataSource.find(request, function(result) {
 			logActivity('Successful find! Moving on ..');
-			logActivity(JSON.stringify(result));
+			// logActivity(JSON.stringify(result));
+
+			fastestDocumentSource = localStore || metadataSource; // use localStore if it is available (in fact, we don't support fetch remotely (MangoHTTP.fetch()) yet!) (FIXME)
+
+			result.docs.forEach( function(val, idx) {
+				logActivity(val._id);
+
+				fastestDocumentSource.get(val._id, {
+					'rev': val._rev,
+					})
+					.then( function(doc) {
+
+						// loop through any unuploaded media records
+						doc.features.forEach( function(feature) {
+							logActivity('Properties.type: ' + feature.properties.type);
+							logActivity('Properties.remote_id: ' + feature.properties.remote_id);
+
+							if (feature.properties.hasOwnProperty('type') && ['image/jpeg'].includes(feature.properties.type) && typeof(feature.properties.remote_id) == 'undefined') {
+
+								// create capturedMedia - we wanna get loaded!
+								var oldPhoto = new CapturedMedia(feature.properties.name);
+
+								oldPhoto.loadFile( function() {
+									// __this['journey'] = sensibelStatus.state.tracking ? journey : null; // FIXME ?
+									logActivity('capturedMedia ' + feature.properties.name + ' load-ed properly');
+
+									// if(feature.properties.name.indexOf('661302d5-') == 0) {
+									oldPhoto.beamup( function() {
+										// logActivity('Beam is real');
+										var responseJSON = JSON.parse(this.responseText);
+
+										logActivity('Need to notate ' + responseJSON.data.id + ' on ' + feature.properties.name + ' in journey ' + doc._id);
+
+										Object.assign(feature.properties, {
+											'remote_id': responseJSON.data.id,
+											'URL': 'http://imgur.com/' + responseJSON.data.id,
+											});
+
+										localStore.put(doc)
+											.then( function() {
+												logActivity('We put it!');
+
+												// TODO: cleanup local file depending on config
+
+												}, function(err) {
+												logActivity('Could not update metadata, maybe next time.');
+												});
+
+										});
+									// }
+
+									}, function() {
+										logActivity('capturedMedia load-ed NOT properly');
+									}
+									);
+								logActivity('Journey feature updated to: ' + JSON.stringify(feature.properties));
+							}
+							});
+					}, function(err) {
+						logActivity('> error fetching doc! <');
+						// TODO
+					});
+				});
 			});
 	});
 
-	if (false && localStore) { // FIXME: just disabling this so we can test remote queries explicitly
+	/*
+			// check and sync floating media
+			localStore.createIndex({
+				index: {
+					fields: [
+						'properties.type',
+						'properties.remote_id',
+						'properties.rider',
+						],
+					}
+				}).then(function(result) {
+					logActivity('Index created: ' + JSON.stringify(result));
+					}
+				).catch(function(err) {
+					logActivity('Index creation error: ' + JSON.stringify(err));
+					}
+				);
+	*/
 
-		// check and sync journey media
-		localStore.createIndex({
-			index: {
-				fields: [
-//					'properties.type',
-					'properties.rider',
-					'features.geometry.type', // for 'has a linestring'?
-					'features.properties.type',
-					'features.properties.remote_id',
-					],
-				}
-			}).then(function(result) {
-				logActivity('Index created: ' + JSON.stringify(result));
-				var userName = settings.getItem('riderName');  // TODO: this value should really be more abstractly available in Personalization 2.0
-				
-userName = "";
+	// TODO: run a DB sync
 
-				
-				
-				
-				logActivity('userName is ' + userName);
-				localStore.find({
-					"selector": {
-						"properties.rider": userName, // { "$exists": false }, // also query for blank values, then set to userName
-						"features": {
-							"$elemMatch": {
-								"geometry.type": "LineString"
-							}
-						}
-					},
-					}).then(function(result) {
-						logActivity('Query results returned: ' + result.docs.length);
-						logActivity('Warning: ' + (result.warning ? result.warning : 'no'));
-						}
-					).catch(function(err) {
-						logActivity('Find query error: ' + err);
-						logActivity('Warning: ' + (error.warning ? error.warning : 'no'));
-						}
-					);
-				}
-			).catch(function(err) {
-				logActivity('Index creation error: ' + JSON.stringify(err));
-				}
-			);
-
-
-
-
-
-/*
-		// check and sync floating media
-		localStore.createIndex({
-			index: {
-				fields: [
-					'properties.type',
-					'properties.remote_id',
-					'properties.rider',
-					],
-				}
-			}).then(function(result) {
-				logActivity('Index created: ' + JSON.stringify(result));
-				}
-			).catch(function(err) {
-				logActivity('Index creation error: ' + JSON.stringify(err));
-				}
-			);
-*/
-
-
-
-
-	}
 }
 
 
@@ -983,7 +978,7 @@ function populateCategories() { // TODO: this should sync with an online store i
 
 // ** Any temporary changes we might need when we break the application API in a new version, or any development parameters
 function configManagementHacks() {
-	// settings.setItem('riderName', 'Hughb');
+	// settings.setItem('riderName', 'Carl');
 	// settings.setItem('file.prefix', 'dev-'); // console.log(settings.getItem('file.prefix'));
 	// settings.removeItem('file.prefix');
 

@@ -7,24 +7,20 @@ PouchDB.debug.enable('pouchdb:find');
 
 function MangoHTTP(endpoint, database, opts) {
 	var __this = this;
-	
+
 	// logActivity('MangoHTTP created with endpoint ' + endpoint + ' database ' + database + ' user ' + opts.auth_user + ' pass ' + opts.auth_pass );
-	
+
 	this.API_ROOT = endpoint + '/' + database;
-	
+
 	this.createIndex = function(indexJSON, onIndexSuccess, onIndexFail){
 		logActivity('Sending to ' + this.API_ROOT + '/_index');
-		
-		
 
 		var post = new XMLHttpRequest();
-		logActivity('Sending to ' + this.API_ROOT + '/_index (1)');
 		post.withCredentials = true;
 		post.open('POST', this.API_ROOT + '/_index');
 		post.setRequestHeader('Authorization', 'Basic ' + btoa(opts.auth_user + ':' + opts.auth_pass));
 		post.setRequestHeader('Content-Type', 'application/json');
 		post.send(JSON.stringify(indexJSON));
-		logActivity('Sending to ' + this.API_ROOT + '/_index (2)');
 
 		post.onload = function(evt) {
 			if (String(typeof(onIndexSuccess)) != 'function') {
@@ -47,8 +43,8 @@ function MangoHTTP(endpoint, database, opts) {
 			onIndexFail.call(err);
 			};
 
-		
-		
+
+
 		}; // TODO
 
 
@@ -72,7 +68,7 @@ function MangoHTTP(endpoint, database, opts) {
 		    });
 		};
 		*/
-		
+
 		var post = new XMLHttpRequest();
 		// post.withCredentials = true;
 		post.open('POST', this.API_ROOT + '/_find');
