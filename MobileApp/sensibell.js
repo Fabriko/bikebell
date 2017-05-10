@@ -524,12 +524,15 @@ function syncMedia(remoteQuery) { // we are happy to treat remoteQuery as false 
 											'URL': 'http://imgur.com/' + responseJSON.data.id,
 											});
 
+										// Note: updating/putting for every feature seems less efficient than putting the whole document up only after beamup() callbacks have completed, but I'm not sure how safe bulding up a single updated doc would really be if it took some time and got interrupted. It would probably work, but we'd have images uploaded multiple times until a full successful journey load happens.
+										// Simplest way I can think of to make a delayed single upload would be to wrap this put() in a check to see if it's the last in the forEach() index. We won't need to check the rev then, so that's simpler.
 										localStore.put(doc)
-											.then( function() {
+											.then( function(response) {
 												logActivity('We put it!');
 
 												// TODO: cleanup local file depending on config
 
+												doc._rev = response.rev; // for next revision
 												}, function(err) {
 												logActivity('Could not update metadata, maybe next time.');
 												});
