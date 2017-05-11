@@ -225,7 +225,9 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 			logActivity('Floating file id: ' + __this.uuid);
 			localStore.get(__this.uuid)
 				.then(function(doc) {
-					Object.assign(doc.properties, additionalProperties);
+					Object.assign(doc.properties, additionalProperties, {
+						'rider': settings.getItem('riderName'),
+						});
 					logActivity(JSON.stringify(doc));
 					localStore.put(doc)
 						.then(function(response) {

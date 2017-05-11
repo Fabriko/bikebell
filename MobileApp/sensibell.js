@@ -426,10 +426,16 @@ function syncData(onSyncSuccess, onSyncFailure) {
 }
 
 function syncMedia(remoteQuery) { // we are happy to treat remoteQuery as false if not supplied!
+	// FIXME: Completion of all callbacks in the loops of this function should be followed by a call to syncData(), however, I don't currently know how to detect their completion
+
+	// TODO: need to look at allowing cleanup of local media after upload, according to user preferences
+
 	logActivity('Going to sync media files then notarise them, remoteQuery is ' + (remoteQuery ? 'true' : 'false'));
 
 	var metadataSource = ((remoteQuery || !localStore) ? new MangoHTTP(config.dataStore.endpoint, config.dataStore.database, {auth_user: config.dataStore.username, auth_pass: config.dataStore.password,}) : localStore);
 	// TODO - get the MangoHTTP .find() and .index() interfaces close to PouchDB's, then we can apply the same methods to source and will work regardless of prototype
+
+	var fastestDocumentSource = localStore || metadataSource; // we're going to use localStore if it is available in some contexts below regardless of remoteQuery (in fact, we don't support fetch remotely (MangoHTTP.fetch()) yet!) (FIXME)
 
 	var userName = settings.getItem('riderName');  // TODO: this value should really be more abstractly available in Personalization 2.0
 
@@ -488,8 +494,6 @@ function syncMedia(remoteQuery) { // we are happy to treat remoteQuery as false 
 			logActivity('Successful find! Moving on ..');
 			// logActivity(JSON.stringify(result));
 
-			fastestDocumentSource = localStore || metadataSource; // use localStore if it is available (in fact, we don't support fetch remotely (MangoHTTP.fetch()) yet!) (FIXME)
-
 			result.docs.forEach( function(val, idx) {
 				logActivity(val._id);
 
@@ -499,7 +503,7 @@ function syncMedia(remoteQuery) { // we are happy to treat remoteQuery as false 
 					.then( function(doc) {
 
 						// loop through any unuploaded media records
-						doc.features.forEach( function(feature) {
+						doc.features.forEach( function(feature) { // TODO use arr.filter() here. it's better (predicate just below)
 							logActivity('Properties.type: ' + feature.properties.type);
 							logActivity('Properties.remote_id: ' + feature.properties.remote_id);
 
@@ -512,7 +516,7 @@ function syncMedia(remoteQuery) { // we are happy to treat remoteQuery as false 
 									// __this['journey'] = sensibelStatus.state.tracking ? journey : null; // FIXME ?
 									logActivity('capturedMedia ' + feature.properties.name + ' load-ed properly');
 
-									// if(feature.properties.name.indexOf('661302d5-') == 0) {
+									// if(feature.properties.name.indexOf('661302d5-') == 0) { // for selective testing
 									oldPhoto.beamup( function() {
 										// logActivity('Beam is real');
 										var responseJSON = JSON.parse(this.responseText);
@@ -552,32 +556,112 @@ function syncMedia(remoteQuery) { // we are happy to treat remoteQuery as false 
 						// TODO
 					});
 				});
+			// have tried with .then() in here
 			});
 	});
 
-	/*
-			// check and sync floating media
-			localStore.createIndex({
-				index: {
-					fields: [
-						'properties.type',
-						'properties.remote_id',
-						'properties.rider',
-						],
-					}
-				}).then(function(result) {
-					logActivity('Index created: ' + JSON.stringify(result));
-					}
-				).catch(function(err) {
-					logActivity('Index creation error: ' + JSON.stringify(err));
-					}
-				);
-	*/
+	// this and the journey media uploads (both asynchronous) should be able to be dispatched in parallel
+
+	// request object is code-formatted for strict JSON in a departure from style because it's easier that way to move between online query tools (thanks Douglas C :( )
+	var floatingRequest = {
+		"selector": {
+			"properties.rider": userName,
+			"properties.type": {
+					"$in": ["image/jpeg"]
+				},
+			"properties.remote_id": {
+				"$exists": false
+			}
+		},
+		"fields": [
+			"_id",
+			"_rev"
+		],
+		"sort": [
+			{
+				"_id": "asc"
+			}
+		]
+	};
+
+	// FIXME: this index is not being engaged by the query either, so tweak it!
+	var floatingSyncIndex = {
+		index: {
+			fields: [
+				'properties.rider',
+				'properties.type',
+				'properties.remote_id',
+				],
+			}
+		};
+
+	metadataSource.createIndex(floatingSyncIndex, function() {
+		logActivity('Created an index for floating media');
+		// logActivity(JSON.stringify(request));
+		metadataSource.find(floatingRequest, function(result) {
+			logActivity('Successful floating media find! Moving on ..');
+			// logActivity(JSON.stringify(result));
+
+			result.docs.forEach( function(val, idx) {
+				logActivity(val._id);
+
+				fastestDocumentSource.get(val._id, {
+					'rev': val._rev,
+					})
+					.then( function(doc) {
+
+						// loop through any unuploaded media records
+						logActivity('Floating properties.type: ' + doc.properties.type);
+						logActivity('Floating properties.remote_id: ' + doc.properties.remote_id);
+
+						// create capturedMedia - we wanna get loaded!
+						var oldPhoto = new CapturedMedia(doc.properties.name);
+
+						oldPhoto.loadFile( function() {
+							// __this['journey'] = sensibelStatus.state.tracking ? journey : null; // FIXME ?
+							logActivity('floating capturedMedia ' + doc.properties.name + ' load-ed properly');
+
+							// if(feature.properties.name.indexOf('661302d5-') == 0) {
+							oldPhoto.beamup( function() {
+								// logActivity('Beam is real');
+								var responseJSON = JSON.parse(this.responseText);
+
+								logActivity('Need to notate ' + responseJSON.data.id + ' on ' + doc.properties.name);
+
+								Object.assign(doc.properties, {
+									'remote_id': responseJSON.data.id,
+									'URL': 'http://imgur.com/' + responseJSON.data.id,
+									});
+
+								localStore.put(doc)
+									.then( function(response) {
+										logActivity('We floating put it!');
+
+										// TODO: cleanup local file, depending on config
+
+										}, function(err) {
+										logActivity('Could not update floating file metadata, maybe next time.');
+										});
+
+								});
+
+							}, function() {
+								logActivity('floating capturedMedia load-ed NOT properly');
+							}
+							);
+						}, function(err) {
+							logActivity('> error fetching floating doc! <');
+							// TODO
+						});
+				});
+			});
+	});
 
 	// TODO: run a DB sync
 
+	// TODO: run a DB sync
+	// (yup, see comment at top)
 }
-
 
 
 function adaptiveStart() {
