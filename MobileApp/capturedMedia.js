@@ -127,7 +127,7 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 
 		__this.type = 'image/jpeg';
 		logPosition( function(loc) {
-			__this.location = [loc.coords.latitude, loc.coords.longitude]; // FIXME: temporary, we actually will want to pass and use the whole loc object, like the next commented line: ..
+			__this.location = [loc.coords.longitude, loc.coords.latitude]; // FIXME: temporary, we actually will want to pass and use the whole loc object, like the next commented line: ..
 			// __this.location = loc;
 			navigator.camera.getPicture( function(path) {
 				console.log('Stored in ' + path);
