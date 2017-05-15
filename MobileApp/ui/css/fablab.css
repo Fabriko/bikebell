@@ -32,6 +32,7 @@
 	position: absolute;
 	bottom: 3em;
 	left: 40%; /* FIXME: this is a poor man's approximation of centre, I really want cntre horizintal alignment */
+	z-index: 999; /* grrrr again, Leaflet > 0.7 */
 /*
 	border: thin solid gold;
 	border-radius: 50%;
@@ -77,7 +78,7 @@
 	font-size: medium;
 	text-align: center;
 	text-transform: uppercase;
-	-webkit-margin-before: 0.5em; -webkit-margin-after: 0; -webkit-margin-start: 0.4em; -webkit-margin-end: 0.4em; 
+	-webkit-margin-before: 0.5em; -webkit-margin-after: 0; -webkit-margin-start: 0.4em; -webkit-margin-end: 0.4em;
 }
 
 .status.warning,
@@ -137,10 +138,13 @@
     height: 100%;
 }
 
-#track-canvas.hack { /* for TESTING */
+/* for TESTING */
+/*
+#track-canvas.hack {
 	border: thin solid red;
 	border-bottom-color: gold;
 }
+*/
 
 .mobile-nav.ui-btn-right {
 	right: 1em;
@@ -191,7 +195,7 @@
 
 .burger.menu.out {
 	display: block;
-	z-index: 99;
+	z-index: 999; /* this is because leaflet > 0.7 sets itself at 400 */
 }
 
 .burger.menu h3{
@@ -287,18 +291,8 @@ width: 30px;
 }
 
 
-/* old work  - sort thru TODO */ 
+/* old work  - sort thru TODO */
 
-#sprite	{
-	position: absolute;
-	width: 300px;
-	height: auto;
-	top: 0px;
-	left: 0px;
-	z-index: 1000;
-	display: none;
-}
-	
 .console {
 	background-color: #404;
 	color: #0f0;
@@ -408,6 +402,10 @@ header nav>ul a {
 
 .notes.bad .leaflet-popup-content-wrapper {
 	background-color: red;
+}
+
+.media .leaflet-popup-content-wrapper {
+	background-color: #bbb;
 }
 
 form .field {
