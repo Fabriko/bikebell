@@ -35,7 +35,7 @@
 
 	<script>
 	console.log('===========');
-	var _VERSION = '0.6.2-20170512';
+	var _VERSION = '0.6.3-20170515';
 	var settings = window.localStorage;
 
 	document.addEventListener(
@@ -135,9 +135,13 @@
 					<div id="panel-dash" class="ui-tabs-panel swipeable">
 
 						<!-- FIXME - just a temporary spacer because I know no better -->
-					<div id="dash-canvas" class="section map shim hack">
-					<img class="underlay" src="ui/images/nz-dark-matter-460x310.png" alt="This is your maptain speaking"/>
-					</div>
+						<div id="dash-canvas" class="section map shim hack">
+							<img class="underlay" src="ui/images/nz-dark-matter-460x310.png" alt="This is your maptain speaking"/>
+						</div>
+
+						<div id="camera">
+							<img src="ui/images/icon-camera.png" />
+						</div>
 
 						<div data-role="controlgroup" data-type="horizontal" class="outer majora">
 							<input type="button" disabled="disabled" value="Wait" data-wrapper-class="inner majora adaptive wait" id="adaptive-wait" />

@@ -29,8 +29,9 @@ configManagementHacks();
 document.addEventListener('deviceready', function() {
 
 	if (navigator.camera) {
+		$('#camera').show();
 		$('#picture').removeClass('disabled');
-		$('#picture').click( function() {
+		$('#picture, #camera img').click( function() {
 			var photo = new CapturedMedia();
 			photo.grab();
 			});

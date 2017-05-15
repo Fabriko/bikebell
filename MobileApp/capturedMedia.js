@@ -117,6 +117,7 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 			logActivity('Preparing to notarise.');
 			__this.notarise();
 			logActivity('Notarised.');
+			bellUI.popup('Picture stored');
 			if (SBUtils.uploadHappy()) {
 				logActivity('Happily ready to upload');
 				__this.beamup( function() {

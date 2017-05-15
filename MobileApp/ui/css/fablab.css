@@ -28,21 +28,22 @@
 }
 */
 
-.outer.majora {
+.outer.majora, #camera {
 	position: absolute;
 	bottom: 3em;
 	left: 40%; /* FIXME: this is a poor man's approximation of centre, I really want cntre horizintal alignment */
 	z-index: 999; /* grrrr again, Leaflet > 0.7 */
-/*
-	border: thin solid gold;
-	border-radius: 50%;
-	height: 6em; width: 6em; line-height: 6em;
-*/
-/*	width: -webkit-fit-content;
-	width: -moz-fit-content;
-*/
 }
 
+#camera {
+	left: 10%;
+	bottom: 4.5em;
+	display: none;
+}
+
+#camera img {
+	max-width: 64px;
+}
 
 [data-role=controlgroup] fieldset {
 	border: thin solid #0f0;
