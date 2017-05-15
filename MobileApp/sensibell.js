@@ -174,7 +174,10 @@ function Journey(title) {
 			logActivity('No waypoints recorded, not uploading', 'warning');
 			// TODO: maybe delet ethe empty track document?
 			onFail && onFail.call();
+			return;
 		}
+
+		onSuccess && onSuccess.call();
 
 		};
 
@@ -383,19 +386,20 @@ function Track(parentJourney) {
 	}
 
 	// NB. this does not change the (parent) journey *title* which is used as a database id (in the 'name' column :/)
-	this.rename = function(newTitle) {
+	this.rename = function(newTitle, onRenameSuccess) {
 		console.log('Renaming track');
 		this.updateMetadata({'name': newTitle});
 		logActivity('New trackname: ' + newTitle);
+		onRenameSuccess && onRenameSuccess();
 	}
 
-	this.promptName = function() {
+	this.promptName = function(onPromptSuccess) {
 		var promptDefault = __defaultTitle();
 
-		return window.prompt(
+		__this.rename(window.prompt(
 			'Edit the name of your journey?',
 			promptDefault
-			);
+			), onPromptSuccess);
 	}
 
 	var __defaultTitle = function() {
@@ -663,7 +667,6 @@ function syncMedia(remoteQuery) { // we are happy to treat remoteQuery as false 
 	// (yup, see comment at top)
 }
 
-
 function adaptiveStart() {
 	console.log('Big button Start journey pressed');
 	journey.start( function() {
@@ -675,10 +678,7 @@ function adaptiveStart() {
 function adaptiveFinish() {
 	console.log('Big button Finish journey pressed');
 
-	var title = journey.track.promptName();
-	if (title !== null) {
-		journey.track.rename(title);
-
+	journey.track.promptName( function(){
 		journey.finish( function() {
 			logActivity('Journey2 ENDED');
 			sensor.disconnect();
@@ -689,7 +689,8 @@ function adaptiveFinish() {
 				//TODO: a flash notification here I think
 				sensor.disconnect(); // FIXME: hmm, this is less confusing but may lead the user to wonder why their track never uploaded
 			});
-	}
+		}
+	);
 }
 
 function adaptiveReview() {
@@ -894,6 +895,53 @@ function markWaypoint(map, waypoint) {
 			.bindPopup(L.popup({'className':'notes ' + ( isGood ? 'good' : 'bad')}).setContent($popupContent[0]))
 			.addTo(map)
 			;
+	}
+	else {
+		console.log('No map to mark!');
+	}
+}
+
+function markMediapoint(mediapoint, targetMap) { // this is going to be very similar to markWaypoint(), just I want a slightly different interface (mediapoint, targetMap?) and this being MVP ..
+	logActivity('Marking mediapoint (' + mediapoint.geometry.coordinates[1] + ',' + mediapoint.geometry.coordinates[0] + ') on map');
+
+	var mediaType = mediapoint.properties.type;
+	var mediaCategory = mediaType.split('/').shift();
+	targetMap = targetMap || map;
+
+	if (targetMap) {
+		var headline = '<h3>' + mediaCategory + '</h3>';
+		// var formattedDate = $.formatDateTime('yy hh:ii', new Date(feature.properties.time.replace('Z','+13:00')));
+
+		var metadata = ' \
+			<p><strong>Position:</strong> ' + mediapoint.geometry.coordinates[1] + ',' + mediapoint.geometry.coordinates[0] + '</p> \
+			<p><strong>Time:</strong> ' + mediapoint.properties.time + '</p> \
+			';
+
+		var mediaThumb = ( !cordova.file ? '' : function() {
+			var dataDirectoryLocation = ( SBUtils.isAndroid() ? cordova.file.externalDataDirectory : cordova.file.dataDirectory ) + '/' + config.capturedMedia.LOCAL_DIRECTORY;
+
+			var stashedLocation = dataDirectoryLocation + '/' + mediapoint.properties.name;
+
+			logActivity("We'll retrieve from  " + stashedLocation);
+
+			return ('<img style="max-width:150px;" src="' + stashedLocation + '" type="' + mediapoint.properties.type + '" />');
+			}() );
+
+
+		var $popupContent = $('<div>' + headline + mediaThumb + '</div>');
+
+		var mediaIcon = L.icon({
+			iconUrl: 'libs/jquery-mobile/images/icons-png/camera-black.png',
+			});
+
+		L.marker(L.latLng(mediapoint.geometry.coordinates[1], mediapoint.geometry.coordinates[0]), {
+			icon: mediaIcon,
+			})
+		.bindPopup(L.popup({
+			'className':'media ' + mediaCategory,
+			}).setContent($popupContent[0]))
+		.addTo(targetMap);
+
 	}
 	else {
 		console.log('No map to mark!');

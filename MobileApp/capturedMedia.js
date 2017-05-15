@@ -3,10 +3,9 @@
 function CapturedMedia(mediaName) {
 
 	var __this = this;
-	this['location'] = this['type'] = this['name'] = null;
-	// this['localURI'] = null;
-	this['fileObject'] = null;
-	this['fileEntry'] = null;
+
+	this['location'] = this['type'] = this['name'] = this['feature'] = null;
+	this['fileObject'] = this['fileEntry'] = this['localURI'] = null;
 
 	this.stash = function(URI, stashSuccessOps, stashFailOps) {
 		stashSuccessOps = stashSuccessOps || function() {
@@ -68,6 +67,9 @@ function CapturedMedia(mediaName) {
 logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE object
 
 
+								__this.localURI = fe.toURL();
+
+
 								logActivity('CapturedMedia.fileEntry URL is ' + fe.toURL());
 								}, stashFailOps);
 							}, function() {
@@ -103,6 +105,11 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 			}
 		};
 
+	this.plot = function(targetMap) {
+		logActivity('Plotting on map ...');
+		markMediapoint(__this.feature, targetMap);
+	}
+
 	this.snap = function(grabSuccessOps, grabFailOps) {
 
 		grabSuccessOps = grabSuccessOps || function() {
@@ -134,9 +141,12 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 				// __this.description TODO
 
 				// store filename in DB
-				__this.stash(path, grabSuccessOps, grabFailOps);
+				__this.stash(path, function() {
+					grabSuccessOps();
 
-				// upload to CDN
+
+
+					}, grabFailOps);
 
 				},
 				function() {
@@ -203,10 +213,11 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 								localStore.put(doc)
 									.then(function(response) {
 										logActivity(JSON.stringify(response));
-										logActivity('Media file identifiers added to ' + __this.track_id);
+										logActivity('Media file identifiers added to ' + __this.journey.track.id);
 										})
 									.catch(function (err) {
-										logActivity('Failed adding media file identifiers to ' + __this.track_id);
+										logActivity('Failed adding media file identifiers to ' + __this.journey.track.id);
+										logActivity(err);
 										// TODO: how to handle this?
 										});
 							}
@@ -216,7 +227,7 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 
 						})
 					.catch(function (err) {
-						logActivity("Didn't find doc with id == " + __this.track_id);
+						logActivity("Didn't find doc with id == " + __this.journey.track.id);
 						// TODO: how to handle this?
 						});
 				}
@@ -252,7 +263,10 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 		// TODO: annotation popup
 
 		if(sensibelStatus.state.tracking) {
-			journey.track.addMedia(__this.location, properties);
+			__this.feature = journey.track.addMedia(__this.location, properties);
+			if (map) {
+				__this.plot(map); // FIXME: this is not actually tested
+			}
 		}
 		else {
 
@@ -267,14 +281,17 @@ logActivity('File entry init to: ' + JSON.stringify(__this.fileEntry)); // FE ob
 			logActivity('properties: ' + JSON.stringify(properties));
 			logActivity('this.location: ' + JSON.stringify(__this.location));
 
-			var geoJSON = turf.point(__this.location, properties);
+			__this.feature = turf.point(__this.location, properties);
 			// TODO: annotation popup
 
 			logActivity('Adding ' + __this.name + ' as floating media to Couch');
-			console.log(JSON.stringify(geoJSON));
+			console.log(JSON.stringify(__this.feature));
 
-			localStore.put(Object.assign({'_id': __this.uuid,}, geoJSON)).then(
+			localStore.put(Object.assign({'_id': __this.uuid,}, __this.feature)).then(
 				function(result) {
+					if (map) {
+						__this.plot(map);
+					}
 					console.log('yay point');
 					console.log(result);
 					localStore.replicate.to(remoteStore).then(
