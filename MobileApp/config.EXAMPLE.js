@@ -5,6 +5,15 @@ var config = {
 	DB_LOGGING: false,
 	UPLOAD_ON_FINISH: true,
 
+	PREFERENCES: { // TODO: move these to a user-configurable place
+		media: {
+			upload_on_wifi_only: true,
+			images: {
+				keep_originals: false,
+			},
+		},
+	},
+
 	VIEWER_FILE_PREFIX: '2016', // to filter developer file uploads or recently dated files
 
 	SHOW_TRACKPOINTS: 'properties', // none|markers|properties
@@ -23,10 +32,27 @@ var config = {
 		// etc
 		*/
 		database: 'my_journey_database',
-		endpoint: 'https://user:pass@example.org', // no leading slash is going to work best for now ..
+		endpoint: 'https://user:pass@example.org', // no trailing slash is going to work best for now ..
+		username: 'user',
+		password: 'pass',
 		prefix:   '', // TODO - make this optional ideally (rather than having to set it blank)
 		sources: {
 			settings: 'app_settings',
+		},
+	},
+
+	capturedMedia: {
+		LOCAL_DIRECTORY: 'media',
+		album: '<album-id>',
+		REMOTE_API: {
+			user:     '<user-id>',
+			// thanks api@imgur.com for your support - not!!
+			endpoint: 'https://api.imgur.com/3',
+			OAuth: {
+				access_token:  '<access-token>',
+				refresh_token: '<refresh-token>',
+				client_secret: '<client-secret>',
+			},
 		},
 	},
 

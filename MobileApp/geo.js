@@ -4,13 +4,13 @@ var geoWatchID;
 
 document.addEventListener(
 	'deviceready',
-	function () {
+	function() {
 
 		if (navigator.geolocation) {
 			console.log('App supports ' + navigator.geolocation + ', using options: ' + JSON.stringify(config.geoOptions));
 			logActivity('Getting GPS fix ..', 'task');
 
-			if (navigator.connection.type && navigator.connection.type != Connection.UNKNOWN && navigator.connection.type != Connection.NONE) {
+			if (SBUtils.isOnline()) {
 				dashMap = drawMap('dash-canvas');
 			}
 

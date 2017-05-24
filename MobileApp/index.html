@@ -8,6 +8,7 @@
 	<title>Bike Bell app</title>
 
     <script src="libs/leaflet.js"></script>
+    <script src="libs/turf.min.js"></script> <!-- whole thing; unable to get a working cutom build from https://turfjs-builder.herokuapp.com/ -->
 	<!-- <script src='https://api.mapbox.com/mapbox.js/v2.2.4/mapbox.js'></script> -->
 
     <script src="libs/jquery/jquery-2.1.4.js"></script>
@@ -18,7 +19,8 @@
 	<link rel="stylesheet" href="libs/jquery-mobile/jquery.mobile-1.4.5.css" />
 	<link rel="stylesheet" type="text/css" href="ui/css/fablab.css" />
 
-	<script src="libs/pouchdb/pouchdb-6.1.2.min.js"></script>
+	<script src="libs/pouchdb/pouchdb-6.2.0.min.js"></script>
+	<script src="libs/pouchdb/pouchdb.find-6.2.0.min.js"></script>
 
 	<script>
 	// Redirect console.log to Evothings Workbench.
@@ -33,7 +35,7 @@
 
 	<script>
 	console.log('===========');
-	var _VERSION = '0.5.1-201705011114';
+	var _VERSION = '0.6.3-20170515';
 	var settings = window.localStorage;
 
 	document.addEventListener(
@@ -64,6 +66,7 @@
 					<ul>
 						<li><a href="javascript: switchTab($('#nav-map'));"><img src="ui/images/smico3.png" />Map</a></li>
 						<li><a onclick="$('#dev\\.diagnostics').toggle(); $(this).children('img').toggle();"><img type="application/xml+svg" src="libs/jquery-mobile/images/icons-svg/check-white.svg" />Developer options</a></li>
+						<li class="disabled" id="picture"><img type="application/xml+svg" src="libs/jquery-mobile/images/icons-svg/camera-white.svg" />Snap a pic</li>
 					</ul>
 <!--
 				<menuitem>
@@ -132,9 +135,13 @@
 					<div id="panel-dash" class="ui-tabs-panel swipeable">
 
 						<!-- FIXME - just a temporary spacer because I know no better -->
-					<div id="dash-canvas" class="section map shim hack">
-					<img class="underlay" src="ui/images/nz-dark-matter-460x310.png" alt="This is your maptain speaking"/>
-					</div>
+						<div id="dash-canvas" class="section map shim hack">
+							<img class="underlay" src="ui/images/nz-dark-matter-460x310.png" alt="This is your maptain speaking"/>
+						</div>
+
+						<div id="camera">
+							<img src="ui/images/icon-camera.png" />
+						</div>
 
 						<div data-role="controlgroup" data-type="horizontal" class="outer majora">
 							<input type="button" disabled="disabled" value="Wait" data-wrapper-class="inner majora adaptive wait" id="adaptive-wait" />
@@ -199,7 +206,7 @@
 
 				<label for="riderName">User name:</label>
 				<input type="text" data-setting="riderName" name="riderName" id="riderName" />
-				
+
 				<input type="reset" value="Cancel" id="action-cancel" />
 				<input type="submit" value="Save" id="action-save" />
 			</form>
@@ -218,6 +225,7 @@
 
 	<!-- app inclusions -->
 	<script src="ui.js"></script>
+	<script src="capturedMedia.js"></script>
 	<script src="sensor.js"></script>
 	<script src="diagnostics.js"></script>
 	<script src="sensibell.js"></script>

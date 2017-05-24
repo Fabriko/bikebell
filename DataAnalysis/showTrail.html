@@ -15,19 +15,19 @@
 	<script src="https://cdn.rawgit.com/makinacorpus/Leaflet.AlmostOver/gh-pages/src/leaflet.almostover.js"></script>
 	<script src="https://npmcdn.com/@turf/turf@3.5.1/turf.min.js"></script>
 	<!-- <script src="lib/spectrum.js"></script> -->
-	
+
 	<script src="//cdn.jsdelivr.net/pouchdb/6.1.2/pouchdb.min.js"></script>
 
 	<script src="config.js"></script>
 
 	<!-- <link rel="stylesheet" type="text/css" href="ui/css/spectrum.css" /> -->
 	<link href="https://fonts.googleapis.com/css?family=Raleway:400,uni,b,bi" rel="stylesheet" />
-	<link rel="stylesheet" type="text/css" href="ui/css/basic.css" />
+	<link rel="stylesheet" type="text/css" href="ui/css/basic-201705121442.css" />
 	<link rel="stylesheet" type="text/css" href="ui/css/resets.css" />
 
 	<script type="text/javascript">
 		var map;
-		var _VERSION = '0.3.22';
+		var _VERSION = '0.3.23';
 
 		var UNKNOWN_CYCLIST = '[the unknown cyclist]';
 		var UNKNOWN_TIME = '[not recorded]';
@@ -53,8 +53,7 @@
 		var journeys = {};
 
 		var localStore = new PouchDB(config.dataStore.database);
-		var remoteStore = config.dataStore.endpoint + '/' + config.dataStore.database;
-		
+		var remoteStore = config.dataStore.endpoint.replace(/(:\/\/)/, '$1' + config.dataStore.username + ':' + config.dataStore.password + '@') + '/' + config.dataStore.database;
 		// browser refuses this, need to rely on Referer header instead
 		// ( http://stackoverflow.com/a/33144144 )
 		/*
@@ -75,10 +74,10 @@
 					'OSM Carto': config.layer.osm.tiles,
 					'Thunderforest OpenCycleMap': config.layer.Thunderforest_OpenCycleMap.tiles,
 					}
-					
+
 				baseMaps['Dark Matter'].addTo(map);
 				L.control.layers(baseMaps).addTo(map);
-				
+
 				map.attributionControl.addAttribution('<br/>Reverse geocoding uses <a href="http://nominatim.openstreetmap.org">Nominatim</a>'); // FIXME: this should really be on the popups and not the map, but I am so over messing with those
 			}
 			// console.log(map);
@@ -94,7 +93,7 @@
 
 			localStore.sync(remoteStore).then( // one-shot wrapper because we want to report status more easily and also ..???
 					function (info) {
-						console.log(' .. succeeded! Setting up a live sync now');
+						console.log(' .. single sync succeeded! Setting up a live sync now');
 						startLiveSync();
 					}).catch(
 					function (err) {
@@ -103,10 +102,10 @@
 					}
 				);
 
-			localStore.allDocs( {
+			localStore.allDocs( { // todo: use Mango/find
 				include_docs: true,
-				// startkey:  'dev-', // endkey: 'dev-',
-				descending:   true,
+				startkey:  config.dataStore.prefix + '\uffff',  endkey: config.dataStore.prefix,
+				descending: true,
 				}).then(
 					function(result) {
 						console.log(result);
@@ -199,7 +198,7 @@
 
 				// handle some missing values ..
 				var rider = this.metadata.hasOwnProperty('rider') ? this.metadata.rider : UNKNOWN_CYCLIST;
-				
+
 				var duration = ( this.metadata.hasOwnProperty('started') && this.metadata.hasOwnProperty('ended')
 					? function(start, finish){
 						var bits = millisecondsToComponents(new Date(finish) - new Date(start));
@@ -267,7 +266,7 @@
 							)
 						.append($('<li/>')
 							.attr('class', 'sentiment')
-							.text('+' + goodPoints.length + ' / -' + badPoints.length) 
+							.text('+' + goodPoints.length + ' / -' + badPoints.length)
 							// TODO: make this (or similar) the title text and add infographic line
 							)
 						)
@@ -359,7 +358,7 @@
 							);
 
 				// TODO: add a button/link to zoom to the track's bounds
-				
+
 				if (refresh) {
 					$("#li\\." + record.id).replaceWith($item);
 					if(__this.layerGroup) {
@@ -372,7 +371,7 @@
 				else {
 					$('#journeys').append($item);
 				}
-				
+
 				$('#journeys').listview('refresh');
 			}
 
@@ -477,7 +476,7 @@
 
 								var descriptionContent;
 								var reverseGeocodingRequestEndpoint = 'http://nominatim.openstreetmap.org/reverse';
-								
+
 								// build request
 								var requestParams = {
 									'lat':    pointLatitude,
@@ -540,7 +539,7 @@
 
 								metadataRequest.done(function(json) {
 									if (json.status == 'OK') {
-										
+
 										// build thumbnail/preview image request
 										var heading = GJUtils.attemptBearing(feature, GJUtils.getLineString(__this.geoJSON));
 										console.log('heading: ' + heading);
@@ -599,8 +598,61 @@
 						},
 					});
 
+				// find media in journey files ********
+
+				// NB order of this and previous L.geoJSON calls is important - probably suboptimal architecture, should be refactored - be careful in the meantime!
+				var mediaLayerGroup = L.geoJson(this.geoJSON, {
+					'filter': function(feature, layer) {
+						return ( feature.properties && feature.properties.type && ['image/jpeg'].includes(feature.properties.type) );
+						},
+					'onEachFeature': function(feature, layer) {
+
+						// var hasAnnotations = hasCategory || hasComment;
+						var iconUrl = 'ui/images/camera-white.svg';
+						/*
+						if (hasAnnotations) {
+							iconUrl = iconUrl.replace('.png', '-annotated.png');
+						}
+						*/
+						var displayMarker = L.icon( {
+							'iconUrl':     iconUrl, // TODO: icon URLs from config
+							'riseOnHover': true,
+							});
+
+						var formattedDate = $.formatDateTime('D MM d, yy hh:ii', new Date(feature.properties.time.replace('Z','+12:00'))); // see also http://momentjs.com
+
+						var mediaThumbURL = 'http://i.imgur.com/' + feature.properties.remote_id + 't.jpg';
+						var mediaURL = 'http://i.imgur.com/' + feature.properties.remote_id + 'm.jpg'; // FIXME: size options
+						var pointIdentifier = feature.properties.remote_id;
+						var mediaCategory = feature.properties.type.split('/').shift();
+
+						var mediaThumb = '<img id="media-' + pointIdentifier + '" src="' + mediaThumbURL + '" class="ground-photo thumb" type="' + feature.properties.type + '" alt="" referrerpolicy="origin" />';
+
+						// build fullsize/expanded image and link markup
+						mediaMarkup = '<a data-rel="popup" href="#media-expanded-' + pointIdentifier + '" data-transition="flip">' + mediaThumb + '</a>';
+
+						$('<div id="media-expanded-' + pointIdentifier + '" data-role="popup" data-theme="a" data-overlay-theme="a"> \
+								<p> \
+									<img class="ground-photo expanded" src="' + mediaURL + '" /> \
+								</p> \
+							</div> \
+							').popup();
+
+						var popupContent = '<div class="media">' + mediaMarkup + '</div>\n<p><a href="http://imgur.com/' + feature.properties.remote_id + '" target="_new">Source</a></p>\n<p>' + formattedDate + '</p>\n';
+
+						layer.setIcon(displayMarker);
+						layer.bindPopup(popupContent, {
+							className: ('media ' + mediaCategory).trim(),
+							}).on('popupopen', function(evt) {
+							console.log(mediaCategory + ' media popup open triggered');
+							});
+
+						featureIndex++;
+						},
+					});
+
 				// console.log(lineStringsLayerGroup);
-				this.layerGroup = pointsLayerGroup.addLayer(lineStringsLayerGroup);
+				this.layerGroup = pointsLayerGroup.addLayer(lineStringsLayerGroup).addLayer(mediaLayerGroup);
 				this.layerGroup.addTo(targetMap);
 
 				if ( config.SHOW_TRACKPOINTS != 'none' ) {
@@ -840,7 +892,7 @@
 			}
 			return 'ui/images/user.placeholder.png';
 			};
-			
+
 		var serialiseAsURLParams = function(obj) {
 			return Object.keys(obj).map( function(key) {
 				return key + '=' + obj[key];

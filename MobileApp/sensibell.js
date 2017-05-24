@@ -1,5 +1,11 @@
 /* Globals */
 
+// Kludge setting
+var POUCH_FIND_SUPPORTS_LOGIC_JUNCTIVE_OPS = false; // this helps us work around some non-supported logical operators in local PouchDB - "$and" as well as, it seems, probably "$or" and "$nor" at least
+// (error: unknown operator "$and" - should be one of $eq, $lte, $lt, $gt, $gte, $exists, $ne, $in, $nin, $size, $mod, $regex, $elemMatch, $type or $all)
+// this doesn't happen on Cloudant (server)
+// https://github.com/pouchdb/pouchdb/issues/6366 is probably(?) relevant
+
 // Hardware
 sensor = new Sensor();
 
@@ -23,23 +29,28 @@ populateCategories();
 configManagementHacks();
 
 document.addEventListener('deviceready', function() {
+
+	if (navigator.camera) {
+		$('#camera').show();
+		$('#picture').removeClass('disabled');
+		$('#picture, #camera img').click( function() {
+			var photo = new CapturedMedia();
+			photo.grab();
+			});
+	}
+
 	evothings.scriptsLoaded( function() {
 		setSensor();
 		console.log('Set to ' + sensor.target);
 		});
 	$('#adaptive-connect').click();
-	}, false);
 
-document.addEventListener('deviceready', function() {
-	if (navigator.connection.type && navigator.connection.type != Connection.UNKNOWN && navigator.connection.type != Connection.NONE) {
+
+	if (SBUtils.isOnline()) {
 		bellUI.popup('Online via connection type ' + navigator.connection.type, 'long');
 		logActivity('Attempting to sync to remote datastore ..');
-		localStore.sync(remoteStore).on('complete', // FIXME: sometimes this triggers twice .. ???
-			function (info) {
-				logActivity(" .. succeeded!");
-				}).on('error',
-			function (err) {
-				logActivity(" .. failed, we'll try again later.");
+		syncData(function() {
+			syncMedia(!POUCH_FIND_SUPPORTS_LOGIC_JUNCTIVE_OPS);
 			});
 	}
 	else {
@@ -49,61 +60,55 @@ document.addEventListener('deviceready', function() {
 	document.addEventListener('online',	function() {
 		logActivity('*** app now ONLINE ***');
 		logActivity('Now online, so syncing to remote datastore ..');
-		localStore.sync(remoteStore).on('complete',
-			function (info) {
-				logActivity(" .. succeeded!");
-				}).on('error',
-			function (err) {
-				logActivity(" .. failed, we'll try again later.");
-			});
+
+		if (SBUtils.uploadHappy()) {
+			CapturedMedia.checkUploads(); // TODO - stub and should call next block in its success callback when implemented
+			syncData(function() {
+				syncMedia(!POUCH_FIND_SUPPORTS_LOGIC_JUNCTIVE_OPS);
+				});
+		}
 		}, false);
 
-	}, false);
 
-// Note: There is only one point to this. I'm just curious if this (and more importantly 'online') is triggered outside a documentready as the docs seem to indicate won't work
-// https://www.npmjs.com/package/cordova-plugin-network-information
-document.addEventListener('offline', function() {
-    logActivity('*** app gone OFFLINE ***');
-	}, false);
+	document.addEventListener('offline', function() {
+		logActivity('*** app gone OFFLINE ***');
+		}, false);
 
-document.addEventListener('pause', function() {
-    logActivity('*** app PAUSED ***');
-	}, false);
+	document.addEventListener('pause', function() {
+		logActivity('*** app PAUSED ***');
+		}, false);
 
-document.addEventListener('resume',	function() {
-	// TODO: add stopScan for pause
-	logActivity('*** app RESUMED ***');
+	document.addEventListener('resume',	function() {
+		// TODO: add stopScan for pause
+		logActivity('*** app RESUMED ***');
 
-	if (navigator.connection.type && navigator.connection.type != Connection.UNKNOWN && navigator.connection.type != Connection.NONE) {
-		logActivity('Resumed, so attempting to sync to remote datastore ..');
-		localStore.sync(remoteStore).on('complete',
-			function (info) {
-				logActivity(" .. succeeded!");
-				}).on('error',
-			function (err) {
-				logActivity(" .. failed, we'll try again later.");
-			});
-	}
-	}, false);
+		if (SBUtils.isOnline()) {
+			logActivity('Resumed, so attempting to sync to remote datastore ..');
+			syncData();
+		}
+		}, false);
 
-function logPosition(val, success, options) {
+	});
+
+function logPosition(logSuccessOps, logFailOps, options) { // NB: initial val parameter has been removed, also logFailOps parameter inserted before options parameter
+	logFailOps = logFailOps || function() {
+		bellUI.popup("Couldn't locate :(", 'short'); // FIXME: do something more useful with this
+		};
+
 	if ( options === undefined ) {
 		options = config.geoPositionOptions;
 	}
-
-	logActivity('*** KEY ' + val + ' ****');
-	var msg = 'Key ' + val + ' triggered ';
 
 	if (navigator.geolocation) {
 		// console.log('supports ' + navigator.geolocation);
 		return navigator.geolocation.getCurrentPosition(
 			function(position) {
-				logActivity(msg += ' @(' + position.coords.latitude + ',' + position.coords.longitude + ')');
-				success.call(this, position);
+				logActivity('positioned@ (' + position.coords.latitude + ',' + position.coords.longitude + ')');
+				logSuccessOps.call(this, position);
 			},
 			function(error) {
-				logActivity(msg += "but couldn't locate, error #" + error.code + ': "' + error.message + '"');
-				bellUI.popup("Couldn't locate :(", 'short'); // FIXME: do something more useful with this
+				logActivity("couldn't locate, error #" + error.code + ': "' + error.message + '"');
+				logFailOps();
 			},
 			options
 		);
@@ -128,16 +133,6 @@ function displayStatus(status, classes) { // TODO: make classes an array, would 
 	$('#status').text(status);
 	classes = 'status' + ( classes ? ' ' + classes  :'' );
 	$('#status').parents('.status').attr('class', classes); /* [0].classList.length ) ; */
-}
-
-function logActivity(msg) {
-	console.log($('<div>' + msg + '</div>').text()); // strip out any HTML meant for the app screen console
-	$('#activities').prepend(
-		'<span class="timestamp meta">' + formatTimestamp(new Date(), 'log') + '</span>' +
-		': ' +
-		msg +
-		'<br/>'
-	);
 }
 
 function Journey(title) {
@@ -182,7 +177,10 @@ function Journey(title) {
 			logActivity('No waypoints recorded, not uploading', 'warning');
 			// TODO: maybe delet ethe empty track document?
 			onFail && onFail.call();
+			return;
 		}
+
+		onSuccess && onSuccess.call();
 
 		};
 
@@ -258,7 +256,7 @@ function Track(parentJourney) {
 					},
 				}],
 			'properties': {
-				'schema':  '0.02',
+				'schema':  '0.03',
 				'name':    parentJourney.title,
 				'version': _VERSION,
 				'device':  settings.getItem('pairedDevice'),
@@ -274,6 +272,7 @@ function Track(parentJourney) {
 				console.log('yay');
 				console.log(result);
 				__this.cache = skeleton;
+				__this.id = skeleton._id;
 				localStore.sync(remoteStore, {live: true}).on('change',
 					function (info) {
 						console.log('info: ' + JSON.stringify(info));
@@ -318,15 +317,45 @@ function Track(parentJourney) {
 		return (this.cache.features[0].geometry.coordinates.length && (this.cache.features[0].geometry.coordinates.length > 0)); // FIXME - not keen on relying on first position in this.cache.features array to identify the linestring (trail)
 		};
 
+	this.addMedia = function(position, properties) {
+
+		logActivity('Adding media reference to trail "' + parentJourney.title + '" @(' + position[0] + ',' + position[1] + ')' );
+
+		// FIXME - fails when there are no features yet!
+		// console.log(JSON.stringify(this.cache));
+		var features = this.cache.features[0]; // FIXME - not keen on relying on first position in this.cache.features array to identify the linestring (trail)
+
+		var geometry = {
+			'type':        'Point',
+			'coordinates': position,
+			};
+
+		if (!properties.hasOwnProperty('time')) {
+			var timeStamp = new Date();
+			properties.time = formatTimestamp(timeStamp, 'W3CDTF');
+		}
+
+		var pointFeature = turf.feature(geometry, properties);
+		this.cache.features.push(pointFeature);
+
+		this.store();
+		console.log('Track2: ' + JSON.stringify(this.cache));
+
+		return pointFeature;
+		};
+
 	this.addData = function(measure, position, data) {
 		var isBreadcrumb = ( measure == 'position' );
 		var logThis = config.POSITION_LOGGING || !isBreadcrumb;
 		var pointFeature = null;
-		var timeStamp = new Date();
+		var timeStamp = new Date(); // FIXME - I should be using the geolocation API Position.timestamp
 
 		logThis && logActivity('Adding ' + ( isBreadcrumb ? '' : measure + ' of ' + data.toString() + ' ') + 'to trail "' + parentJourney.title + '" @(' + position[0] + ',' + position[1] + ')' );
 
+		// FIXME - fails when there are no features yet!
+		// console.log(JSON.stringify(this.cache));
 		var features = this.cache.features[0]; // FIXME - not keen on relying on first position in this.cache.features array to identify the linestring (trail)
+
 		features.geometry.coordinates.push(position);
 		features.properties.coordinateProperties.times.push(timeStamp.valueOf());
 
@@ -360,19 +389,20 @@ function Track(parentJourney) {
 	}
 
 	// NB. this does not change the (parent) journey *title* which is used as a database id (in the 'name' column :/)
-	this.rename = function(newTitle) {
+	this.rename = function(newTitle, onRenameSuccess) {
 		console.log('Renaming track');
 		this.updateMetadata({'name': newTitle});
 		logActivity('New trackname: ' + newTitle);
+		onRenameSuccess && onRenameSuccess();
 	}
 
-	this.promptName = function() {
+	this.promptName = function(onPromptSuccess) {
 		var promptDefault = __defaultTitle();
 
-		return window.prompt(
+		__this.rename(window.prompt(
 			'Edit the name of your journey?',
 			promptDefault
-			);
+			), onPromptSuccess);
 	}
 
 	var __defaultTitle = function() {
@@ -386,6 +416,260 @@ function Track(parentJourney) {
 
 	};
 
+function syncData(onSyncSuccess, onSyncFailure) {
+	if (localStore) {
+		localStore.sync(remoteStore).on('complete',
+			function (info) {
+				logActivity(" .. succeeded syncing to remote datastore!");
+				onSyncSuccess && onSyncSuccess.call();
+				}
+			).on('error',
+			function (err) {
+				logActivity(" .. failed syncing to remote datastore, we'll try again later.");
+				onSyncFailure && onSyncFailure.call();
+				}
+			);
+	}
+}
+
+function syncMedia(remoteQuery) { // we are happy to treat remoteQuery as false if not supplied!
+	// FIXME: Completion of all callbacks in the loops of this function should be followed by a call to syncData(), however, I don't currently know how to detect their completion
+
+	// TODO: need to look at allowing cleanup of local media after upload, according to user preferences
+
+	logActivity('Going to sync media files then notarise them, remoteQuery is ' + (remoteQuery ? 'true' : 'false'));
+
+	var metadataSource = ((remoteQuery || !localStore) ? new MangoHTTP(config.dataStore.endpoint, config.dataStore.database, {auth_user: config.dataStore.username, auth_pass: config.dataStore.password,}) : localStore);
+	// TODO - get the MangoHTTP .find() and .index() interfaces close to PouchDB's, then we can apply the same methods to source and will work regardless of prototype
+
+	var fastestDocumentSource = localStore || metadataSource; // we're going to use localStore if it is available in some contexts below regardless of remoteQuery (in fact, we don't support fetch remotely (MangoHTTP.fetch()) yet!) (FIXME)
+
+	var userName = settings.getItem('riderName');  // TODO: this value should really be more abstractly available in Personalization 2.0
+
+	logActivity('userName is ' + userName); // logActivity('Now fudged to ' + (userName=''));
+
+	// request object is code-formatted for strict JSON in a departure from style because it's easier that way to move between online query tools (thanks Douglas C :( )
+	var request = {
+		"selector": {
+			"properties.rider": userName,
+			"features": {
+				"$and": [
+					{
+						"$elemMatch": {
+							"geometry.type": "LineString"
+						}
+					},
+					{
+						"$elemMatch": {
+							"properties.type": {
+								"$in": ["image/jpeg"] // FIXME - cater for other media types
+							},
+							"properties.remote_id": {
+								"$exists": false
+							}
+						}
+					}
+				]
+			}
+		},
+		"fields": [
+			"_id",
+			"_rev"
+		],
+		"sort": [
+			{
+				"_id": "asc"
+			}
+		]
+	};
+
+	// FIXME: this index is not being engaged by the query, so tweak it!
+	var syncIndex = {
+		index: {
+			fields: [
+				'properties.rider',
+				'features',
+				],
+			}/*,
+		missing_is_null: true */
+		};
+
+	metadataSource.createIndex(syncIndex, function() {
+		logActivity('Created an index');
+		// logActivity(JSON.stringify(request));
+		metadataSource.find(request, function(result) {
+			logActivity('Successful find! Moving on ..');
+			// logActivity(JSON.stringify(result));
+
+			result.docs.forEach( function(val, idx) {
+				logActivity(val._id);
+
+				fastestDocumentSource.get(val._id, {
+					'rev': val._rev,
+					})
+					.then( function(doc) {
+
+						// loop through any unuploaded media records
+						doc.features.forEach( function(feature) { // TODO use arr.filter() here. it's better (predicate just below)
+							logActivity('Properties.type: ' + feature.properties.type);
+							logActivity('Properties.remote_id: ' + feature.properties.remote_id);
+
+							if (feature.properties.hasOwnProperty('type') && ['image/jpeg'].includes(feature.properties.type) && typeof(feature.properties.remote_id) == 'undefined') {
+
+								// create capturedMedia - we wanna get loaded!
+								var oldPhoto = new CapturedMedia(feature.properties.name);
+
+								oldPhoto.loadFile( function() {
+									// __this['journey'] = sensibelStatus.state.tracking ? journey : null; // FIXME ?
+									logActivity('capturedMedia ' + feature.properties.name + ' load-ed properly');
+
+									// if(feature.properties.name.indexOf('661302d5-') == 0) { // for selective testing
+									oldPhoto.beamup( function() {
+										// logActivity('Beam is real');
+										var responseJSON = JSON.parse(this.responseText);
+
+										logActivity('Need to notate ' + responseJSON.data.id + ' on ' + feature.properties.name + ' in journey ' + doc._id);
+
+										Object.assign(feature.properties, {
+											'remote_id': responseJSON.data.id,
+											'URL': 'http://imgur.com/' + responseJSON.data.id,
+											});
+
+										// Note: updating/putting for every feature seems less efficient than putting the whole document up only after beamup() callbacks have completed, but I'm not sure how safe bulding up a single updated doc would really be if it took some time and got interrupted. It would probably work, but we'd have images uploaded multiple times until a full successful journey load happens.
+										// Simplest way I can think of to make a delayed single upload would be to wrap this put() in a check to see if it's the last in the forEach() index. We won't need to check the rev then, so that's simpler.
+										localStore.put(doc)
+											.then( function(response) {
+												logActivity('We put it!');
+
+												// TODO: cleanup local file depending on config
+
+												doc._rev = response.rev; // for next revision
+												}, function(err) {
+												logActivity('Could not update metadata, maybe next time.');
+												});
+
+										});
+									// }
+
+									}, function() {
+										logActivity('capturedMedia load-ed NOT properly');
+									}
+									);
+								logActivity('Journey feature updated to: ' + JSON.stringify(feature.properties));
+							}
+							});
+					}, function(err) {
+						logActivity('> error fetching doc! <');
+						// TODO
+					});
+				});
+			// have tried with .then() in here
+			});
+	});
+
+	// this and the journey media uploads (both asynchronous) should be able to be dispatched in parallel
+
+	// request object is code-formatted for strict JSON in a departure from style because it's easier that way to move between online query tools (thanks Douglas C :( )
+	var floatingRequest = {
+		"selector": {
+			"properties.rider": userName,
+			"properties.type": {
+					"$in": ["image/jpeg"]
+				},
+			"properties.remote_id": {
+				"$exists": false
+			}
+		},
+		"fields": [
+			"_id",
+			"_rev"
+		],
+		"sort": [
+			{
+				"_id": "asc"
+			}
+		]
+	};
+
+	// FIXME: this index is not being engaged by the query either, so tweak it!
+	var floatingSyncIndex = {
+		index: {
+			fields: [
+				'properties.rider',
+				'properties.type',
+				'properties.remote_id',
+				],
+			}
+		};
+
+	metadataSource.createIndex(floatingSyncIndex, function() {
+		logActivity('Created an index for floating media');
+		// logActivity(JSON.stringify(request));
+		metadataSource.find(floatingRequest, function(result) {
+			logActivity('Successful floating media find! Moving on ..');
+			// logActivity(JSON.stringify(result));
+
+			result.docs.forEach( function(val, idx) {
+				logActivity(val._id);
+
+				fastestDocumentSource.get(val._id, {
+					'rev': val._rev,
+					})
+					.then( function(doc) {
+
+						// loop through any unuploaded media records
+						logActivity('Floating properties.type: ' + doc.properties.type);
+						logActivity('Floating properties.remote_id: ' + doc.properties.remote_id);
+
+						// create capturedMedia - we wanna get loaded!
+						var oldPhoto = new CapturedMedia(doc.properties.name);
+
+						oldPhoto.loadFile( function() {
+							// __this['journey'] = sensibelStatus.state.tracking ? journey : null; // FIXME ?
+							logActivity('floating capturedMedia ' + doc.properties.name + ' load-ed properly');
+
+							// if(feature.properties.name.indexOf('661302d5-') == 0) {
+							oldPhoto.beamup( function() {
+								// logActivity('Beam is real');
+								var responseJSON = JSON.parse(this.responseText);
+
+								logActivity('Need to notate ' + responseJSON.data.id + ' on ' + doc.properties.name);
+
+								Object.assign(doc.properties, {
+									'remote_id': responseJSON.data.id,
+									'URL': 'http://imgur.com/' + responseJSON.data.id,
+									});
+
+								localStore.put(doc)
+									.then( function(response) {
+										logActivity('We floating put it!');
+
+										// TODO: cleanup local file, depending on config
+
+										}, function(err) {
+										logActivity('Could not update floating file metadata, maybe next time.');
+										});
+
+								});
+
+							}, function() {
+								logActivity('floating capturedMedia load-ed NOT properly');
+							}
+							);
+						}, function(err) {
+							logActivity('> error fetching floating doc! <');
+							// TODO
+						});
+				});
+			});
+	});
+
+	// TODO: run a DB sync
+
+	// TODO: run a DB sync
+	// (yup, see comment at top)
+}
+
 function adaptiveStart() {
 	console.log('Big button Start journey pressed');
 	journey.start( function() {
@@ -397,10 +681,7 @@ function adaptiveStart() {
 function adaptiveFinish() {
 	console.log('Big button Finish journey pressed');
 
-	var title = journey.track.promptName();
-	if (title !== null) {
-		journey.track.rename(title);
-
+	journey.track.promptName( function(){
 		journey.finish( function() {
 			logActivity('Journey2 ENDED');
 			sensor.disconnect();
@@ -411,7 +692,8 @@ function adaptiveFinish() {
 				//TODO: a flash notification here I think
 				sensor.disconnect(); // FIXME: hmm, this is less confusing but may lead the user to wonder why their track never uploaded
 			});
-	}
+		}
+	);
 }
 
 function adaptiveReview() {
@@ -513,7 +795,9 @@ function buttonBad() {
 }
 
 function processButton(val) {
-	logPosition(val, function(loc) {
+	logActivity('*** KEY ' + val + ' ****  triggered');
+
+	logPosition(function(loc) {
 		/*
 		var options = {
 			color:     (val == '01' ? 'green' : 'red'), // FIXME: use classes if possible
@@ -611,6 +895,53 @@ function markWaypoint(map, waypoint) {
 			.bindPopup(L.popup({'className':'notes ' + ( isGood ? 'good' : 'bad')}).setContent($popupContent[0]))
 			.addTo(map)
 			;
+	}
+	else {
+		console.log('No map to mark!');
+	}
+}
+
+function markMediapoint(mediapoint, targetMap) { // this is going to be very similar to markWaypoint(), just I want a slightly different interface (mediapoint, targetMap?) and this being MVP ..
+	logActivity('Marking mediapoint (' + mediapoint.geometry.coordinates[1] + ',' + mediapoint.geometry.coordinates[0] + ') on map');
+
+	var mediaType = mediapoint.properties.type;
+	var mediaCategory = mediaType.split('/').shift();
+	targetMap = targetMap || map;
+
+	if (targetMap) {
+		var headline = '<h3>' + mediaCategory + '</h3>';
+		// var formattedDate = $.formatDateTime('yy hh:ii', new Date(feature.properties.time.replace('Z','+13:00')));
+
+		var metadata = ' \
+			<p><strong>Position:</strong> ' + mediapoint.geometry.coordinates[1] + ',' + mediapoint.geometry.coordinates[0] + '</p> \
+			<p><strong>Time:</strong> ' + mediapoint.properties.time + '</p> \
+			';
+
+		var mediaThumb = ( !cordova.file ? '' : function() {
+			var dataDirectoryLocation = ( SBUtils.isAndroid() ? cordova.file.externalDataDirectory : cordova.file.dataDirectory ) + '/' + config.capturedMedia.LOCAL_DIRECTORY;
+
+			var stashedLocation = dataDirectoryLocation + '/' + mediapoint.properties.name;
+
+			logActivity("We'll retrieve from  " + stashedLocation);
+
+			return ('<img style="max-width:150px;" src="' + stashedLocation + '" type="' + mediapoint.properties.type + '" />');
+			}() );
+
+
+		var $popupContent = $('<div>' + headline + mediaThumb + '</div>');
+
+		var mediaIcon = L.icon({
+			iconUrl: 'libs/jquery-mobile/images/icons-png/camera-black.png',
+			});
+
+		L.marker(L.latLng(mediapoint.geometry.coordinates[1], mediapoint.geometry.coordinates[0]), {
+			icon: mediaIcon,
+			})
+		.bindPopup(L.popup({
+			'className':'media ' + mediaCategory,
+			}).setContent($popupContent[0]))
+		.addTo(targetMap);
+
 	}
 	else {
 		console.log('No map to mark!');
@@ -794,6 +1125,7 @@ function populateCategories() {
 
 // ** Any temporary changes we might need when we break the application API in a new version, or any development parameters
 function configManagementHacks() {
+	// settings.setItem('riderName', 'Carl');
 	// settings.setItem('file.prefix', 'dev-'); // console.log(settings.getItem('file.prefix'));
 	// settings.removeItem('file.prefix');
 
