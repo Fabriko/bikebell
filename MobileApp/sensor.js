@@ -64,6 +64,14 @@ function Sensor() {
 		this['deviceClass'] = ble;
 	// };
 
+	logActivity('Gonna test if ble exists');
+	if (ble) {
+		logActivity('Yup');
+	}
+	else {
+		logActivity('Nope');
+	}
+
 	this.set = function() {
 
 		do {
@@ -75,9 +83,9 @@ function Sensor() {
 	};
 
 	this.connectFromScratch = function(onConnectSuccess, onConnectFail) {
-		
+
 logActivity('connectFromScratch()');
-		
+
 		if ( typeof(this.target) === undefined ) {  // TODO: test this predicate
 			this.set();
 		}
@@ -99,108 +107,65 @@ logActivity('connectFromScratch()');
 
 logActivity(JSON.stringify(ble));
 
-			ble.stopScan();
-			ble.startScan(
-				[], // TODO - filter better
-				function(foundDevice) {
+			ble.stopScan(
+				function() {
+
+					logActivity('Starting scan .. ');
+					ble.startScanWithOptions([], {'reportDuplicates': true}, function(foundDevice) {
+						logActivity('Device: ' + JSON.stringify(foundDevice));
+
+						if(foundDevice.name == __this.target) {
+							logActivity('Target BLE central device FOUND: ' + foundDevice.name + ' with id ' + foundDevice.id, 'success');
+
+		/*
+							ble.connect(foundDevice.id,
+								function(per) { logActivity("Connect success"); logActivity(JSON.stringify(per));},
+								function(per) { logActivity("Connect fail"); logActivity(JSON.stringify(per)); }
+								);
+		*/
+							onConnectSuccess && onConnectSuccess.call(__this, foundDevice);
 
 
-
-
-
-					console.log('a goody?');
-					// logActivity(JSON.stringify(foundDevice));
-logActivity(foundDevice.address);
-					foundDevice.name = foundDevice.name || (foundDevice.advertising ? foundDevice.advertising.name : null);
-					console.log(foundDevice.name + ' == ' + __this.target);
-					if(foundDevice.address == 'E4:7E:40:CC:C0:E2') {
-						// evothings.printObject(foundDevice);
-						logActivity('Target BLE central device FOUND: ' + foundDevice.name); // + ' with address ' + foundDevice.address, 'success');
-
-//						ble.connect('E4:7E:40:CC:C0:E2', function() { // __this.target
-								__this.connectedDevice = foundDevice;
-
-								logActivity('CONNECTED to ' +  __this.connectedDevice.address);
-								sensibelStatus.add('BLE');
-
-
-						ble.stopScan();
-
-								onConnectSuccess && onConnectSuccess.call();
-								
-								
-/*								
-								
-								
-							}, function(errorCode) {
-								logActivity('Failed in connection to ' + __this.target);
-
-
-
-
-                               statusMessage = ( errorCode == 'EASYBLE_ERROR_DISCONNECTED' ? 'Disconnected' : 'Not connected' );
-                               __this.connectedDevice = null;
-                               logActivity('Connect error with ' + foundDevice.name + ': ' + errorCode, 'error');
-                               sensibelStatus.remove('BLE');
-                               onConnectFail && onConnectFail.call();
-
-
-
-							});
-
-
-*/
-							
-							
-							
-
-	/*
-						if (success) {
-							success.call(foundDevice);
 						}
-	*/
+
+
+					},
+					function() {
+						logActivity("startScan failed");
+						onConnectFail && onConnectFail.call();
+						}
+						);
+
+
+
+					},
+				function() {
+					logActivity("stopScan failed");
+					onConnectFail && onConnectFail.call();
 					}
-					else {
-						// evothings.printObject(deviceInfo);
-						logActivity('Foreign device found: ' + foundDevice.name); // + ' with address ' + foundDevice.address, 'notice');
-					}
-// deviceObject.stopScan();
-				},
-				function (error) {
-					logActivity('BLE CEntral Scan error: ' + error, 'error');
-
-
-
-                               onConnectFail && onConnectFail.call();
-					
-					
-					
-					// failure(target); TODO
-				}
-			);
+				);
 		}
 	};
-	
-	
-	this.listen = function( service_uuid, characteristic_uuid) {
 
 
-logActivity('Gonna start listening goo');
+	this.listen = function(device_id, service_uuid, characteristic_uuid) {
 
 
+		logActivity('Gonna start listening goo');
 
 
-		ble.startNotification('E4:7E:40:CC:C0:E2', service_uuid, characteristic_uuid, function(buffer) {
+		ble.startNotification(device_id, service_uuid, characteristic_uuid, function(buffer) {
 			// Decode the ArrayBuffer into a typed Array based on the data you expect
 			var data = new Uint8Array(buffer)[0];
-			console.log('Pressed: ' + input);
-			alert("Button state changed to " + data[0]);
-			buttonDispatcher(input);
-		}, function() {
-			logActivity('Failed to notify changed state.');
-		});
+			logActivity("Button state changed to " + data[0]);
+//			buttonDispatcher(input);
+			}, function(err) {
+				logActivity('Failed to notify changed state.');
+				logActivity(JSON.stringify(err));
+				}
+			);
 
-		
+
 	};
 
 	this.disconnect = this.disconn = function() { // TODO: not ported yet to ble

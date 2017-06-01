@@ -474,8 +474,15 @@ function setSensor() {
 
 function connectSensor() {
 	console.log("We'll now connect to " + sensor.target);
-	sensor.connectFromScratch( function() {
-		sensor.listen('0xAA00', "characteristic_uuid"); // FIXME
+	sensor.connectFromScratch( function(foundDevice) {
+		logActivity('We can listen now');
+		logActivity(JSON.stringify(foundDevice));
+		logActivity(JSON.stringify(sensor));
+		var service_id = 'AA00';
+		// var service_id = 'OxAA00'; // "Invalid UUID"
+		// var service_id = '0000aa00-0000-1000-8000-00805f9b34fb';
+		var characteristic_id = service_id;
+		this.listen(foundDevice.id, service_id, characteristic_id);
 		} ); // , {'B:01':buttonGood,'B:02':buttonBad} );
 }
 
@@ -790,7 +797,7 @@ function configManagementHacks() {
 	// settings.setItem('file.prefix', 'dev-'); // console.log(settings.getItem('file.prefix'));
 	// settings.removeItem('file.prefix');
 	// settings.removeItem('pairedDevice');
-	settings.setItem('pairedDevice', 'Sensibel EVO3');
+	// settings.setItem('pairedDevice', 'Sensibel EVO3');
 
 	initialiseUsingDefault('connectAuthenticity', (config.useFauxConnection ? 'fake' : 'real') );
 	// initialiseUsingDefault('bucketName', config.AWS_S3.bucket);
