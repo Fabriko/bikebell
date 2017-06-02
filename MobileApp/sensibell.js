@@ -474,6 +474,9 @@ function setSensor() {
 
 function connectSensor() {
 	console.log("We'll now connect to " + sensor.target);
+	console.log("OR STOP");
+
+
 	sensor.connectFromScratch( function(foundDevice) {
 		logActivity('We can listen now');
 		logActivity(JSON.stringify(foundDevice));
@@ -482,7 +485,7 @@ function connectSensor() {
 		// var service_id = 'OxAA00'; // "Invalid UUID"
 		// var service_id = '0000aa00-0000-1000-8000-00805f9b34fb';
 		var characteristic_id = service_id;
-		this.listen(foundDevice.id, service_id, characteristic_id);
+		this.listen(foundDevice.address, service_id, characteristic_id);
 		} ); // , {'B:01':buttonGood,'B:02':buttonBad} );
 }
 

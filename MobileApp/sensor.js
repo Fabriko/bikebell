@@ -61,11 +61,11 @@ function Sensor() {
 		this['target'] = null;
 		this['connectedDevice'] = null;
 		this['services'] = null;
-		this['deviceClass'] = ble;
+		this['deviceClass'] = bluetoothle;
 	// };
 
-	logActivity('Gonna test if ble exists');
-	if (ble) {
+	logActivity('Gonna test if bluetoothle exists');
+	if (bluetoothle) {
 		logActivity('Yup');
 	}
 	else {
@@ -80,6 +80,7 @@ function Sensor() {
 		while (!this.target);
 
 		logActivity('This is handset device ' + device.uuid + ' wanting to pair with ' + ( this.target ? this.target : '[unpaired]' ) + ( isFakingConnection() ? ' [FAKED]' : '' ) ); // shouldn't need that last ternary while above do/while is in place
+
 	};
 
 	this.connectFromScratch = function(onConnectSuccess, onConnectFail) {
@@ -101,49 +102,61 @@ logActivity('connectFromScratch()');
 		}
 		else {
 			console.log('connectFromScratch to ' + __this.target);
-			logActivity('Scanning for ' + __this.target);
-
-			// TODO: test bluetooth on and go to settings if not
-
-logActivity(JSON.stringify(ble));
-
-			ble.stopScan(
-				function() {
-
-					logActivity('Starting scan .. ');
-					ble.startScanWithOptions([], {'reportDuplicates': true}, function(foundDevice) {
-						logActivity('Device: ' + JSON.stringify(foundDevice));
-
-						if(foundDevice.name == __this.target) {
-							logActivity('Target BLE central device FOUND: ' + foundDevice.name + ' with id ' + foundDevice.id, 'success');
-
-		/*
-							ble.connect(foundDevice.id,
-								function(per) { logActivity("Connect success"); logActivity(JSON.stringify(per));},
-								function(per) { logActivity("Connect fail"); logActivity(JSON.stringify(per)); }
-								);
-		*/
-							onConnectSuccess && onConnectSuccess.call(__this, foundDevice);
 
 
-						}
+			logActivity('We want to initialiZe ..');
+			new Promise(function (resolve) {
+				bluetoothle.initialize(resolve, { request: true, statusReceiver: false });
+				})
+				.then(function(result) {
+					logActivity(JSON.stringify(result));
+					if (result.status == 'enabled') {
+						logActivity('Enabled yo');
+
+						// TODO: put this within a timeout
+						logActivity('Scanning for ' + __this.target);
+
+						bluetoothle.startScan(function(foundDevice) {
+							logActivity('We got ' + JSON.stringify(foundDevice));
 
 
-					},
-					function() {
-						logActivity("startScan failed");
-						onConnectFail && onConnectFail.call();
-						}
-						);
+							if(foundDevice.name == __this.target) {
+								logActivity('Target bluetoothle device FOUND: ' + foundDevice.name + ' with address ' + foundDevice.address, 'success');
+
+								bluetoothle.stopScan(function() {
+									logActivity('Scan stopped good');
+
+									bluetoothle.connect(function(result) {
+										logActivity('Connect success!');
+										onConnectSuccess && onConnectSuccess.call(__this, foundDevice);
+										}, function(err) {
+										logActivity('Connect fail!' + JSON.stringify(err));
+										}, { address: foundDevice.address });
+
+									}, function(err) {
+									logActivity('Scan stopping failed!');
+									});
 
 
 
-					},
-				function() {
-					logActivity("stopScan failed");
-					onConnectFail && onConnectFail.call();
+							}
+
+
+							}, function(err) {
+							logActivity('Scan error ' + JSON.stringify(err));
+							}, { 'services': [] });
+
 					}
-				);
+					else {
+						logActivity('Enabled NO');
+						onConnectFail && onConnectFail.call();
+					}
+					}, function(err) {
+					logActivity(JSON.stringify(err));
+					onConnectFail && onConnectFail.call();
+					});
+
+
 		}
 	};
 
@@ -151,6 +164,14 @@ logActivity(JSON.stringify(ble));
 	this.listen = function(device_id, service_uuid, characteristic_uuid) {
 
 
+logActivity('Discover ' + device_id + '!');
+bluetoothle.discover(function(result) {
+	logActivity('Discover success ' + JSON.stringify(result));
+	}, function(err) {
+	logActivity('Discover fail ' + JSON.stringify(err));
+	}, { address: device_id });
+
+/*
 		logActivity('Gonna start listening goo');
 
 
@@ -164,7 +185,7 @@ logActivity(JSON.stringify(ble));
 				logActivity(JSON.stringify(err));
 				}
 			);
-
+*/
 
 	};
 
